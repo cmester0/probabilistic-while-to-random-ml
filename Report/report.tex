@@ -1,0 +1,87 @@
+\documentclass[11pt, leqno]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[english]{babel}
+
+\usepackage[left=20mm,right=20mm]{geometry}
+
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{listings}
+
+\lstdefinelanguage{rml}{
+}
+
+\lstdefinelanguage{pwhile}{
+}
+
+\author{Lasse Letager Hansen 201508114}
+\date{\today}
+\title{Technical report}
+
+\newcommand{\set}[1]{\{#1\}}
+
+\begin{document}
+
+\maketitle
+
+\section{Semantics}
+\subsection{pWhile}
+Defined for some context \set{ident : eqType} \set{mem : memType ident}. We have:
+\begin{align*}
+  \mathtt{cmd} &:= \mathtt{abort} \\
+               &~~\mid \mathtt{skip} \\
+               &~~\mid \mathtt{assign~\set{t}~name~expr} \\
+               &~~\mid \mathtt{random~\set{t}~distr} \\
+               &~~\mid \mathtt{cond~boolexp~cmd~cmd} \\
+               &~~\mid \mathtt{while~expr~cmd} \\
+               &~~\mid \mathtt{seqc~cmd~cmd}
+  \\ \\
+  \mathtt{(expr : T)} &:= \mathtt{var~\set{T}~vars} & \mathtt{expr~T} \\
+               &~~\mid \mathtt{cst~\set{T}~value} & \mathtt{expr~T} \\
+               &~~\mid \mathtt{prp~m} & \mathtt{expr~bool} \\
+               &~~\mid \mathtt{app~\set{T~U}~(expr : T \rightarrow U)~(expr : T)} & \mathtt{expr~U}
+  \\ \\
+  \mathtt{vars} &\subseteq \Sigma^* \\
+  \mathtt{value} &\in V
+\end{align*}
+
+\subsection{Rml}
+\begin{align*}
+  \mathtt{expr} &:= var vars \mid fun (vars : 
+  \\ \\
+  \mathtt{vars} &\in \mathbb{N} \\
+  \mathtt{value} &\in V
+\end{align*}
+
+\section{Translation}
+Example translation:\\
+\begin{center}
+  \begin{minipage}{0.45\linewidth}
+    \begin{lstlisting}[language=pwhile]
+      if (4 > 2) then 1 else 0
+    \end{lstlisting}
+  \end{minipage}
+  \begin{minipage}{0.45\linewidth}
+    \begin{lstlisting}[language=rml]
+      if (> 4 2) then 1 else 0
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+Another example
+\begin{center}
+  \begin{minipage}{0.45\linewidth}
+    \begin{lstlisting}[language=pwhile]
+      x := 3 ; x
+    \end{lstlisting}
+  \end{minipage}
+  \begin{minipage}{0.45\linewidth}
+    \begin{lstlisting}[language=rml]
+      let x := 3 in x
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+
+\end{document}
