@@ -29,16 +29,12 @@ Instance continuation_monad ZO : Monad (continuation_monad_type ZO) :=
   }. 
 Proof. all: reflexivity. Defined.
 
-Definition probability_monad_type (R : realType) := continuation_monad_type R.
-Instance probability_monad (R : realType) : Monad (probability_monad_type R) := continuation_monad R.
+Definition expectation_monad_type (R : realType) := continuation_monad_type R.
+Instance expectation_monad (R : realType) : Monad (expectation_monad_type R) := continuation_monad R.
 
 Inductive error {E A} :=
 | Throw : E -> error
 | Return : A -> error.
-
-(* Inductive isBool {T} := *)
-(* | Bool : bool -> isBool *)
-(* | NBool : T -> isBool. *)
 
 Instance error_monad E : Monad (@error E) :=
   {
@@ -51,40 +47,11 @@ Instance error_monad E : Monad (@error E) :=
   }.
 Proof. all: try destruct x. all: reflexivity. Qed.
 
-(* Inductive allType := *)
-(* | Error : string -> allType *)
-(* | Bool : bool -> allType *)
-(* | Value : forall {A}, A -> allType. *)
-
 Instance notBool_monad : Monad (@error bool) := error_monad bool.
 Instance string_env_error_monad : Monad (@error string) := error_monad string.
 
-(* Inductive allType := *)
-(* | Error : string -> allType *)
-(* | Bool : bool -> allType *)
-(* | Value : forall {A}, A -> allType. *)
-
-(* Inductive Rml {T : Type} := *)
-(* | Var : nat -> Rml *)
-(* | Const : (forall A, @error string A) -> Rml *)
-(* | Let_stm : nat -> Rml -> Rml -> Rml *)
-(* | Fun_stm : nat -> (forall A, @error string A) -> Rml -> Rml *)
-(* | If_stm : (@Rml bool) -> (@Rml T) -> (@Rml T) -> (@Rml T) *)
-(* | App_stm : Rml -> Rml -> Rml. *)
-
-Inductive Rml {E A} :=
-| Var : nat -> Rml
-| Const : @error E A -> Rml
-| Let_stm : nat -> Rml -> Rml -> Rml
-| Fun_stm : nat -> @error E A -> Rml -> Rml
-| If_stm : @Rml bool A -> Rml -> Rml -> Rml
-| App_stm : Rml -> Rml -> Rml.
-
-
-Check (fun {R A mu_b} => @bind (probability_monad_type R) (probability_monad R) (@error bool A) (@error string A) mu_b).
-
-Definition punit {R} {A} := @unit (probability_monad_type R) (probability_monad R) A.
-Definition pbind {R} {A B} := @bind (probability_monad_type R) (probability_monad R) A B.
+Definition punit {R} {A} := @unit (expectation_monad_type R) (expectation_monad R) A.
+Definition pbind {R} {A B} := @bind (expectation_monad_type R) (expectation_monad R) A B.
 
 Definition sthrow {A} := @Throw string A.
 Definition sreturn {A} := @Return string A.
@@ -92,33 +59,65 @@ Definition sreturn {A} := @Return string A.
 Definition bthrow {A} := @Throw bool A.
 Definition breturn {A} := @Return bool A.
 
-(* Definition Mif {A} {R : realType} (mu_b : (@error bool A -> R) -> R) (mu1 : (@error string A -> R) -> R) (mu2 : (@error string A -> R) -> R) : (@error string A -> R) -> R := *)
-(*   pbind mu_b *)
-(*         (fun x => *)
-(*            match x with *)
-(*            | Throw b => if b then mu1 else mu2 *)
-(*            | Return y => punit (sthrow "Condition not bool") *)
-(*            end). *)
+(* Set Printing All. *)
 
-Definition Mif {A E} {R : realType} (mu_b : (@error bool A -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
+Instance expectation_error_monad {R : realType} E : Monad (fun A => (@error E A -> R) -> R) :=
+  {
+    unit A x := punit (Return x) ;
+    bind {A B} mu M :=
+      (fun f =>
+         mu (fun x =>
+               (match x with
+                | Throw a => f (@Throw E B a)
+                | Return a => M a f
+                end)
+      ))
+        (* mu (fun x => M (bind x f)) *)
+  }.
+Proof.
+  - intros A B a M.
+    apply functional_extensionality.
+    intros f.
+    Check (fun x => punit (Return a) x).
+    assert ((match (Return a) with
+            | Throw a0 => f (Throw a0)
+            | Return a0 => M a0 f
+                  end = M a f)).
+    + reflexivity.
+    + assert (forall A (a : A) (f : A -> R), @punit R A a f = f a).
+      * reflexivity.
+      * rewrite H0.
+        reflexivity.
+  
+  - intros.
+    apply functional_extensionality.
+    intros.
+    assert ((fun x1 : error => match x1 with | Throw a => x0 (Throw a) | Return a => punit (Return a) x0 end) = x0) by (apply functional_extensionality ; (destruct x1 ; reflexivity)).
+    rewrite H ; clear H.
+    reflexivity.
+
+  - intros.
+    apply functional_extensionality.
+    intros.
+    reflexivity.
+Qed.
+    
+  
+Inductive Rml {E A} :=
+| Var : nat -> Rml
+| Const : @error E A -> Rml
+| Let_stm : nat -> Rml -> Rml -> Rml
+| Fun_stm : nat -> @error E A -> Rml -> Rml
+| If_stm : @Rml bool A -> Rml -> Rml -> Rml
+| App_stm : forall B, @Rml E (B -> A) -> @Rml E B -> @Rml E A.
+
+Definition Mif {E A} {R : realType} (mu_b : (@error bool A -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
   pbind mu_b
         (fun x =>
            match x with
            | Throw b => if b then mu1 else mu2
            | Return y => punit (Throw f)
            end).
-
-Definition reader T := forall E, E -> T.
-
-Instance reader_monad : Monad reader :=
-  {
-    unit _ x := (fun E => fun (e : E) => x);
-    bind _ _ m f := fun T => fun (e : T) => f (m T e) T e
-  }.
-Proof. all: reflexivity. Qed.
-
-Check @unit reader reader_monad nat.
-Compute @bind reader reader_monad .
 
 Inductive A_elem :=
 | elem : forall {A E}, @error E A -> A_elem.
@@ -132,11 +131,9 @@ Inductive nat_A_list :=
 Fixpoint lookup {A E} {R : realType} (l : nat_A_list) (s : nat) : @error E A.
 Proof. Admitted.
 
-Check @lookup.
+Set Printing All.
 
-(* @error string A *)
-
-Fixpoint interp {A E} {R : realType} (x : Rml) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
+Fixpoint interp {E A} {R : realType} (x : Rml) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
   match x with
   | Var s => punit (@lookup A E R l s)
   | Const v => punit v (* = string T *)
@@ -146,12 +143,25 @@ Fixpoint interp {A E} {R : realType} (x : Rml) (l : nat_A_list) (err : E) : (@er
   | Let_stm x a b =>
     pbind (interp a l err) (fun v =>
        interp b (@mlCons A E (x, v) l) err)
-  | If_stm b a1 a2 => Mif (@interp A bool R b l true) (interp a1 l err) (interp a2 l err) err
+  | If_stm b a1 a2 => Mif (@interp bool A R b l true) (interp a1 l err) (interp a2 l err) err
   (* TODO: find default, true? *)
   (* variables cannot be booleans *)
-  | App_stm e1 e2 => pbind (interp e1 l err) (fun v => interp e1 (mlCons (0%nat,v) l) err)
-                         (* TODO: ORDERING? *)
-                         (* TODO: replace 0 with correct index *)
+  | App_stm B e1 e2 =>
+    pbind (interp e1 l err)
+          (fun (v : @error E (B -> A)) =>
+             match v with
+             | Throw f => unit (@Throw E A f)
+             | Return f => (* f : B -> A *)
+               pbind (interp e2 (mlCons (0%nat,v) l) err)
+                     (fun k =>
+                        match k with
+                        | Return a => unit (unit (f a)) (* a : B *)
+                        | Throw a => unit (@Throw E A a) (* a : E *)
+                        end)
+             end)
+          (* Continuation error monad *)
+          (* TODO: ORDERING? *)
+          (* TODO: replace 0 with correct index *)
   end.
 
 Example interp_if_stm :

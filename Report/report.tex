@@ -50,7 +50,7 @@ Defined for some context \set{ident : eqType} \set{mem : memType ident}. We have
 
 \subsection{Rml}
 \begin{align*}
-  \mathtt{expr} &:= var vars \mid fun (vars : 
+  \mathtt{expr : type} &:= \mathtt{var~vars} \mid \mathtt{fun~(vars : type) \Rightarrow expr}
   \\ \\
   \mathtt{vars} &\in \mathbb{N} \\
   \mathtt{value} &\in V
