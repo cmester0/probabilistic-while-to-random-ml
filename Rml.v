@@ -167,7 +167,7 @@ Check ivar.
 (************************************)
 
 Definition vars_to_nat (t : inhabited.Inhabited.type) (v : (vars_ ident) t) : nat :=
-  0. (* TODO *)
+  1. (* TODO *)
 
 Check @iexpr.
 
@@ -194,50 +194,54 @@ Fixpoint translate_exp_bexp (e : @expr_typed bool) : Rml := (* inhabited.Inhabit
     end
   end.
 
-Fixpoint translate_exp {E A : Type} (e : @expr A) (default : forall A, @Rml E A) : @Rml E A := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
+(** Return value is saved in Var 0 *)
+
+Fixpoint translate_exp {E A : Type} (e : @expr A) : @Rml E A := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
   match e with
   | var_ t x => Var (vars_to_nat t x)
   | cst_ t c => Const (Return c) (* (Some c) *)
   | prp_ pm => Const (Return true) (* TODO *)
-  | app_ T U f x => App_stm (@translate_exp E (T -> U) f default) (translate_exp x default)
+  | app_ T U f x => App_stm (@translate_exp E (T -> U) f) (translate_exp x)
   end.
 
 Inductive Rml_elem :=
 | rmle : forall {A E}, @Rml E A -> Rml_elem.
 
-Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) (default : forall A, @Rml E A) : @Rml E A :=
+Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) : @Rml E A :=
   match x with
 
   | seqc (assign t v e) e0 =>
-    Let_stm (vars_to_nat t v) (translate_exp e default) (@pwhile_to_rml E A R e0 default)
+    Let_stm (vars_to_nat t v) (translate_exp e) (@pwhile_to_rml E A R e0)
                                      
-  | abort => default A (* Const (sthrow "Abort") *)
-  | skip => default A (* Const (sthrow "Skip") *)
+  | abort => Var 0 (* Const (sthrow "Abort") *)
+  | skip => Var 0 (* Const (sthrow "Skip") *)
   | assign t v e =>
     Let_stm
       (vars_to_nat t v)
-      (translate_exp e default)
-      (Var (vars_to_nat t v))
+      (translate_exp e)
+      (Var 0) (* (Var (vars_to_nat t v)) *)
   (* This does not seem to be correct behavior *)
   | cond e c c0 =>
-    (* Const (sthrow "TODO?") *)
     If_stm
       _
       (translate_exp_bexp (value_of_expr e))
-      (@pwhile_to_rml E A R c default)
-      (@pwhile_to_rml E A R c0 default)
-  | while _ _ => default A (* Const (sthrow "TODO WHILE LOOP") *)
-  | pwhile.random _ _ _ => default A (* Const (sthrow "TODO RANDOM") *)
-  | seqc e e0 => default A (* Const (sthrow "todo") *) (* App_stm (@pwhile_to_rml R e) (@pwhile_to_rml R e0) *)
+      (@pwhile_to_rml E A R c)
+      (@pwhile_to_rml E A R c0)
+  | while _ _ => Var 0 (* Const (sthrow "TODO WHILE LOOP") *)
+  | pwhile.random _ _ _ => Var 0 (* Const (sthrow "TODO RANDOM") *)
+  | seqc e e0 => App_stm (@pwhile_to_rml E _ R e) (@pwhile_to_rml E A R e0)
+                        (* Should this not be a let statement instead of sequence? *)
   end.
 
 Example example_pwhile_program_assignment :
-  forall E A (R : realType) (x : vars nat_ihbType) default,
-    @pwhile_to_rml E A R (x <<- 2%:S)%S default = Let_stm 0 (Const (Return 2)) (Var 0).
+  forall E A (R : realType) (x : vars nat_ihbType),
+    @pwhile_to_rml E A R (x <<- 2%:S)%S = Let_stm (vars_to_nat _ x) (Const (Return 2)) (Var 0).
 Proof. intros ; simpl. reflexivity. Qed.
 
 Example example_pwhile_program_if_boolean_condition :
-  forall A R (b : bool) default,
-    @pwhile_to_rml string A R (cond (cst_ b) skip skip) default =
-    If_stm string (Const (bthrow b)) (default A) (default A).
+  forall A R (b : bool),
+    @pwhile_to_rml string A R (cond (cst_ b) skip skip) =
+    If_stm string (Const (bthrow b)) (Var 0) (Var 0).
 Proof. intros ; simpl. reflexivity. Qed.
+
+Compute (fun E A R x => interp (@pwhile_to_rml string A R (x <<- 2%:S)%S)).
