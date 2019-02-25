@@ -33,8 +33,8 @@ Definition expectation_monad_type (R : realType) := continuation_monad_type R.
 Instance expectation_monad (R : realType) : Monad (expectation_monad_type R) := continuation_monad R.
 
 Inductive error {E A} :=
-| Throw : E -> error
-| Return : A -> error.
+| Throw (_ : E) : @error E A
+| Return (_ : A) : @error E A.
 
 Instance error_monad E : Monad (@error E) :=
   {
@@ -59,8 +59,6 @@ Definition sreturn {A} := @Return string A.
 Definition bthrow {A} := @Throw bool A.
 Definition breturn {A} := @Return bool A.
 
-(* Set Printing All. *)
-
 Instance expectation_error_monad {R : realType} E : Monad (fun A => (@error E A -> R) -> R) :=
   {
     unit A x := punit (Return x) ;
@@ -72,46 +70,26 @@ Instance expectation_error_monad {R : realType} E : Monad (fun A => (@error E A 
                 | Return a => M a f
                 end)
       ))
-        (* mu (fun x => M (bind x f)) *)
   }.
 Proof.
-  - intros A B a M.
-    apply functional_extensionality.
-    intros f.
-    Check (fun x => punit (Return a) x).
-    assert ((match (Return a) with
-            | Throw a0 => f (Throw a0)
-            | Return a0 => M a0 f
-                  end = M a f)).
-    + reflexivity.
-    + assert (forall A (a : A) (f : A -> R), @punit R A a f = f a).
-      * reflexivity.
-      * rewrite H0.
-        reflexivity.
-  
+  all: try (intros ; apply functional_extensionality ; intros ; reflexivity).    
   - intros.
     apply functional_extensionality.
     intros.
     assert ((fun x1 : error => match x1 with | Throw a => x0 (Throw a) | Return a => punit (Return a) x0 end) = x0) by (apply functional_extensionality ; (destruct x1 ; reflexivity)).
     rewrite H ; clear H.
     reflexivity.
-
-  - intros.
-    apply functional_extensionality.
-    intros.
-    reflexivity.
 Qed.
-    
-  
-Inductive Rml {E A} :=
+
+Inductive Rml {E A} : Type :=
 | Var : nat -> Rml
 | Const : @error E A -> Rml
-| Let_stm : nat -> Rml -> Rml -> Rml
-| Fun_stm : nat -> @error E A -> Rml -> Rml
-| If_stm : @Rml bool A -> Rml -> Rml -> Rml
-| App_stm : forall B, @Rml E (B -> A) -> @Rml E B -> @Rml E A.
+| Let_stm {B} : nat -> @Rml E B -> @Rml E A -> Rml
+| Fun_stm : nat -> @error E A -> @Rml E A -> Rml
+| If_stm : forall B, @Rml bool B -> @Rml E A -> @Rml E A -> @Rml E A
+| App_stm {B} : @Rml E (B -> A) -> @Rml E B -> Rml.
 
-Definition Mif {E A} {R : realType} (mu_b : (@error bool A -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
+Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
   pbind mu_b
         (fun x =>
            match x with
@@ -131,19 +109,17 @@ Inductive nat_A_list :=
 Fixpoint lookup {A E} {R : realType} (l : nat_A_list) (s : nat) : @error E A.
 Proof. Admitted.
 
-Set Printing All.
-
-Fixpoint interp {E A} {R : realType} (x : Rml) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
+Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
   match x with
   | Var s => punit (@lookup A E R l s)
   | Const v => punit v (* = string T *)
   | Fun_stm x sigma t =>
     (* TODO: unit *)
     interp t (mlCons (x,unit sigma) l) err
-  | Let_stm x a b =>
+  | Let_stm T x a b =>
     pbind (interp a l err) (fun v =>
-       interp b (@mlCons A E (x, v) l) err)
-  | If_stm b a1 a2 => Mif (@interp bool A R b l true) (interp a1 l err) (interp a2 l err) err
+       interp b (@mlCons T E (x, v) l) err)
+  | If_stm B b a1 a2 => Mif (@interp bool B R b l true) (interp a1 l err) (interp a2 l err) err
   (* TODO: find default, true? *)
   (* variables cannot be booleans *)
   | App_stm B e1 e2 =>
@@ -165,8 +141,8 @@ Fixpoint interp {E A} {R : realType} (x : Rml) (l : nat_A_list) (err : E) : (@er
   end.
 
 Example interp_if_stm :
-  forall R b s,
-    @interp nat string R (If_stm (Const (bthrow b)) (Const (Return 0)) (Const (Return 0))) mlNil s = punit (Return 0).
+  forall R B b s,
+    @interp nat nat R (If_stm B (Const (bthrow b)) (Const (Return 0)) (Const (Return 0))) mlNil s = punit (Return 0).
 Proof.
   intros.  
   simpl.
@@ -181,12 +157,14 @@ Definition std_interp {R} {A E} (r : Rml) := @interp A E R (r) mlNil.
 
 Check @Let_stm.
 
-Definition rml_let_example {E} := @Let_stm E nat (0%nat) (Const (Return 2%nat)) (Var (0%nat)). (* = Let x = 2 In x *)
+Definition rml_let_example {E} := @Let_stm E nat nat (0%nat) (Const (Return 2%nat)) (Var (0%nat)). (* = Let x = 2 In x *)
                                       
 Compute std_interp rml_let_example. (* = unit 2 *)  
 
 Check expr_.
 Check ivar.
+
+(************************************)
 
 Definition vars_to_nat (t : inhabited.Inhabited.type) (v : (vars_ ident) t) : nat :=
   0. (* TODO *)
@@ -202,57 +180,64 @@ Definition value_of_expr {A : Type} (e : expr A) : expr_typed :=
   | _ => exp e None
   end.
 
-(* Fixpoint translate_exp_bexp (e : @expr_typed bool) : Rml := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *) *)
-(*   match e with *)
-(*   | exp B e c => *)
-(*     match e with *)
-(*     | var_ t x => Const (breturn e) *)
-(*     | cst_ _ _ => Const (bthrow (match c with *)
-(*                               | Some b => b *)
-(*                               | _ => false *)
-(*                               end)) *)
-(*     | prp_ pm => Const (sthrow "") *)
-(*     | app_ _ _ f x => Const (sthrow "") *)
-(*     end *)
-(*   end. *)
+Fixpoint translate_exp_bexp (e : @expr_typed bool) : Rml := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
+  match e with
+  | exp B e c =>
+    match e with
+    | var_ t x => Const (@breturn string EmptyString)
+    | cst_ _ _ => Const (bthrow (match c with
+                                | Some b => b
+                                | _ => false
+                                end))
+    | prp_ pm => Const (@breturn string EmptyString)
+    | app_ _ _ f x => Const (@breturn string EmptyString)
+    end
+  end.
 
-Fixpoint translate_exp {A : Type} (e : @expr A) : Rml := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
+Fixpoint translate_exp {E A : Type} (e : @expr A) (default : forall A, @Rml E A) : @Rml E A := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
   match e with
   | var_ t x => Var (vars_to_nat t x)
   | cst_ t c => Const (Return c) (* (Some c) *)
-  | prp_ pm => Const (sthrow "TODO") (* default *) (* TODO *)
-  | app_ _ _ f x => App_stm (translate_exp f) (translate_exp x)
+  | prp_ pm => Const (Return true) (* TODO *)
+  | app_ T U f x => App_stm (@translate_exp E (T -> U) f default) (translate_exp x default)
   end.
 
-Fixpoint pwhile_to_rml {R : realType} (x : cmd_ _ cmem) : Rml :=
+Inductive Rml_elem :=
+| rmle : forall {A E}, @Rml E A -> Rml_elem.
+
+Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) (default : forall A, @Rml E A) : @Rml E A :=
   match x with
 
-  | seqc (assign t v e) e0 => (Let_stm (vars_to_nat t v) (translate_exp e) (@pwhile_to_rml R e0))
-    
-  | abort => (Const (Error "Abort"))
-  | skip => (Const (Error "Skip"))
+  | seqc (assign t v e) e0 =>
+    Let_stm (vars_to_nat t v) (translate_exp e default) (@pwhile_to_rml E A R e0 default)
+                                     
+  | abort => default A (* Const (sthrow "Abort") *)
+  | skip => default A (* Const (sthrow "Skip") *)
   | assign t v e =>
     Let_stm
       (vars_to_nat t v)
-      (translate_exp e)
+      (translate_exp e default)
       (Var (vars_to_nat t v))
   (* This does not seem to be correct behavior *)
   | cond e c c0 =>
+    (* Const (sthrow "TODO?") *)
     If_stm
+      _
       (translate_exp_bexp (value_of_expr e))
-      (@pwhile_to_rml R c)
-      (@pwhile_to_rml R c0)
-  | while _ _ => (Const (Error "TODO WHILE LOOP"))
-  | pwhile.random _ _ _ => (Const (Error "TODO RANDOM"))
-  | seqc e e0 => (App_stm (@pwhile_to_rml R e) (@pwhile_to_rml R e0))
+      (@pwhile_to_rml E A R c default)
+      (@pwhile_to_rml E A R c0 default)
+  | while _ _ => default A (* Const (sthrow "TODO WHILE LOOP") *)
+  | pwhile.random _ _ _ => default A (* Const (sthrow "TODO RANDOM") *)
+  | seqc e e0 => default A (* Const (sthrow "todo") *) (* App_stm (@pwhile_to_rml R e) (@pwhile_to_rml R e0) *)
   end.
 
 Example example_pwhile_program_assignment :
-  forall (R : realType) (x : vars nat_ihbType),
-    @pwhile_to_rml R (x <<- 2%:S)%S = Let_stm 0 (Const (Value 2)) (Var 0).
+  forall E A (R : realType) (x : vars nat_ihbType) default,
+    @pwhile_to_rml E A R (x <<- 2%:S)%S default = Let_stm 0 (Const (Return 2)) (Var 0).
 Proof. intros ; simpl. reflexivity. Qed.
 
 Example example_pwhile_program_if_boolean_condition :
-  forall R (b : bool),
-    @pwhile_to_rml R (cond (cst_ b) skip skip) = If_stm (Const (Bool b)) (Const (Error "Skip")) (Const (Error "Skip")).
+  forall A R (b : bool) default,
+    @pwhile_to_rml string A R (cond (cst_ b) skip skip) default =
+    If_stm string (Const (bthrow b)) (default A) (default A).
 Proof. intros ; simpl. reflexivity. Qed.
