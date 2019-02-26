@@ -86,6 +86,23 @@ Proof.
     reflexivity.
 Qed.
 
+Instance option_monad : Monad option :=
+  {
+    unit := @Some ;
+    bind _ _ x f :=
+      match x with
+      | Some y => f y
+      | None => None
+      end
+  }.
+Proof.
+  all: try destruct x.
+  all: reflexivity.
+Qed.
+
+Definition ounit {A} := @unit (option) (option_monad) A.
+Definition obind {A B} := @bind (option) (option_monad) A B.
+    
 (* -------------------------------------------------------------------------------- *)
 
 Inductive Rml {E A} : Type :=
@@ -106,9 +123,6 @@ Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : 
            | Return y => punit (Throw f)
            end).
 
-Inductive A_elem :=
-| elem : forall {A E}, @error E A -> A_elem.
-
 Inductive nat_A_list {E} {A : list Set} :=
 | mlCons : forall {B : Set}, (nat * @error E (head B A)) -> @nat_A_list E (behead A) -> nat_A_list
 | mlNil : nat_A_list.
@@ -126,7 +140,100 @@ Proof.
   all: repeat split.
 Qed.  
 
-Compute mlCons' (3,Return 4) (mlCons' (2,Return true) mlNil).
+Inductive is_well_formatted {E} : forall {A : list Set}, @nat_A_list E A -> Prop :=
+| A_list_empty : @is_well_formatted E nil mlNil
+| A_list_cons : forall A (l : @nat_A_list E (behead A)) B (p : nat * @error E (head B A)), @is_well_formatted E (behead A) l -> is_well_formatted (@mlCons E A _ p l).
+
+Fixpoint check_well_formatted {E} {A : list Set} (l : @nat_A_list E A) : bool :=
+  match l with
+  | mlCons B p l' => @check_well_formatted E (behead A) l'
+  | mlNil =>
+    match A with
+    | nil => true
+    | _ => false
+    end
+  end.
+
+Theorem well_formated_if_checked :
+  forall E A,
+  forall (l : @nat_A_list E (behead A)),
+    check_well_formatted l = true <-> @is_well_formatted E (behead A) l.
+Proof.
+  induction l eqn : lold.
+  - split.
+    + intros.
+      apply A_list_cons.
+      Check IHn n.
+      apply (IHn n).
+      * reflexivity.
+      * apply H.
+    + intros.
+      rewrite <- lold in H.
+      simpl.
+      apply (IHn n).
+      * reflexivity.
+      * clear IHn.
+        destruct H eqn : old.
+        -- easy.
+        -- inversion lold.
+           rewrite <- H3.
+           apply i.
+  - split.
+    + intros.
+      destruct A0.
+      * apply A_list_empty.
+      * easy.
+    + intros.
+      destruct A0.
+      * reflexivity.
+      * easy.
+Qed.
+
+Check @mlCons.
+
+Definition get0 E A B LA : forall l, @is_well_formatted E A l -> @error E (@nth Set B LA 0).
+Proof.
+  intros.
+  inversion p.
+  apply X.
+Defined.
+
+Definition get0 E A B LA : forall p l, @is_well_formatted E (B :: A) (@mlCons E (B :: A) B p l) -> @error E (@nth Set B (B :: LA) 0).
+Proof.
+  intros.
+  inversion p.
+  apply X.
+Defined.
+  
+Definition getn E A B LA (n : nat) : forall l, @is_well_formatted E A l -> @error E (@nth Set B LA s).
+Proof.
+  intros.
+  Set Printing All.
+  apply list_keeps_type.
+
+(* Check (fun A LA s => (fun B : @nth Set A LA s => (fun (x : B) => x))). *)
+
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @nat_A_list E LA) (s : nat) : E -> @error E (@nth Set A LA s) :=
+  (fun err =>
+     match s with
+     | O => 
+       match l with
+       | mlCons B (a,b) n => b
+       | mlNil => Throw err
+       end
+     end).
+
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @nat_A_list E LA) (s : nat) : E -> @error E (@nth Set A LA s) :=
+  (fun err =>
+     match l with
+     | mlCons B (a,b) n =>
+       if (s == a)
+       then b (* b *) (* <-- Problem here *)
+       else @lookup E A R (behead LA) n (s-1) err
+     | mlNil => Throw err
+     end
+   ).
+
 
 Fixpoint lookup {R : realType} (l : nat_A_list) (s : nat) : forall E A, E -> @error E A :=
   (fun E A => 
