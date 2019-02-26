@@ -123,28 +123,29 @@ Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : 
            | Return y => punit (Throw f)
            end).
 
-Inductive nat_A_list {E} {A : list Set} :=
-| mlCons : forall {B : Set}, (nat * @error E (head B A)) -> @nat_A_list E (behead A) -> nat_A_list
-| mlNil : nat_A_list.
+Inductive A_list {E} {A : list Set} :=
+| mlCons : forall {B : Set}, @error E (head B A) -> @A_list E (behead A) -> A_list
+| mlNil : A_list.
 
-Definition mlCons' {E} {A : list Set} {B : Set} (p : nat * @error E B) (l : @nat_A_list E A) := @mlCons E (B :: A) B p l.
+Definition mlCons' {E} {A : list Set} {B : Set} (e : @error E B) (l : @A_list E A) := @mlCons E (B :: A) B e l.
 
 Theorem list_keeps_type :
   forall E (B : Set) (n : nat) (e : @error E B),
-  forall (A : list Set) (l : @nat_A_list E A),
-    match (@mlCons E (B :: A) B (n,e) l) with
-    | mlCons _ (n',e') l' => n = n' /\ e = e' /\ l = l'
+  forall (A : list Set) (l : @A_list E A),
+    match (@mlCons E (B :: A) B e l) with
+    | mlCons _ e' l' => e = e' /\ l = l'
     | mlNil => False 
     end.
 Proof.
   all: repeat split.
 Qed.  
 
-Inductive is_well_formatted {E} : forall {A : list Set}, @nat_A_list E A -> Prop :=
+Inductive is_well_formatted {E} : forall {A : list Set}, @A_list E A -> Prop :=
 | A_list_empty : @is_well_formatted E nil mlNil
-| A_list_cons : forall A (l : @nat_A_list E (behead A)) B (p : nat * @error E (head B A)), @is_well_formatted E (behead A) l -> is_well_formatted (@mlCons E A _ p l).
+| A_list_cons : forall A (l : @A_list E (behead A)) B (e : @error E (head B A)),
+    (B = head B A) -> @is_well_formatted E (behead A) l -> is_well_formatted (@mlCons E A _ e l).
 
-Fixpoint check_well_formatted {E} {A : list Set} (l : @nat_A_list E A) : bool :=
+Fixpoint check_well_formatted {E} {A : list Set} (l : @A_list E A) : bool :=
   match l with
   | mlCons B p l' => @check_well_formatted E (behead A) l'
   | mlNil =>
@@ -156,74 +157,262 @@ Fixpoint check_well_formatted {E} {A : list Set} (l : @nat_A_list E A) : bool :=
 
 Theorem well_formated_if_checked :
   forall E A,
-  forall (l : @nat_A_list E (behead A)),
+  forall (l : @A_list E (behead A)),
     check_well_formatted l = true <-> @is_well_formatted E (behead A) l.
-Proof.
-  induction l eqn : lold.
-  - split.
-    + intros.
-      apply A_list_cons.
-      Check IHn n.
-      apply (IHn n).
-      * reflexivity.
-      * apply H.
-    + intros.
-      rewrite <- lold in H.
-      simpl.
-      apply (IHn n).
-      * reflexivity.
-      * clear IHn.
-        destruct H eqn : old.
-        -- easy.
-        -- inversion lold.
-           rewrite <- H3.
-           apply i.
-  - split.
-    + intros.
-      destruct A0.
-      * apply A_list_empty.
-      * easy.
-    + intros.
-      destruct A0.
-      * reflexivity.
-      * easy.
-Qed.
-
-Check @mlCons.
-
-Definition get0 E A B LA : forall l, @is_well_formatted E A l -> @error E (@nth Set B LA 0).
-Proof.
-  intros.
-  inversion p.
-  apply X.
-Defined.
-
-Definition get0 E A B LA : forall p l, @is_well_formatted E (B :: A) (@mlCons E (B :: A) B p l) -> @error E (@nth Set B (B :: LA) 0).
-Proof.
-  intros.
-  inversion p.
-  apply X.
-Defined.
-  
-Definition getn E A B LA (n : nat) : forall l, @is_well_formatted E A l -> @error E (@nth Set B LA s).
-Proof.
-  intros.
-  Set Printing All.
-  apply list_keeps_type.
+Proof. Admitted. (* TODO *)
 
 (* Check (fun A LA s => (fun B : @nth Set A LA s => (fun (x : B) => x))). *)
 
-Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @nat_A_list E LA) (s : nat) : E -> @error E (@nth Set A LA s) :=
+(* Fixpoint lookup0 {E} {A : Set} {R : realType} {LA} (l : @A_list E (A :: LA)) `{_ : is_well_formatted l} : E -> @error E (@nth Set A (A :: LA) 0) := *)
+(*   (fun err => *)
+(*      match l with *)
+(*      | mlCons B b n => b *)
+(*      | mlNil => Throw err *)
+(*      end). *)
+Definition tail {E} {R : realType} {LA} (l : @A_list E LA) : @A_list E (behead LA) :=
+  match l with
+  | mlCons _ _ n => n
+  | mlNil => mlNil
+  end.
+
+Fixpoint behead_n_times {T} LA n :=
+  match n with
+  | O => LA
+  | S n' => @behead T (behead_n_times LA n')
+  end.
+
+Fixpoint tail_n_times {E} {R : realType} {LA} (l : @A_list E LA) n : @A_list E (behead_n_times LA n) :=
+  match n with
+  | O => l
+  | S n' => @tail E R (behead_n_times LA n') (@tail_n_times E R LA l n')
+  end.
+
+Compute tail_n_times (@mlNil _ nil) 3.
+Compute tail_n_times (mlCons' (Return 4) (@mlNil _ nil)) 0.
+Compute tail_n_times (mlCons' (Return 4) (@mlNil _ nil)) 1.
+
+Definition ss {T} := (mlCons' (Return 4) (mlCons' (Return 4) (@mlNil T nil))).
+Check ss.
+Definition asdf {T R K} (s : A_list) := (fun n => @tail_n_times T R K s n).
+
+Inductive correct_index {E LA} : @A_list E LA -> nat -> Prop :=
+| zero : forall l n, n < size LA -> correct_index l n.
+
+Fixpoint check_correct_index {E} {LA : list Set} (l : @A_list E LA) (s : nat) : bool :=
+  s < size LA.
+
+Compute check_correct_index (@mlNil _ nil) 0.
+
+Theorem behead_is_list_if_index_correct :
+  forall LA E,
+  forall (l : @A_list E LA) (s : nat),
+    is_well_formatted l -> correct_index l s -> exists k m, behead_n_times LA s = k :: m.
+Proof.
+  induction LA ; intros.
+  + inversion H0.
+    subst.
+    simpl in *.
+    easy.
+  + induction s.
+    * simpl.
+      exists a.
+      exists LA.
+      reflexivity.
+    * simpl.
+      Check @behead.
+      Check @behead_n_times.
+      assert (forall T a LA s, @behead T (@behead_n_times T (a :: LA) s) = behead_n_times (LA) s).
+      -- induction s0.
+         ++ intros.
+            reflexivity.
+         ++ simpl.
+            rewrite IHs0.
+            reflexivity.
+      -- rewrite H1.
+         destruct l.
+         ++ inversion H ; subst.
+            apply (IHLA E l0).
+            ** assumption.
+            ** inversion H0 ; subst.
+               apply zero.
+               simpl in H2.
+               apply H2.
+         ++ easy.
+Qed.
+
+(* Fixpoint lookup0 {E} {R : realType} {P} {LA} `{_ : forall s, exists k m, (@behead_n_times Set LA s) = (k :: m)} (l : @A_list E (P :: LA)) `{_ : is_well_formatted l} : E -> @error E P := *)
+(*   (fun err => *)
+(*      match l with *)
+(*      | mlCons B b n => b *)
+(*      | mlNil => Throw err *)
+(*      end). *)
+
+
+Fixpoint lookup0 {E} {R : realType} {P} {LA} (l : @A_list E (P :: LA)) `{_ : is_well_formatted l} : E -> @error E P :=
+  (fun err =>
+     match l with
+     | mlCons B b n => b
+     | mlNil => Throw err
+     end).
+
+Compute lookup0 (tail_n_times (mlCons' (Return 4) (@mlNil _ nil)) 0) true.
+Compute lookup0 (asdf ss 1) false.
+
+Definition convert {E LA s}  (f : @A_list E (@behead_n_times Set LA s)) {k m} `{_ : @behead_n_times Set LA s = (k :: m)} : @A_list E (k :: m).
+  rewrite H in f.
+  apply f.
+Qed.  
+
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @A_list E LA) (s : nat) `{_ : is_well_formatted l} `{_ : correct_index l s} : E -> @error E (@nth Set A LA s).
+Proof.
+  intros err.
+  pose (correct_index_value := @tail_n_times E R LA l s).
+  pose (behead_is_list_if_index_correct LA E l s is_well_formatted0 correct_index0).
+
+  Check @lookup0 E R A _ (convert correct_index_value).
+  Check @lookup0 E R A _ (convert correct_index_value).
+
+  Check @is_well_formatted E _ (@convert _ _ _ correct_index_value _ _ _).
+
+  Check @convert.
+  Check nth A LA s.
+  assert (behead_val : behead_n_times LA s = nth A LA s :: (behead_n_times LA s.+1)).
+  - simpl.
+    generalize dependent s.
+    generalize dependent l.
+    induction LA.
+    + inversion correct_index0 ; subst.
+      easy.
+    + simpl in *.
+      assert (forall s, behead (behead_n_times (a :: LA) s) = behead_n_times LA s).
+      -- induction s.
+         ++ reflexivity.
+         ++ simpl.
+            rewrite IHs.
+            reflexivity.
+      -- induction s.
+         ++ intros.
+            reflexivity.
+         ++ intros.
+            simpl.
+            destruct LA.
+            ** inversion correct_index0 ; subst.
+               simpl in *.
+               easy.
+            ** rewrite H.
+               inversion is_well_formatted0 ; subst.
+               inversion correct_index0 ; subst.
+
+               Check IHLA l0 (H3) s (zero l0 s _).
+               Check zero l0 s _.
+               
+               Check IHLA l0 (H3) s (zero l0 s _).
+               apply (IHLA l0 (H3) s).
+               apply zero.
+               simpl.
+               apply H2.
+  - (* Set Printing All. *)
+    Check correct_index_value.
+    pose (converted := (@convert E LA s correct_index_value (nth A LA s) (behead_n_times LA s.+1))).
+
+    Check converted behead_val.
+    pose (converted' := converted behead_val).
+    
+    Check @lookup0 E R (@nth Set A LA s) _ converted' _ _.
+    Check (fun h1 h2 h3 => @lookup0 E R (@nth Set A LA s) (@behead_n_times Set LA s.+1) converted' h2 h3).
+    pose (solution := (fun h2 => @lookup0 E R (@nth Set A LA s) (@behead_n_times Set LA s.+1) converted' h2 err)).
+    
+    apply solution.
+
+    unfold converted'.
+    unfold converted.
+    unfold correct_index_value.
+
+    destruct s.
+    + simpl.
+
+      clear solution.
+      clear converted'.
+      clear converted.
+      clear e.
+      clear correct_index_value.
+      clear err.
+      clear correct_index0.
+      
+      pose (l'' := (@convert E LA O l
+                             match LA return Set with
+                             | nil => A
+                             | cons x _ => x
+                             end (@behead Set LA) behead_val)).
+
+      (* Set Printing All. *)
+      
+      destruct LA.
+      * simpl.
+        easy.
+      + destruct l.
+        
+      
+      
+      (* TODO WORK HERE *)
+
+
+      
+
+      
+      apply is_well_formatted0.
+      destruct (convert _) eqn : oldl.
+      * inversion is_well_formatted0 ; subst.
+    
+    destruct l.
+    + Check @A_list_cons E LA l _ .
+      apply A_list_cons.
+    
+    apply (@lookup0 E R (@nth Set A LA s) _ _ (@convert E LA s correct_index_value (nth A LA s) (behead_n_times LA s.+1) _)).
+  apply (@lookup0 E R (@nth Set A LA s) _ _ (convert correct_index_value)).
+
+Fixpoint lookup0 {E} {R : realType} {P} {LA} `{_ : forall s, exists k m, (@behead_n_times Set LA s) 
+  
+  
+  (* exists *)
+  assert (forall k m, forall (p : behead_n_times LA s = k :: m), @is_well_formatted _ _ (@convert _ _ _ correct_index_value _ _ p)).
+  - intros.
+    destruct (convert correct_index_value).
+    + apply A_list_cons.
+      simpl.
+    
+  apply (@lookup0 E R A _ _ (convert correct_index_value)).
+  Check @lookup0 E R A _ _ (correct_index_value).
+    
+  :=
+  (fun err =>
+     lookup0 (tail_n_times l s) err
+  ).
+
+Theorem correct_lookup :
+  forall E LA,
+  forall (l : @A_list E LA),
+  forall n
+    correct_index l n -> lookup0 (asdf l n) false.
+
+Compute lookup0 (asdf ss 2) false.
+
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @A_list E LA) (s : nat) `{_ : is_well_formatted l} : E -> @error E (@nth Set A LA s) :=
+  (fun err =>
+     lookup0 (tail_n_times l s) err
+  ).
+
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @A_list E LA) (s : nat) `{_ : is_well_formatted l} : E -> @error E (@nth Set A LA s) :=
   (fun err =>
      match s with
      | O => 
        match l with
-       | mlCons B (a,b) n => b
+       | mlCons B b n => b
        | mlNil => Throw err
        end
      end).
 
-Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @nat_A_list E LA) (s : nat) : E -> @error E (@nth Set A LA s) :=
+Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @A_list E LA) (s : nat) : E -> @error E (@nth Set A LA s) :=
   (fun err =>
      match l with
      | mlCons B (a,b) n =>
@@ -235,7 +424,7 @@ Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @nat_A_list E LA) (s : na
    ).
 
 
-Fixpoint lookup {R : realType} (l : nat_A_list) (s : nat) : forall E A, E -> @error E A :=
+Fixpoint lookup {R : realType} (l : A_list) (s : nat) : forall E A, E -> @error E A :=
   (fun E A => 
      (fun err =>
         match l with
@@ -249,7 +438,7 @@ Fixpoint lookup {R : realType} (l : nat_A_list) (s : nat) : forall E A, E -> @er
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
+Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : A_list) (err : E) : (@error E A -> R) -> R :=
   match x with
   | Var s => punit (@lookup E A R l s err)
   | Const v => punit v (* = string T *)
