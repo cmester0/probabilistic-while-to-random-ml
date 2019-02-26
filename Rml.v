@@ -10,16 +10,21 @@ Check cst_ 2.
 
 Parameter R : nat.  (* override from pwhile, variables still in scope? *)
 
+(* -------------------------------------------------------------------------------- *)
+
 Reserved Notation "x >>= f" (at level 40, left associativity).
-Class Monad (M : Type -> Type) := {
-  unit : forall {A}, A -> M A;
-  bind : forall {A B}, M A -> (A -> M B) -> M B
+Class Monad (M : Type -> Type) :=
+  {
+    unit : forall {A}, A -> M A;
+    bind : forall {A B}, M A -> (A -> M B) -> M B
     where "x >>= f" := (bind x f);
-  monad_law_unit_l : forall {A B} (a : A) (k : A -> M B), unit a >>= k = k a;
-  monad_law_unit_r : forall {A} (x : M A), x >>= unit = x;
-  monad_law_assoc : forall {A B C} (x : M A) (k : A -> M B) (h : B -> M C),
-      x >>= (fun a => k a >>= h) = x >>= k >>= h
-}.
+    monad_law_unit_l : forall {A B} (a : A) (k : A -> M B), unit a >>= k = k a;
+    monad_law_unit_r : forall {A} (x : M A), x >>= unit = x;
+    monad_law_assoc : forall {A B C} (x : M A) (k : A -> M B) (h : B -> M C),
+        x >>= (fun a => k a >>= h) = x >>= k >>= h
+  }.
+
+(* -------------------------------------------------------------------------------- *)
 
 Definition continuation_monad_type := fun ZO A => (A -> ZO) -> ZO.
 Instance continuation_monad ZO : Monad (continuation_monad_type ZO) :=
@@ -81,6 +86,8 @@ Proof.
     reflexivity.
 Qed.
 
+(* -------------------------------------------------------------------------------- *)
+
 Inductive Rml {E A} : Type :=
 | Var : nat -> Rml
 | Const : @error E A -> Rml
@@ -88,6 +95,8 @@ Inductive Rml {E A} : Type :=
 | Fun_stm : nat -> @error E A -> @Rml E A -> Rml
 | If_stm : forall B, @Rml bool B -> @Rml E A -> @Rml E A -> @Rml E A
 | App_stm {B} : @Rml E (B -> A) -> @Rml E B -> Rml.
+
+(* -------------------------------------------------------------------------------- *)
 
 Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
   pbind mu_b
@@ -100,25 +109,49 @@ Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : 
 Inductive A_elem :=
 | elem : forall {A E}, @error E A -> A_elem.
 
-Inductive nat_A_list :=
-| mlCons : forall {A E}, (nat * @error E A) -> nat_A_list -> nat_A_list
+Inductive nat_A_list {E} {A : list Set} :=
+| mlCons : forall {B : Set}, (nat * @error E (head B A)) -> @nat_A_list E (behead A) -> nat_A_list
 | mlNil : nat_A_list.
 
-(* seq (nat * (@error string A) *)
+Definition mlCons' {E} {A : list Set} {B : Set} (p : nat * @error E B) (l : @nat_A_list E A) := @mlCons E (B :: A) B p l.
 
-Fixpoint lookup {A E} {R : realType} (l : nat_A_list) (s : nat) : @error E A.
-Proof. Admitted.
+Theorem list_keeps_type :
+  forall E (B : Set) (n : nat) (e : @error E B),
+  forall (A : list Set) (l : @nat_A_list E A),
+    match (@mlCons E (B :: A) B (n,e) l) with
+    | mlCons _ (n',e') l' => n = n' /\ e = e' /\ l = l'
+    | mlNil => False 
+    end.
+Proof.
+  all: repeat split.
+Qed.  
+
+Compute mlCons' (3,Return 4) (mlCons' (2,Return true) mlNil).
+
+Fixpoint lookup {R : realType} (l : nat_A_list) (s : nat) : forall E A, E -> @error E A :=
+  (fun E A => 
+     (fun err =>
+        match l with
+        | mlCons B (a,b) n =>
+          if (s == a)
+          then b (* b *) (* <-- Problem here *)
+          else @lookup R n s E A err
+        | mlNil => Throw err
+        end
+     )).
+
+(* -------------------------------------------------------------------------------- *)
 
 Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : nat_A_list) (err : E) : (@error E A -> R) -> R :=
   match x with
-  | Var s => punit (@lookup A E R l s)
+  | Var s => punit (@lookup E A R l s err)
   | Const v => punit v (* = string T *)
   | Fun_stm x sigma t =>
     (* TODO: unit *)
     interp t (mlCons (x,unit sigma) l) err
   | Let_stm T x a b =>
     pbind (interp a l err) (fun v =>
-       interp b (@mlCons T E (x, v) l) err)
+       interp b (@mlCons E T (x, v) l) err)
   | If_stm B b a1 a2 => Mif (@interp bool B R b l true) (interp a1 l err) (interp a2 l err) err
   (* TODO: find default, true? *)
   (* variables cannot be booleans *)
@@ -140,6 +173,8 @@ Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : nat_A_list) (err : E) :
           (* TODO: replace 0 with correct index *)
   end.
 
+(* -------------------------------------------------------------------------------- *)
+
 Example interp_if_stm :
   forall R B b s,
     @interp nat nat R (If_stm B (Const (bthrow b)) (Const (Return 0)) (Const (Return 0))) mlNil s = punit (Return 0).
@@ -153,6 +188,17 @@ Proof.
   destruct b ; reflexivity.
 Qed.
 
+Example interp_lookup_var :
+  forall R s n,
+    @interp nat nat R (Let_stm n (Const (Return 3)) (Var n)) mlNil s = punit (Return 3).
+Proof.
+  intros.
+  simpl.
+  unfold pbind.
+  unfold punit.
+  simpl.
+Qed.
+
 Definition std_interp {R} {A E} (r : Rml) := @interp A E R (r) mlNil.
 
 Check @Let_stm.
@@ -164,7 +210,7 @@ Compute std_interp rml_let_example. (* = unit 2 *)
 Check expr_.
 Check ivar.
 
-(************************************)
+(* -------------------------------------------------------------------------------- *)
 
 Definition vars_to_nat (t : inhabited.Inhabited.type) (v : (vars_ ident) t) : nat :=
   1. (* TODO *)
@@ -204,8 +250,7 @@ Fixpoint translate_exp {E A : Type} (e : @expr A) : @Rml E A := (* inhabited.Inh
   | app_ T U f x => App_stm (@translate_exp E (T -> U) f) (translate_exp x)
   end.
 
-Inductive Rml_elem :=
-| rmle : forall {A E}, @Rml E A -> Rml_elem.
+(* -------------------------------------------------------------------------------- *)
 
 Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) : @Rml E A :=
   match x with
@@ -233,6 +278,8 @@ Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) : @Rml E A :=
                         (* Should this not be a let statement instead of sequence? *)
   end.
 
+(* -------------------------------------------------------------------------------- *)
+
 Example example_pwhile_program_assignment :
   forall E A (R : realType) (x : vars nat_ihbType),
     @pwhile_to_rml E A R (x <<- 2%:S)%S = Let_stm (vars_to_nat _ x) (Const (Return 2)) (Var 0).
@@ -244,4 +291,15 @@ Example example_pwhile_program_if_boolean_condition :
     If_stm string (Const (bthrow b)) (Var 0) (Var 0).
 Proof. intros ; simpl. reflexivity. Qed.
 
-Compute (fun E A R x => interp (@pwhile_to_rml string A R (x <<- 2%:S)%S)).
+(* -------------------------------------------------------------------------------- *)
+
+Compute (fun E A R n => interp (@pwhile_to_rml string A R (n <<- 2%:S)%S) mlNil).
+
+Section Examples.
+Context (ident : eqType) (t : ihbType) (x : (vars_ ident) t).
+
+Compute var_.
+Compute @ivar nat_eqType nat_eqType id nat_ihbType.
+Compute @var_ _ _ _ x%V.
+
+End Examples.
