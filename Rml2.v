@@ -249,29 +249,128 @@ Proof.
     +
 Admitted.
 
-Fixpoint interp {A} {R} (x : @sRml A) : continuation_monad_type R A :=
+Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
   | sConst c => cunit R c
-  | sIf_stm b m1 m2 => bind (interp b) (fun (t : bool) => if t then (interp m1) else (interp m2))
-  | sApp_stm C e1 e2 => bind (interp e1) (fun (g : C -> A) => bind (interp e2) (fun k => unit (g k)))
+  | sIf_stm b m1 m2 => bind (interp_srml b) (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
+  | sApp_stm C e1 e2 => bind (interp_srml e1) (fun (g : C -> A) => bind (interp_srml e2) (fun k => unit (g k)))
   end.
 
+Definition valid_const' {A} c := @valid_const A A c (erefl A).
+Definition is_const' {A} c := @is_const A c.
 
-Compute @rml_to_sRml nat (Const nat 4) (@is_const nat 4) (@valid_const nat nat 4 (erefl nat)).
+Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (valid_const' c).
 
-(* Inductive well_formed : Rml -> Prop := *)
-(* | is_well_formed :  *)
-  
+Compute interp_srml (rml_to_sRml_const 4).
 
-(* Theorem becomes_simple : *)
-(*   forall rml srml, well_formed rml -> Some srml = replace_var_for_let rml -> rml_is_simple (srml). *)
-(* Proof. *)
+(* Inductive var_in_rml_scope : nat -> Rml -> Prop := *)
+(* | var_in_var : forall n, var_in_rml_scope n (Var n) *)
+(* | var_in_let1 : forall n1 n2 rml1 rml2, var_in_rml_scope n1 rml1 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2) *)
+(* | var_in_let2 : forall n1 n2 rml1 rml2, n1 <> n2 -> var_in_rml_scope n1 rml2 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2). *)
 
-Fixpoint interp_rml {R} (x : Rml) {A} (rml : Rml) `{_ : rml_valid_type A rml} : option (continuation_monad_type R A).
-Proof.  
-  pose (first_pass := replace_var_for_let x).  
-  refine (obind first_pass (fun y => Some (interp (rml_to_sRml y)))).
+Inductive well_formed : seq nat -> Rml -> Prop :=
+| well_const : forall A c l, well_formed l (Const A c)
+| well_var : forall x l, List.In x l -> well_formed l (Var x)
+| well_let_stm : forall x e1 e2 l, well_formed l e1 -> well_formed (x :: l) e2 -> well_formed l (Let_stm x e1 e2)
+| well_if : forall b m1 m2 l, well_formed l b -> well_formed l m1 -> well_formed l m2 -> well_formed l (If_stm b m1 m2)
+| well_app : forall B e1 e2 l, well_formed l e1 -> well_formed l e2 -> well_formed l (App_stm B e1 e2).
+
+Inductive well_formed_empty : Rml -> Prop :=
+| well : forall rml, well_formed nil rml -> well_formed_empty rml.
+
+Example var_not_well_formed :
+  forall n, well_formed_empty (Var n) -> False.
+Proof.
+  intros.
+  inversion H ; subst ; clear H.
+  inversion H0 ; subst.
+  easy.
 Qed.
-                                                                                       
-Fixpoint interp_rml {R} (x : Rml) {A} (rml : Rml) `{_ : rml_valid_type A rml} : option (continuation_monad_type R A) :=
-  obind (replace_var_for_let x) (fun y => Some (interp (rml_to_sRml y))).
+
+Example var_in_let_well_formed :
+  forall n rml, well_formed_empty rml -> well_formed_empty (Let_stm n rml (Var n)).
+Proof.
+  intros.
+  apply well.
+  apply well_let_stm.
+  - inversion H ; subst ; clear H.
+    apply H0.
+  - apply well_var.
+  - left.
+    reflexivity.
+Qed.  
+
+Example var_not_in_let_well_formed :
+  forall n1 n2 rml, n1 <> n2 -> well_formed_empty (Let_stm n1 rml (Var n2)) -> False.
+Proof.
+  intros.
+  inversion H0 ; subst ; clear H0.
+  inversion H1 ; subst ; clear H1.
+  clear H4.
+  inversion H6 ; subst ; clear H6.
+  inversion H2.
+  easy.
+  easy.
+Qed.  
+
+Theorem y_is_simple :
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
+  forall y, (replace_var_for_let x) = Some y -> rml_is_simple y.
+Proof.
+  intros x.
+  induction x ; intros.
+  - easy.
+  - destruct y ; try easy.
+    + apply is_const.
+  - destruct y ; try easy.
+  - simpl in H.
+    unfold obind in H.
+    (do 3 destruct replace_var_for_let) ; inversion H.
+    inversion x_valid ; subst.
+    inversion x_well ; subst.
+    inversion H0 ; subst.
+    apply is_if.
+    + apply (IHx1 bool).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+    + apply (IHx2 A).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+    + apply (IHx3 A).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+  - simpl in H.
+    (do 2 destruct replace_var_for_let) ; inversion H.
+    inversion x_valid ; subst.
+    inversion x_well ; subst.
+    inversion H0 ; subst.
+    apply is_app.
+    + apply (IHx1 (P -> A)).
+      * assumption.
+      * apply well.
+        assumption.
+      * reflexivity.
+    + apply (IHx2 P).
+      * assumption.
+      * apply well.
+        assumption.
+      * reflexivity.
+Qed.
+
+Theorem y_is_valid :
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
+  forall y, (replace_var_for_let x) = Some y -> rml_valid_type A y.
+Proof.
+Admitted.
+
+Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : option (continuation_monad_type R A).
+  case (replace_var_for_let x) eqn : first_pass_old.
+  - refine (Some (interp_srml (@rml_to_sRml A r (@y_is_simple x A x_valid x_well r first_pass_old) (@y_is_valid x A x_valid x_well r first_pass_old)))).
+  - refine None.
+Defined.
