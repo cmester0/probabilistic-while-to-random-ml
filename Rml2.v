@@ -367,10 +367,69 @@ Theorem y_is_valid :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
   forall y, (replace_var_for_let x) = Some y -> rml_valid_type A y.
 Proof.
-Admitted.
+  intros x A x_valid x_well.
+  induction x_valid.
+  - intros.
+    simpl in H0.
+    inversion H0 ; subst.
+    apply valid_const.
+    reflexivity.  
+  - intros.
+    inversion H.
+    unfold obind in *.
+    destruct (replace_var_for_let b).
+    + destruct (replace_var_for_let m1).
+      * destruct (replace_var_for_let m2).
+        -- inversion H1 ; subst.
+           ++ apply valid_if.
+              ** apply IHx_valid1.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+              ** apply IHx_valid2.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+              ** apply IHx_valid3.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+        -- easy.
+      * easy.
+    + easy.
+  - intros.
+    inversion H.
+    unfold obind in *.
+    destruct (replace_var_for_let e1).
+    + destruct (replace_var_for_let e2).
+      * inversion H1.
+        apply valid_app.
+        -- apply IHx_valid1.
+           ++ inversion x_well ; subst.
+              inversion H0 ; subst.
+              apply well.
+              assumption.
+           ++ reflexivity.
+        -- apply IHx_valid2.
+           ++ inversion x_well ; subst.
+              inversion H0 ; subst.
+              apply well.
+              assumption.
+           ++ reflexivity.
+      * easy.
+    + easy.
+Qed.
 
 Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : option (continuation_monad_type R A).
   case (replace_var_for_let x) eqn : first_pass_old.
   - refine (Some (interp_srml (@rml_to_sRml A r (@y_is_simple x A x_valid x_well r first_pass_old) (@y_is_valid x A x_valid x_well r first_pass_old)))).
   - refine None.
 Defined.
+
+Compute @interp_rml _ (Const nat 4) nat (valid_const nat nat 4) (well (Const nat 4) (well_const nat 4 nil)).
