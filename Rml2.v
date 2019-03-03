@@ -68,7 +68,7 @@ Inductive Rml : Type :=
 | Let_stm : nat -> Rml -> Rml -> Rml
 (* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *)
 | If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : Rml -> Rml -> Rml.
+| App_stm : Type -> Rml -> Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -90,10 +90,10 @@ Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : option R
     obind (replace_var_with_value m1 index value) (fun m1' =>
     obind (replace_var_with_value m2 index value) (fun m2' =>
       Some (If_stm b' m1' m2'))))
-  | App_stm e1 e2 =>
+  | App_stm B e1 e2 =>
     obind (replace_var_with_value e1 index value) (fun e1' =>
     obind (replace_var_with_value e2 index value) (fun e2' =>
-      Some (App_stm e1' e2')))                     
+      Some (App_stm B e1' e2')))                     
   end.
 
 Fixpoint replace_var_for_let (x : Rml) :=
@@ -107,10 +107,10 @@ Fixpoint replace_var_for_let (x : Rml) :=
     obind (replace_var_for_let m1) (fun m1' =>
     obind (replace_var_for_let m2) (fun m2' =>
       Some (If_stm b' m1' m2'))))
-  | App_stm e1 e2 =>
+  | App_stm B e1 e2 =>
     obind (replace_var_for_let e1) (fun e1' =>
     obind (replace_var_for_let e2) (fun e2' =>
-      Some (App_stm e1' e2')))
+      Some (App_stm B e1' e2')))
   | _ => Some x
   end.
 
@@ -142,43 +142,23 @@ Inductive rml_trans_correct {A} : Rml -> @sRml A -> Prop :=
     forall B,
     forall rmle1 (srmle1 : @sRml (B -> A)), @rml_trans_correct (B -> A) rmle1 srmle1 ->
     forall rmle2 (srmle2 : @sRml B), @rml_trans_correct B rmle2 srmle2 ->
-      rml_trans_correct (App_stm rmle1 rmle2) (sApp_stm B srmle1 srmle2).
-
-Fixpoint sRml_to_rml {A} (srml : @sRml A) :=
-  match srml with
-  | sConst c => Const A c
-  | sIf_stm b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
-  | sApp_stm B f x => App_stm (sRml_to_rml f) (sRml_to_rml x)
-  end.
-
-Theorem transform_correctness_inverse :
-  forall A srml, rml_trans_correct (@sRml_to_rml A srml) srml.
-Proof.
-  intros.
-  induction srml.
-  - simpl.
-    apply const.
-  - simpl.
-    apply (@ifstm A (sRml_to_rml srml1) srml1 IHsrml1 (sRml_to_rml srml2) srml2 IHsrml2 (sRml_to_rml srml3) srml3 IHsrml3).
-  - simpl.
-    apply (@appstm A B (sRml_to_rml srml1) srml1 IHsrml1 (sRml_to_rml srml2) srml2 IHsrml2).
-Qed.
+      rml_trans_correct (App_stm B rmle1 rmle2) (sApp_stm B srmle1 srmle2).
 
 Inductive rml_is_simple : Rml -> Prop :=
 | is_const : forall A c, rml_is_simple (Const A c)
 | is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (If_stm b m1 m2)
-| is_app : forall e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (App_stm e1 e2).
+| is_app : forall B e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (App_stm B e1 e2).
 
 Inductive rml_valid_type : Type -> Rml -> Prop :=
-| valid_const : forall A B (c : B) {_ : A = B}, rml_valid_type A (Const B c)
+| valid_const : forall (A B : Set) (c : B) {_ : @eq Set A B}, rml_valid_type A (Const B c)
 | valid_if : forall A b m1 m2, rml_valid_type bool b -> rml_valid_type A m1 -> rml_valid_type A m2 -> rml_valid_type A (If_stm b m1 m2)
-| valid_app : forall A B e1 e2, rml_valid_type (B -> A) e1 -> rml_valid_type B e2 -> rml_valid_type A (App_stm e1 e2).
+| valid_app : forall A B e1 e2, rml_valid_type (B -> A) e1 -> rml_valid_type B e2 -> rml_valid_type A (App_stm B e1 e2).
 
 Fixpoint rml_to_sRml {A} (rml : Rml) `{_ : rml_is_simple rml} `{_ : rml_valid_type A rml}
   : @sRml A.
 Proof.  
   case rml eqn : o_rml ; try (exfalso ; easy).
-  - assert (forall A B c, rml_valid_type A (Const B c) -> A = B) by (intros; inversion H ; easy).
+  - assert (forall A B c, rml_valid_type A (Const B c) -> A = B) by (intros; inversion H ; subst ; easy).
     assert (A = A0) by (apply (H A A0 a) ; assumption).
     pose (a).
     rewrite <- H0 in a0.
@@ -194,20 +174,42 @@ Proof.
     pose (m2 := @rml_to_sRml A r3 s3 p3).
     
     refine (sIf_stm b m1 m2).
-  - assert (app_valid_type : forall A r1 r2, rml_valid_type A (App_stm r1 r2) -> exists B, (rml_valid_type (B -> A) r1 /\ rml_valid_type B r2)) by (intros ; inversion H ; exists B ; easy).
+  - assert (app_valid_type : forall A B r1 r2, (rml_valid_type A (App_stm B r1 r2)) -> rml_valid_type (B -> A) r1 /\ rml_valid_type B r2) by (intros ; inversion H ; easy).
     
-    pose (temp := app_valid_type A r1 r2 rml_valid_type0). 
+    pose (temp := app_valid_type A T r1 r2 rml_valid_type0). 
 
-    assert (app_is_simple : forall r1 r2, rml_is_simple (App_stm r1 r2) -> (rml_is_simple r1 /\ rml_is_simple r2)) by (intros; inversion H ; easy).
-    pose (a := app_is_simple r1 r2 rml_is_simple0) ; inversion a as [s1 s2] ; clear a.
-    
-    assert (exists (B : Type), True).
-    + inversion temp as [x [p1 p2]].
-      pose (e1 := @rml_to_sRml (x -> A) r1 s1 p1).
-      pose (e2 := @rml_to_sRml x r2 s2 p2).
-      pose (solution := sApp_stm x e1 e2).
-      exists x.
-      easy.
+    assert (app_is_simple : forall B r1 r2, rml_is_simple (App_stm B r1 r2) -> (rml_is_simple r1 /\ rml_is_simple r2)) by (intros; inversion H ; easy).
+    pose (a := app_is_simple T r1 r2 rml_is_simple0) ; inversion a as [s1 s2] ; clear a.
+
+    inversion temp as [p1 p2].
+    pose (e1 := @rml_to_sRml (T -> A) r1 s1 p1).
+    pose (e2 := @rml_to_sRml T r2 s2 p2).
+    apply (sApp_stm T e1 e2).
+Defined.
+
+Set Printing All.
+Compute erefl nat.
+Compute @valid_const nat nat 4.
+Compute @rml_to_sRml nat (@Const nat 4) (@is_const nat 4) (@valid_const nat nat 4 (erefl nat)).
+             
+Example correct_translation_const :
+  @rml_to_sRml nat (@Const nat 4) (@is_const nat 4) (@valid_const nat nat 4 (erefl nat)) = sConst 4.
+Proof.
+  intros.
+  
+
+Compute @rml_to_sRml nat (@Const nat 4) (@is_const nat 4) (@valid_const nat nat 4 _).
+
+Theorem rml_to_sRml_correct :
+  forall A rml rml_is_simple rml_valid_type,
+    @rml_trans_correct A rml (@rml_to_sRml A rml rml_is_simple rml_valid_type).
+Proof.
+  (* intros. *)
+  (* destruct rml eqn : o_rml ; try (exfalso ; easy). *)
+  (* - assert (rml_valid_type A0 (Const A0 a)) by (apply valid_const ; reflexivity). *)
+  (*   assert (@sConst A0 a = @rml_to_sRml A0 (Const A0 a) rml_is_simple0 H). *)
+  (*   +  *)
+  (*     simpl. *)      
 Admitted.
 
 Fixpoint interp {A} {R} (x : @sRml A) : continuation_monad_type R A :=
@@ -217,5 +219,23 @@ Fixpoint interp {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   | sApp_stm C e1 e2 => bind (interp e1) (fun (g : C -> A) => bind (interp e2) (fun k => unit (g k)))
   end.
 
+Compute rml_is_simple (Const nat 4).
+Check @rml_to_sRml.
+Compute @rml_to_sRml nat (Const nat 4) (is_const nat 4) (valid_const nat nat 4).
+
+(* Inductive well_formed : Rml -> Prop := *)
+(* | is_well_formed :  *)
+  
+
+(* Theorem becomes_simple : *)
+(*   forall rml srml, well_formed rml -> Some srml = replace_var_for_let rml -> rml_is_simple (srml). *)
+(* Proof. *)
+
+Fixpoint interp_rml {R} (x : Rml) {A} (rml : Rml) `{_ : rml_valid_type A rml} : option (continuation_monad_type R A).
+Proof.  
+  pose (first_pass := replace_var_for_let x).  
+  refine (obind first_pass (fun y => Some (interp (rml_to_sRml y)))).
+Qed.
+                                                                                       
 Fixpoint interp_rml {R} (x : Rml) {A} (rml : Rml) `{_ : rml_valid_type A rml} : option (continuation_monad_type R A) :=
   obind (replace_var_for_let x) (fun y => Some (interp (rml_to_sRml y))).
