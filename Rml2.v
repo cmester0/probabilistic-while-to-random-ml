@@ -214,41 +214,6 @@ Example correct_translation_app :
     = sApp_stm A (sConst f) (sConst x).
 Proof. reflexivity. Qed.
 
-Lemma simple_const_only_is_const :
-  forall A c {k : rml_is_simple (Const A c)}, k = is_const A c.
-Proof.
-Admitted.
-
-Lemma valid_const_only_valid_const :
-  forall A c {k : rml_valid_type A (Const A c)}, k = @valid_const A A c (erefl A).
-Proof.
-  intros.
-  inversion k ; subst.
-Admitted.
-
-Theorem rml_to_sRml_correct :
-  forall A rml `{simple : rml_is_simple rml} `{valid : rml_valid_type A rml},
-    @rml_trans_correct A rml (@rml_to_sRml A rml simple valid).
-Proof.
-  intros.
-  induction rml ; try (exfalso ; easy).
-  - assert (A0 = A) by (inversion valid ; subst ; reflexivity) ; subst.
-    assert (@sConst A a = @rml_to_sRml A (Const A a) simple valid).
-    + rewrite (@simple_const_only_is_const A a simple).
-      rewrite (@valid_const_only_valid_const A a valid).
-      apply (correct_translation_const A a).      
-    + rewrite <- H. apply const.
-  - inversion simple ; subst.
-    inversion valid ; subst.
-
-    pose (p1 := (@rml_to_sRml bool rml1 H2 H6)).
-    pose (p2 := (@rml_to_sRml A rml2 H3 H7)).
-    pose (p3 := (@rml_to_sRml A rml3 H4 H8)).    
-    
-    assert (@sIf_stm A p1 p2 p3 = @rml_to_sRml A (If_stm rml1 rml2 rml3) simple valid).
-    +
-Admitted.
-
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
   | sConst c => cunit R c
