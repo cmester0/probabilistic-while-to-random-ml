@@ -6,12 +6,6 @@ From xhl Require Import pwhile.pwhile.
 From xhl Require Import inhabited notations.
 Require Import FunctionalExtensionality.
 
-Check cst_ 2.
-
-Parameter R : nat.  (* override from pwhile, variables still in scope? *)
-
-(* -------------------------------------------------------------------------------- *)
-
 Reserved Notation "x >>= f" (at level 40, left associativity).
 Class Monad (M : Type -> Type) :=
   {
@@ -34,539 +28,373 @@ Instance continuation_monad ZO : Monad (continuation_monad_type ZO) :=
   }. 
 Proof. all: reflexivity. Defined.
 
+Definition cunit ZO {A} (x : A) : continuation_monad_type ZO A := fun (f : A -> ZO) => f x.
+Definition cbind ZO {A B} (mu : (A -> ZO) -> ZO) (M : A -> (B -> ZO) -> ZO) : continuation_monad_type ZO B := fun (f : B -> ZO) => mu (fun (x : A) => M x f).
+
 Definition expectation_monad_type (R : realType) := continuation_monad_type R.
 Instance expectation_monad (R : realType) : Monad (expectation_monad_type R) := continuation_monad R.
 
-Inductive error {E A} :=
-| Throw (_ : E) : @error E A
-| Return (_ : A) : @error E A.
-
-Instance error_monad E : Monad (@error E) :=
-  {
-    unit _ x := Return x ;
-    bind _ _ x f :=
-      match x with
-      | Return y => f y
-      | Throw y => Throw y
-      end
-  }.
-Proof. all: try destruct x. all: reflexivity. Qed.
-
-Instance notBool_monad : Monad (@error bool) := error_monad bool.
-Instance string_env_error_monad : Monad (@error string) := error_monad string.
-
-Definition punit {R} {A} := @unit (expectation_monad_type R) (expectation_monad R) A.
-Definition pbind {R} {A B} := @bind (expectation_monad_type R) (expectation_monad R) A B.
-
-Definition sthrow {A} := @Throw string A.
-Definition sreturn {A} := @Return string A.
-
-Definition bthrow {A} := @Throw bool A.
-Definition breturn {A} := @Return bool A.
-
-Instance expectation_error_monad {R : realType} E : Monad (fun A => (@error E A -> R) -> R) :=
-  {
-    unit A x := punit (Return x) ;
-    bind {A B} mu M :=
-      (fun f =>
-         mu (fun x =>
-               (match x with
-                | Throw a => f (@Throw E B a)
-                | Return a => M a f
-                end)
-      ))
-  }.
-Proof.
-  all: try (intros ; apply functional_extensionality ; intros ; reflexivity).    
-  - intros.
-    apply functional_extensionality.
-    intros.
-    assert ((fun x1 : error => match x1 with | Throw a => x0 (Throw a) | Return a => punit (Return a) x0 end) = x0) by (apply functional_extensionality ; (destruct x1 ; reflexivity)).
-    rewrite H ; clear H.
-    reflexivity.
-Qed.
+Definition obind {A B} (x : option A) (f : A -> option B) : option B :=
+  match x with
+  | Some y => f y
+  | None => None
+  end.
 
 Instance option_monad : Monad option :=
   {
-    unit := @Some ;
-    bind _ _ x f :=
-      match x with
-      | Some y => f y
-      | None => None
-      end
+    unit := @Some;
+    bind := @obind
   }.
 Proof.
   all: try destruct x.
   all: reflexivity.
 Qed.
 
-Definition ounit {A} := @unit (option) (option_monad) A.
-Definition obind {A B} := @bind (option) (option_monad) A B.
-    
+Check @None.
+
 (* -------------------------------------------------------------------------------- *)
 
-Inductive Rml {E A} : Type :=
+(* Inductive Rml {A} : Type := *)
+(* | Var : nat -> @Rml A *)
+(* | Const : A -> @Rml A *)
+(* | Let_stm : forall B, nat -> @Rml B -> @Rml A -> @Rml A *)
+(* (* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *) *)
+(* | If_stm : @Rml bool -> @Rml A -> @Rml A -> @Rml A *)
+(* | App_stm : forall B, @Rml (B -> A) -> @Rml B -> @Rml A. *)
+
+Inductive Rml : Type :=
 | Var : nat -> Rml
-| Const : @error E A -> Rml
-| Let_stm {B} : nat -> @Rml E B -> @Rml E A -> Rml
-| Fun_stm : nat -> @error E A -> @Rml E A -> Rml
-| If_stm : forall B, @Rml bool B -> @Rml E A -> @Rml E A -> @Rml E A
-| App_stm {B} : @Rml E (B -> A) -> @Rml E B -> Rml.
+| Const : forall (A : Set), A -> Rml
+| Let_stm : nat -> Rml -> Rml -> Rml
+(* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *)
+| If_stm : Rml -> Rml -> Rml -> Rml
+| App_stm : Set -> Rml -> Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
-Definition Mif {E A B} {R : realType} (mu_b : (@error bool B -> R) -> R) (mu1 : (@error E A -> R) -> R) (mu2 : (@error E A -> R) -> R) (f : E) : (@error E A -> R) -> R :=
-  pbind mu_b
-        (fun x =>
-           match x with
-           | Throw b => if b then mu1 else mu2
-           | Return y => punit (Throw f)
-           end).
-
-Inductive A_list {E} {A : list Set} :=
-| mlCons : forall {B : Set}, @error E (head B A) -> @A_list E (behead A) -> A_list
-| mlNil : A_list.
-
-Definition mlCons' {E} {A : list Set} {B : Set} (e : @error E B) (l : @A_list E A) := @mlCons E (B :: A) B e l.
-
-Theorem list_keeps_type :
-  forall E (B : Set) (n : nat) (e : @error E B),
-  forall (A : list Set) (l : @A_list E A),
-    match (@mlCons E (B :: A) B e l) with
-    | mlCons _ e' l' => e = e' /\ l = l'
-    | mlNil => False 
-    end.
-Proof.
-  all: repeat split.
-Qed.  
-
-Inductive is_well_formatted {E} : forall {A : list Set}, @A_list E A -> Prop :=
-| A_list_empty : @is_well_formatted E nil mlNil
-| A_list_cons : forall A (l : @A_list E (behead A)) B (e : @error E (head B A)),
-    (B = head B A) -> @is_well_formatted E (behead A) l -> is_well_formatted (@mlCons E A _ e l).
-
-Fixpoint check_well_formatted {E} {A : list Set} (l : @A_list E A) : bool :=
-  match l with
-  | mlCons B p l' => @check_well_formatted E (behead A) l'
-  | mlNil =>
-    match A with
-    | nil => true
-    | _ => false
-    end
-  end.
-
-Compute check_well_formatted (@mlNil _ (nat :: nil)).
-
-Theorem well_formated_if_checked :
-  forall E A,
-  forall (l : @A_list E (behead A)),
-    check_well_formatted l = true <-> @is_well_formatted E (behead A) l.
-Proof. Admitted. (* TODO *)
-
-(* Check (fun A LA s => (fun B : @nth Set A LA s => (fun (x : B) => x))). *)
-
-(* Fixpoint lookup0 {E} {A : Set} {R : realType} {LA} (l : @A_list E (A :: LA)) `{_ : is_well_formatted l} : E -> @error E (@nth Set A (A :: LA) 0) := *)
-(*   (fun err => *)
-(*      match l with *)
-(*      | mlCons B b n => b *)
-(*      | mlNil => Throw err *)
-(*      end). *)
-Definition tail {E} {R : realType} {LA} (l : @A_list E LA) : @A_list E (behead LA) :=
-  match l with
-  | mlCons _ _ n => n
-  | mlNil => mlNil
-  end.
-
-Fixpoint behead_n_times {T} LA n :=
-  match n with
-  | O => LA
-  | S n' => @behead T (behead_n_times LA n')
-  end.
-
-Fixpoint tail_n_times {E} {R : realType} {LA} (l : @A_list E LA) n : @A_list E (behead_n_times LA n) :=
-  match n with
-  | O => l
-  | S n' => @tail E R (behead_n_times LA n') (@tail_n_times E R LA l n')
-  end.
-
-(* Compute tail_n_times (@mlNil _ nil) 3. *)
-(* Compute tail_n_times (mlCons' (Return 4) (@mlNil _ nil)) 0. *)
-(* Compute tail_n_times (mlCons' (Return 4) (@mlNil _ nil)) 1. *)
-
-Definition ss {T} := (mlCons' (Return 4) (mlCons' (Return 4) (@mlNil T nil))).
-Check ss.
-Definition asdf {T R K} (s : A_list) := (fun n => @tail_n_times T R K s n).
-
-Inductive correct_index {E LA} : @A_list E LA -> nat -> Prop :=
-| zero : forall l n, n < size LA -> correct_index l n.
-
-Fixpoint check_correct_index {E} {LA : list Set} (l : @A_list E LA) (s : nat) : bool :=
-  s < size LA.
-
-Compute check_correct_index (@mlNil _ nil) 0.
-
-Theorem behead_is_list_if_index_correct :
-  forall LA E,
-  forall (l : @A_list E LA) (s : nat),
-    is_well_formatted l -> correct_index l s -> exists k m, behead_n_times LA s = k :: m.
-Proof.
-  induction LA ; intros.
-  + inversion H0.
-    subst.
-    simpl in *.
-    easy.
-  + induction s.
-    * simpl.
-      exists a.
-      exists LA.
-      reflexivity.
-    * simpl.
-      Check @behead.
-      Check @behead_n_times.
-      assert (forall T a LA s, @behead T (@behead_n_times T (a :: LA) s) = behead_n_times (LA) s).
-      -- induction s0.
-         ++ intros.
-            reflexivity.
-         ++ simpl.
-            rewrite IHs0.
-            reflexivity.
-      -- rewrite H1.
-         destruct l.
-         ++ inversion H ; subst.
-            apply (IHLA E l0).
-            ** assumption.
-            ** inversion H0 ; subst.
-               apply zero.
-               simpl in H2.
-               apply H2.
-         ++ easy.
-Qed.
-
-(* Fixpoint lookup0 {E} {R : realType} {P} {LA} `{_ : forall s, exists k m, (@behead_n_times Set LA s) = (k :: m)} (l : @A_list E (P :: LA)) `{_ : is_well_formatted l} : E -> @error E P := *)
-(*   (fun err => *)
-(*      match l with *)
-(*      | mlCons B b n => b *)
-(*      | mlNil => Throw err *)
-(*      end). *)
-
-
-Fixpoint lookup0 {E} {R : realType} {P} {LA} (l : @A_list E (P :: LA)) `{_ : is_well_formatted l} : E -> @error E P :=
-  (fun err =>
-     match l with
-     | mlCons B b n => b
-     | mlNil => Throw err
-     end).
-
-Compute lookup0 (tail_n_times (mlCons' (Return false) (mlCons' (Return 4) (@mlNil _ nil))) 0) true.
-Compute lookup0 (asdf ss 1) false.
-
-Fixpoint struct_eq {E LA1 LA2} (l1 : @A_list E LA1) (l2 : @A_list E LA2) :=
-  match l1 with
-  | mlCons _ e l1' =>
-    match l2 with
-    | mlCons _ _ l2' => struct_eq l1' l2'
-    | mlNil => false
-    end
-  | mlNil =>
-    match l2 with
-    | mlCons _ _ _ => false
-    | mlNil => true
-    end
-  end.
-
-Definition convert {E LA s}  (f : @A_list E (@behead_n_times Set LA s)) {k m} `{_ : @behead_n_times Set LA s = (k :: m)} : @A_list E (k :: m).
-Proof.
-  rewrite H in f.
-  apply f.
-Qed.
-
-Compute convert mlNil.
-
-Check mlCons.
-
-(* Theorem convert_struct_eq : *)
-(*   forall E LA s, *)
-(*   forall f, *)
-(*   forall k m, *)
-(*   forall `{be : @behead_n_times Set LA s = (k :: m)}, *)
-(*     struct_eq (@convert E LA s f k m be) f = true. *)
-(* Proof. *)
-(*   intros. *)
-(*   destruct f. *)
-(*   - unfold struct_eq. *)
-
-Fixpoint lookup {E} {A : Set} {R : realType} {LA} (l : @A_list E LA) (s : nat) `{_ : is_well_formatted l} `{_ : correct_index l s} : E -> @error E (@nth Set A LA s).
-Proof.
-  intros err.
-  pose (correct_index_value := @tail_n_times E R LA l s).
-  pose (behead_is_list_if_index_correct LA E l s is_well_formatted0 correct_index0).
-
-  Check @lookup0 E R A _ (convert correct_index_value).
-  Check @lookup0 E R A _ (convert correct_index_value).
-
-  Check @is_well_formatted E _ (@convert _ _ _ correct_index_value _ _ _).
-
-  Check @convert.
-  Check nth A LA s.
-  assert (behead_val : behead_n_times LA s = nth A LA s :: (behead_n_times LA s.+1)).
-  - simpl.
-    generalize dependent s.
-    generalize dependent l.
-    induction LA.
-    + inversion correct_index0 ; subst.
-      easy.
-    + simpl in *.
-      assert (forall s, behead (behead_n_times (a :: LA) s) = behead_n_times LA s).
-      -- induction s.
-         ++ reflexivity.
-         ++ simpl.
-            rewrite IHs.
-            reflexivity.
-      -- induction s.
-         ++ intros.
-            reflexivity.
-         ++ intros.
-            simpl.
-            destruct LA.
-            ** inversion correct_index0 ; subst.
-               simpl in *.
-               easy.
-            ** rewrite H.
-               inversion is_well_formatted0 ; subst.
-               inversion correct_index0 ; subst.
-
-               Check IHLA l0 (H3) s (zero l0 s _).
-               Check zero l0 s _.
-               
-               Check IHLA l0 (H3) s (zero l0 s _).
-               apply (IHLA l0 (H3) s).
-               apply zero.
-               simpl.
-               apply H2.
-  - (* Set Printing All. *)
-    Check correct_index_value.
-    pose (converted := (@convert E LA s correct_index_value (nth A LA s) (behead_n_times LA s.+1))).
-
-    Check converted behead_val.
-    pose (converted' := converted behead_val).
-    
-    Check @lookup0 E R (@nth Set A LA s) _ converted' _ _.
-    Check (fun h1 h2 h3 => @lookup0 E R (@nth Set A LA s) (@behead_n_times Set LA s.+1) converted' h2 h3).
-    pose (solution := (fun h2 => @lookup0 E R (@nth Set A LA s) (@behead_n_times Set LA s.+1) converted' h2 err)).
-    
-    apply solution.
-
-    unfold converted'.
-    unfold converted.
-    unfold correct_index_value.
-
-    destruct s.
-    + simpl.
-
-      clear solution.
-      clear converted'.
-      clear converted.
-      clear e.
-      clear correct_index_value.
-      clear err.
-      clear correct_index0.
-      
-      pose (l'' := (@convert E LA O l
-                             match LA return Set with
-                             | nil => A
-                             | cons x _ => x
-                             end (@behead Set LA) behead_val)).
-
-      (* Set Printing All. *)
-      
-      destruct LA.
-      * simpl.
-        easy.
-      + destruct l.
-
-        Check @mlCons.
-        
-        assert (exists k,
-                   (@convert E (@cons Set P LA) O (@mlCons E (@cons Set P LA) B e l) P
-                             (@behead Set (@cons Set P LA)) behead_val) = (mlCons e k)).
-        * exists l.
-          induction e.
-          -- Admitted.
-          
-
-(* -------------------------------------------------------------------------------- *)
-
-Definition var_x := 2.
-
-Fixpoint something {A} (l : seq (nat * A)) (s : nat) : option A :=
-  match l with
-  | (s', p) :: r =>
-    if s' == s
-    then Some p
-    else something r s
-  | nil => None
-  end.
-
-Compute something nat (l
-
-Fixpoint interp {E A} {R : realType} (x : @Rml E A) (l : A_list) (err : E) : (@error E A -> R) -> R :=
+Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : option Rml :=
   match x with
-  | Var s => punit (@lookup E A R l s err)
-  | Const v => punit v (* = string T *)
-  | Fun_stm x sigma t =>
-    (* TODO: unit *)
-    interp t (mlCons (x,unit sigma) l) err
-  | Let_stm T x a b =>
-    pbind (interp a l err) (fun v =>
-       interp b (@mlCons E T (x, v) l) err)
-  | If_stm B b a1 a2 => Mif (@interp bool B R b l true) (interp a1 l err) (interp a2 l err) err
-  (* TODO: find default, true? *)
-  (* variables cannot be booleans *)
+  | Var n =>
+    if n == index
+    then Some value
+    else Some x
+  | Const A c => Some x
+  | Let_stm n a b =>
+    obind (replace_var_with_value a index value)
+         (fun new_value =>
+            if n == index
+            then replace_var_with_value b index new_value
+            else replace_var_with_value b index value)
+  | If_stm b m1 m2 =>
+    obind (replace_var_with_value b index value) (fun b' =>
+    obind (replace_var_with_value m1 index value) (fun m1' =>
+    obind (replace_var_with_value m2 index value) (fun m2' =>
+      Some (If_stm b' m1' m2'))))
   | App_stm B e1 e2 =>
-    pbind (interp e1 l err)
-          (fun (v : @error E (B -> A)) =>
-             match v with
-             | Throw f => unit (@Throw E A f)
-             | Return f => (* f : B -> A *)
-               pbind (interp e2 (mlCons (0%nat,v) l) err)
-                     (fun k =>
-                        match k with
-                        | Return a => unit (unit (f a)) (* a : B *)
-                        | Throw a => unit (@Throw E A a) (* a : E *)
-                        end)
-             end)
-          (* Continuation error monad *)
-          (* TODO: ORDERING? *)
-          (* TODO: replace 0 with correct index *)
+    obind (replace_var_with_value e1 index value) (fun e1' =>
+    obind (replace_var_with_value e2 index value) (fun e2' =>
+      Some (App_stm B e1' e2')))                     
   end.
 
-(* -------------------------------------------------------------------------------- *)
+Fixpoint replace_var_for_let (x : Rml) :=
+  match x with
+  | Let_stm n a b =>
+    obind (replace_var_for_let b) (fun b' =>
+    obind (replace_var_for_let a) (fun a' =>
+    replace_var_with_value b' n a'))
+  | If_stm b m1 m2 =>
+    obind (replace_var_for_let b) (fun b' =>
+    obind (replace_var_for_let m1) (fun m1' =>
+    obind (replace_var_for_let m2) (fun m2' =>
+      Some (If_stm b' m1' m2'))))
+  | App_stm B e1 e2 =>
+    obind (replace_var_for_let e1) (fun e1' =>
+    obind (replace_var_for_let e2) (fun e2' =>
+      Some (App_stm B e1' e2')))
+  | _ => Some x
+  end.
 
-Example interp_if_stm :
-  forall R B b s,
-    @interp nat nat R (If_stm B (Const (bthrow b)) (Const (Return 0)) (Const (Return 0))) mlNil s = punit (Return 0).
-Proof.
-  intros.  
-  simpl.
-  unfold Mif.
-  unfold pbind.
-  unfold punit.
-  simpl.
-  destruct b ; reflexivity.
-Qed.
+Definition example : Rml :=
+  (If_stm (Const bool true)
+          (Let_stm
+             16 (Const bool true)
+             (Let_stm
+                12 (Const nat 4)
+                (If_stm (Var 16) (Var 12) (Const nat 10))))
+          (Const nat 900)).
+   
+Compute replace_var_for_let example.
 
-Example interp_lookup_var :
-  forall R s n,
-    @interp nat nat R (Let_stm n (Const (Return 3)) (Var n)) mlNil s = punit (Return 3).
+Inductive sRml {A : Set} : Type :=
+| sConst : A -> @sRml A
+| sIf_stm : @sRml bool -> sRml -> sRml -> sRml
+| sApp_stm : forall (B : Set), @sRml (B -> A) -> @sRml B -> sRml.
+(* | Fun_stm : forall B, nat -> B -> @sRml A -> @sRml A *)
+
+Inductive rml_trans_correct {A} : Rml -> @sRml A -> Prop :=
+| const : forall (c : A), rml_trans_correct (Const A c) (sConst c)
+| ifstm : 
+    forall rmlb (srmlb : @sRml bool), @rml_trans_correct bool rmlb srmlb ->
+    forall rmlm1 (srmlm1 : @sRml A), rml_trans_correct rmlm1 srmlm1 ->
+    forall rmlm2 (srmlm2 : @sRml A), rml_trans_correct rmlm2 srmlm2 ->
+       rml_trans_correct (If_stm rmlb rmlm1 rmlm2) (sIf_stm srmlb srmlm1 srmlm2)
+| appstm :
+    forall (B : Set),
+    forall rmle1 (srmle1 : @sRml (B -> A)), @rml_trans_correct (B -> A) rmle1 srmle1 ->
+    forall rmle2 (srmle2 : @sRml B), @rml_trans_correct B rmle2 srmle2 ->
+      rml_trans_correct (App_stm B rmle1 rmle2) (sApp_stm B srmle1 srmle2).
+
+Inductive rml_is_simple : Rml -> Prop :=
+| is_const : forall (A : Set) c, rml_is_simple (Const A c)
+| is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (If_stm b m1 m2)
+| is_app : forall (B : Set) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (App_stm B e1 e2).
+
+Inductive rml_valid_type : Set -> Rml -> Prop :=
+| valid_const : forall (A B : Set) (c : B) {_ : @eq Set A B}, rml_valid_type A (Const B c)
+| valid_if : forall (A : Set) b m1 m2, rml_valid_type bool b -> rml_valid_type A m1 -> rml_valid_type A m2 -> rml_valid_type A (If_stm b m1 m2)
+| valid_app : forall (A B : Set) e1 e2, rml_valid_type (B -> A) e1 -> rml_valid_type B e2 -> rml_valid_type A (App_stm B e1 e2).
+
+Fixpoint rml_to_sRml {A : Set} (rml : Rml) `{_ : rml_is_simple rml} `{_ : rml_valid_type A rml}
+  : @sRml A.
+Proof.  
+  case rml eqn : o_rml ; try (exfalso ; easy).
+  - assert (forall (A B : Set) c, rml_valid_type A (Const B c) -> A = B) by (intros; inversion H ; subst ; easy).
+    assert (A = A0) by (apply (H A A0 a) ; assumption).
+    pose (a).
+    rewrite <- H0 in a0.
+    refine (sConst a0).
+  - assert (if_valid_type : forall A r1 r2 r3, rml_valid_type A (If_stm r1 r2 r3) -> (rml_valid_type bool r1 /\ rml_valid_type A r2 /\ rml_valid_type A r3)) by (intros; inversion H; easy).
+    pose (a := if_valid_type A r1 r2 r3 rml_valid_type0) ; inversion a as [p1 [p2 p3]] ; clear a.
+
+    assert (if_is_simple : forall r1 r2 r3, rml_is_simple (If_stm r1 r2 r3) -> (rml_is_simple r1 /\ rml_is_simple r2 /\ rml_is_simple r3)) by (intros; inversion H ; easy).
+    pose (if_is_simple r1 r2 r3 rml_is_simple0) ; inversion a as [s1 [s2 s3]] ; clear a.
+    
+    pose (b := @rml_to_sRml bool r1 s1 p1).
+    pose (m1 := @rml_to_sRml A r2 s2 p2).
+    pose (m2 := @rml_to_sRml A r3 s3 p3).
+    
+    refine (sIf_stm b m1 m2).
+  - assert (app_valid_type : forall A B r1 r2, (rml_valid_type A (App_stm B r1 r2)) -> rml_valid_type (B -> A) r1 /\ rml_valid_type B r2) by (intros ; inversion H ; easy).
+    
+    pose (temp := app_valid_type A P r1 r2 rml_valid_type0).
+
+    assert (app_is_simple : forall B r1 r2, rml_is_simple (App_stm B r1 r2) -> (rml_is_simple r1 /\ rml_is_simple r2)) by (intros; inversion H ; easy).
+    pose (a := app_is_simple P r1 r2 rml_is_simple0) ; inversion a as [s1 s2] ; clear a.
+
+    inversion temp as [p1 p2].
+    pose (e1 := @rml_to_sRml (P -> A) r1 s1 p1).
+    pose (e2 := @rml_to_sRml P r2 s2 p2).
+    apply (sApp_stm P e1 e2).
+Defined.
+
+Example correct_translation_const :
+  forall A c, @rml_to_sRml A (@Const A c) (@is_const A c) (@valid_const A A c (erefl A)) = sConst c.
+Proof. reflexivity. Qed.
+
+Example correct_translation_if :
+  forall A b n1 n2,
+    let cb := (Const bool b) in
+    let cn := (Const A n1) in
+    let cns := (Const A n2) in
+    @rml_to_sRml A
+      (@If_stm cb cn cns)
+      (@is_if cb cn cns (@is_const bool b) (@is_const A n1) (@is_const A n2))
+      (@valid_if A cb cn cns (@valid_const bool bool b (erefl bool)) (@valid_const A A n1 (erefl A)) (@valid_const A A n2 (erefl A)))
+    = sIf_stm (sConst b) (sConst n1) (sConst n2).
+Proof. reflexivity. Qed.
+
+Example correct_translation_app :
+  forall (A B : Set) f x,
+    let cf := (Const (A -> B) f) in
+    let cx := (Const A x) in
+    @rml_to_sRml B
+      (@App_stm A cf cx)
+      (@is_app A cf cx (@is_const (A -> B) f) (@is_const A x))
+      (@valid_app B A cf cx (@valid_const (A -> B) (A -> B) f (erefl (A -> B))) (@valid_const A A x (erefl A)))
+    = sApp_stm A (sConst f) (sConst x).
+Proof. reflexivity. Qed.
+
+Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
+  match x with
+  | sConst c => cunit R c
+  | sIf_stm b m1 m2 => bind (interp_srml b) (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
+  | sApp_stm C e1 e2 => bind (interp_srml e1) (fun (g : C -> A) => bind (interp_srml e2) (fun k => unit (g k)))
+  end.
+
+Definition valid_const' {A} c := @valid_const A A c (erefl A).
+Definition is_const' {A} c := @is_const A c.
+
+Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (valid_const' c).
+
+Compute interp_srml (rml_to_sRml_const 4).
+
+(* Inductive var_in_rml_scope : nat -> Rml -> Prop := *)
+(* | var_in_var : forall n, var_in_rml_scope n (Var n) *)
+(* | var_in_let1 : forall n1 n2 rml1 rml2, var_in_rml_scope n1 rml1 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2) *)
+(* | var_in_let2 : forall n1 n2 rml1 rml2, n1 <> n2 -> var_in_rml_scope n1 rml2 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2). *)
+
+Inductive well_formed : seq nat -> Rml -> Prop :=
+| well_const : forall A c l, well_formed l (Const A c)
+| well_var : forall x l, List.In x l -> well_formed l (Var x)
+| well_let_stm : forall x e1 e2 l, well_formed l e1 -> well_formed (x :: l) e2 -> well_formed l (Let_stm x e1 e2)
+| well_if : forall b m1 m2 l, well_formed l b -> well_formed l m1 -> well_formed l m2 -> well_formed l (If_stm b m1 m2)
+| well_app : forall B e1 e2 l, well_formed l e1 -> well_formed l e2 -> well_formed l (App_stm B e1 e2).
+
+Inductive well_formed_empty : Rml -> Prop :=
+| well : forall rml, well_formed nil rml -> well_formed_empty rml.
+
+Example var_not_well_formed :
+  forall n, well_formed_empty (Var n) -> False.
 Proof.
   intros.
-  simpl.
-  unfold pbind.
-  unfold punit.
-  simpl.
+  inversion H ; subst ; clear H.
+  inversion H0 ; subst.
+  easy.
 Qed.
 
-Definition std_interp {R} {A E} (r : Rml) := @interp A E R (r) mlNil.
+Example var_in_let_well_formed :
+  forall n rml, well_formed_empty rml -> well_formed_empty (Let_stm n rml (Var n)).
+Proof.
+  intros.
+  apply well.
+  apply well_let_stm.
+  - inversion H ; subst ; clear H.
+    apply H0.
+  - apply well_var.
+  - left.
+    reflexivity.
+Qed.  
 
-Check @Let_stm.
+Example var_not_in_let_well_formed :
+  forall n1 n2 rml, n1 <> n2 -> well_formed_empty (Let_stm n1 rml (Var n2)) -> False.
+Proof.
+  intros.
+  inversion H0 ; subst ; clear H0.
+  inversion H1 ; subst ; clear H1.
+  clear H4.
+  inversion H6 ; subst ; clear H6.
+  inversion H2.
+  easy.
+  easy.
+Qed.  
 
-Definition rml_let_example {E} := @Let_stm E nat nat (0%nat) (Const (Return 2%nat)) (Var (0%nat)). (* = Let x = 2 In x *)
-                                      
-Compute std_interp rml_let_example. (* = unit 2 *)  
+Theorem y_is_simple :
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
+  forall y, (replace_var_for_let x) = Some y -> rml_is_simple y.
+Proof.
+  intros x.
+  induction x ; intros.
+  - easy.
+  - destruct y ; try easy.
+    + apply is_const.
+  - destruct y ; try easy.
+  - simpl in H.
+    unfold obind in H.
+    (do 3 destruct replace_var_for_let) ; inversion H.
+    inversion x_valid ; subst.
+    inversion x_well ; subst.
+    inversion H0 ; subst.
+    apply is_if.
+    + apply (IHx1 bool).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+    + apply (IHx2 A).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+    + apply (IHx3 A).
+      * assumption.
+      * apply well.
+         assumption.
+      * reflexivity.
+  - simpl in H.
+    (do 2 destruct replace_var_for_let) ; inversion H.
+    inversion x_valid ; subst.
+    inversion x_well ; subst.
+    inversion H0 ; subst.
+    apply is_app.
+    + apply (IHx1 (P -> A)).
+      * assumption.
+      * apply well.
+        assumption.
+      * reflexivity.
+    + apply (IHx2 P).
+      * assumption.
+      * apply well.
+        assumption.
+      * reflexivity.
+Qed.
 
-Check expr_.
-Check ivar.
+Theorem y_is_valid :
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
+  forall y, (replace_var_for_let x) = Some y -> rml_valid_type A y.
+Proof.
+  intros x A x_valid x_well.
+  induction x_valid.
+  - intros.
+    simpl in H0.
+    inversion H0 ; subst.
+    apply valid_const.
+    reflexivity.  
+  - intros.
+    inversion H.
+    unfold obind in *.
+    destruct (replace_var_for_let b).
+    + destruct (replace_var_for_let m1).
+      * destruct (replace_var_for_let m2).
+        -- inversion H1 ; subst.
+           ++ apply valid_if.
+              ** apply IHx_valid1.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+              ** apply IHx_valid2.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+              ** apply IHx_valid3.
+                 --- inversion x_well ; subst.
+                     inversion H0 ; subst.
+                     apply well.
+                     assumption.
+                 --- reflexivity.
+        -- easy.
+      * easy.
+    + easy.
+  - intros.
+    inversion H.
+    unfold obind in *.
+    destruct (replace_var_for_let e1).
+    + destruct (replace_var_for_let e2).
+      * inversion H1.
+        apply valid_app.
+        -- apply IHx_valid1.
+           ++ inversion x_well ; subst.
+              inversion H0 ; subst.
+              apply well.
+              assumption.
+           ++ reflexivity.
+        -- apply IHx_valid2.
+           ++ inversion x_well ; subst.
+              inversion H0 ; subst.
+              apply well.
+              assumption.
+           ++ reflexivity.
+      * easy.
+    + easy.
+Qed.
 
-(* -------------------------------------------------------------------------------- *)
+Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : option (continuation_monad_type R A).
+  case (replace_var_for_let x) eqn : first_pass_old.
+  - refine (Some (interp_srml (@rml_to_sRml A r (@y_is_simple x A x_valid x_well r first_pass_old) (@y_is_valid x A x_valid x_well r first_pass_old)))).
+  - refine None.
+Defined.
 
-Definition vars_to_nat (t : inhabited.Inhabited.type) (v : (vars_ ident) t) : nat :=
-  1. (* TODO *)
-
-Check @iexpr.
-
-Inductive expr_typed {A} :=
-| exp : forall {B}, expr B -> option A -> expr_typed.
-
-Definition value_of_expr {A : Type} (e : expr A) : expr_typed :=
-  match e with
-  | cst_ t c => exp e (Some c)
-  | _ => exp e None
-  end.
-
-Fixpoint translate_exp_bexp (e : @expr_typed bool) : Rml := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
-  match e with
-  | exp B e c =>
-    match e with
-    | var_ t x => Const (@breturn string EmptyString)
-    | cst_ _ _ => Const (bthrow (match c with
-                                | Some b => b
-                                | _ => false
-                                end))
-    | prp_ pm => Const (@breturn string EmptyString)
-    | app_ _ _ f x => Const (@breturn string EmptyString)
-    end
-  end.
-
-(** Return value is saved in Var 0 *)
-
-Fixpoint translate_exp {E A : Type} (e : @expr A) : @Rml E A := (* inhabited.Inhabited.type *) (* (inhabited.Inhabited.sort t) *)
-  match e with
-  | var_ t x => Var (vars_to_nat t x)
-  | cst_ t c => Const (Return c) (* (Some c) *)
-  | prp_ pm => Const (Return true) (* TODO *)
-  | app_ T U f x => App_stm (@translate_exp E (T -> U) f) (translate_exp x)
-  end.
-
-(* -------------------------------------------------------------------------------- *)
-
-Fixpoint pwhile_to_rml {E A} {R : realType} (x : cmd) : @Rml E A :=
-  match x with
-
-  | seqc (assign t v e) e0 =>
-    Let_stm (vars_to_nat t v) (translate_exp e) (@pwhile_to_rml E A R e0)
-                                     
-  | abort => Var 0 (* Const (sthrow "Abort") *)
-  | skip => Var 0 (* Const (sthrow "Skip") *)
-  | assign t v e =>
-    Let_stm
-      (vars_to_nat t v)
-      (translate_exp e)
-      (Var 0) (* (Var (vars_to_nat t v)) *)
-  (* This does not seem to be correct behavior *)
-  | cond e c c0 =>
-    If_stm
-      _
-      (translate_exp_bexp (value_of_expr e))
-      (@pwhile_to_rml E A R c)
-      (@pwhile_to_rml E A R c0)
-  | while _ _ => Var 0 (* Const (sthrow "TODO WHILE LOOP") *)
-  | pwhile.random _ _ _ => Var 0 (* Const (sthrow "TODO RANDOM") *)
-  | seqc e e0 => App_stm (@pwhile_to_rml E _ R e) (@pwhile_to_rml E A R e0)
-                        (* Should this not be a let statement instead of sequence? *)
-  end.
-
-(* -------------------------------------------------------------------------------- *)
-
-Example example_pwhile_program_assignment :
-  forall E A (R : realType) (x : vars nat_ihbType),
-    @pwhile_to_rml E A R (x <<- 2%:S)%S = Let_stm (vars_to_nat _ x) (Const (Return 2)) (Var 0).
-Proof. intros ; simpl. reflexivity. Qed.
-
-Example example_pwhile_program_if_boolean_condition :
-  forall A R (b : bool),
-    @pwhile_to_rml string A R (cond (cst_ b) skip skip) =
-    If_stm string (Const (bthrow b)) (Var 0) (Var 0).
-Proof. intros ; simpl. reflexivity. Qed.
-
-(* -------------------------------------------------------------------------------- *)
-
-Compute (fun E A R n => interp (@pwhile_to_rml string A R (n <<- 2%:S)%S) mlNil).
-
-Section Examples.
-Context (ident : eqType) (t : ihbType) (x : (vars_ ident) t).
-
-Compute var_.
-Compute @ivar nat_eqType nat_eqType id nat_ihbType.
-Compute @var_ _ _ _ x%V.
-
-End Examples.
+Compute @interp_rml _ (Const nat 4) nat (valid_const nat nat 4) (well (Const nat 4) (well_const nat 4 nil)).
