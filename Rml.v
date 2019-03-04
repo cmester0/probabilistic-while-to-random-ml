@@ -17,18 +17,12 @@ Notation "x >>= f" := (bind x f).
 (* -------------------------------------------------------------------------------- *)
 
 Definition continuation_monad_type := fun ZO A => (A -> ZO) -> ZO.
-Instance continuation_monad ZO : Monad (continuation_monad_type ZO) :=
+Instance continuation_monad {ZO} : Monad (continuation_monad_type ZO) :=
   {
     unit := fun {A} (x : A) (f : A -> ZO) => f x ;
     bind := fun {A B} (mu : (A -> ZO) -> ZO) (M : A -> (B -> ZO) -> ZO) (f : B -> ZO) => mu (fun (x : A) => M x f)
   }. 
 Proof. all: reflexivity. Defined.
-
-Definition cunit ZO {A} (x : A) : continuation_monad_type ZO A := fun (f : A -> ZO) => f x.
-Definition cbind ZO {A B} (mu : (A -> ZO) -> ZO) (M : A -> (B -> ZO) -> ZO) : continuation_monad_type ZO B := fun (f : B -> ZO) => mu (fun (x : A) => M x f).
-
-Definition expectation_monad_type (R : realType) := continuation_monad_type R.
-Instance expectation_monad (R : realType) : Monad (expectation_monad_type R) := continuation_monad R.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -241,7 +235,7 @@ Proof. reflexivity. Qed.
 
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
-  | sConst c => cunit R c
+  | sConst c => unit c
   | sIf_stm b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
   | sApp_stm C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
   end.
@@ -255,7 +249,7 @@ Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (
 
 (* -------------------------------------------------------------------------------- *)
 
-Theorem y_is_simple :
+Theorem replace_var_for_let_simple :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
     rml_is_simple (replace_var_for_let x).
 Proof.
@@ -295,7 +289,7 @@ Proof.
         assumption.
 Qed.
 
-Theorem y_is_valid :
+Theorem replace_var_for_let_valid :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x},
     rml_valid_type A (replace_var_for_let x).
 Proof.
@@ -331,9 +325,11 @@ Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : continuation_monad_type R A.
-  refine (interp_srml (@rml_to_sRml A (replace_var_for_let x) (@y_is_simple x A x_valid x_well) (@y_is_valid x A x_valid x_well))).
-Defined.
+Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : continuation_monad_type R A :=
+  let y := replace_var_for_let x in
+  let y_simple := @replace_var_for_let_simple x A x_valid x_well in
+  let y_valid := @replace_var_for_let_valid x A x_valid x_well in
+  (interp_srml (@rml_to_sRml A y y_simple y_valid)).
 
 Compute @interp_rml _ (@Const nat 4) nat (@valid_const nat nat 4 (@erefl Set nat)) (@well (@Const nat 4) (@well_const nat 4 (@nil nat))).
 
