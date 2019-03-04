@@ -4,4 +4,4 @@ all :
 clean : 
 	rm *.glob
 	rm *.vo
-	rm *.aux
+	rm .*.aux
