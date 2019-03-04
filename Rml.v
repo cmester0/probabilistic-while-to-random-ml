@@ -1,10 +1,5 @@
-Require Import String.
 From mathcomp Require Import all_ssreflect all_algebra.
-From mathcomp Require Import analysis.altreals.distr.
 From mathcomp Require Import analysis.reals.
-From xhl Require Import pwhile.pwhile.
-From xhl Require Import inhabited notations.
-Require Import FunctionalExtensionality.
 
 Reserved Notation "x >>= f" (at level 40, left associativity).
 Class Monad (M : Type -> Type) :=
@@ -17,7 +12,8 @@ Class Monad (M : Type -> Type) :=
     monad_law_assoc : forall {A B C} (x : M A) (k : A -> M B) (h : B -> M C),
         x >>= (fun a => k a >>= h) = x >>= k >>= h
   }.
-
+Notation "x >>= f" := (bind x f).
+         
 (* -------------------------------------------------------------------------------- *)
 
 Definition continuation_monad_type := fun ZO A => (A -> ZO) -> ZO.
@@ -50,17 +46,7 @@ Proof.
   all: reflexivity.
 Qed.
 
-Check @None.
-
 (* -------------------------------------------------------------------------------- *)
-
-(* Inductive Rml {A} : Type := *)
-(* | Var : nat -> @Rml A *)
-(* | Const : A -> @Rml A *)
-(* | Let_stm : forall B, nat -> @Rml B -> @Rml A -> @Rml A *)
-(* (* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *) *)
-(* | If_stm : @Rml bool -> @Rml A -> @Rml A -> @Rml A *)
-(* | App_stm : forall B, @Rml (B -> A) -> @Rml B -> @Rml A. *)
 
 Inductive Rml : Type :=
 | Var : nat -> Rml
@@ -80,27 +66,27 @@ Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : option R
     else Some x
   | Const A c => Some x
   | Let_stm n a b =>
-    obind (replace_var_with_value a index value)
+     (replace_var_with_value a index value) >>=
          (fun new_value =>
             if n == index
             then replace_var_with_value b index new_value
             else replace_var_with_value b index value)
   | If_stm b m1 m2 =>
-    obind (replace_var_with_value b index value) (fun b' =>
-    obind (replace_var_with_value m1 index value) (fun m1' =>
-    obind (replace_var_with_value m2 index value) (fun m2' =>
+    (replace_var_with_value b index value) >>= (fun b' =>
+    (replace_var_with_value m1 index value) >>= (fun m1' =>
+    (replace_var_with_value m2 index value) >>= (fun m2' =>
       Some (If_stm b' m1' m2'))))
   | App_stm B e1 e2 =>
-    obind (replace_var_with_value e1 index value) (fun e1' =>
-    obind (replace_var_with_value e2 index value) (fun e2' =>
+    (replace_var_with_value e1 index value) >>= (fun e1' =>
+    (replace_var_with_value e2 index value) >>= (fun e2' =>
       Some (App_stm B e1' e2')))                     
   end.
 
 Fixpoint replace_var_for_let (x : Rml) :=
   match x with
   | Let_stm n a b =>
-    obind (replace_var_for_let b) (fun b' =>
-    obind (replace_var_for_let a) (fun a' =>
+    (replace_var_for_let b) >>= (fun b' =>
+    (replace_var_for_let a) >>= (fun a' =>
     replace_var_with_value b' n a'))
   | If_stm b m1 m2 =>
     obind (replace_var_for_let b) (fun b' =>
@@ -129,7 +115,6 @@ Inductive sRml {A : Set} : Type :=
 | sConst : A -> @sRml A
 | sIf_stm : @sRml bool -> sRml -> sRml -> sRml
 | sApp_stm : forall (B : Set), @sRml (B -> A) -> @sRml B -> sRml.
-(* | Fun_stm : forall B, nat -> B -> @sRml A -> @sRml A *)
 
 Inductive rml_trans_correct {A} : Rml -> @sRml A -> Prop :=
 | const : forall (c : A), rml_trans_correct (Const A c) (sConst c)
@@ -217,21 +202,14 @@ Proof. reflexivity. Qed.
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
   | sConst c => cunit R c
-  | sIf_stm b m1 m2 => bind (interp_srml b) (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
-  | sApp_stm C e1 e2 => bind (interp_srml e1) (fun (g : C -> A) => bind (interp_srml e2) (fun k => unit (g k)))
+  | sIf_stm b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
+  | sApp_stm C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
   end.
 
 Definition valid_const' {A} c := @valid_const A A c (erefl A).
 Definition is_const' {A} c := @is_const A c.
 
 Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (valid_const' c).
-
-Compute interp_srml (rml_to_sRml_const 4).
-
-(* Inductive var_in_rml_scope : nat -> Rml -> Prop := *)
-(* | var_in_var : forall n, var_in_rml_scope n (Var n) *)
-(* | var_in_let1 : forall n1 n2 rml1 rml2, var_in_rml_scope n1 rml1 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2) *)
-(* | var_in_let2 : forall n1 n2 rml1 rml2, n1 <> n2 -> var_in_rml_scope n1 rml2 -> var_in_rml_scope n1 (Let_stm n2 rml1 rml2). *)
 
 Inductive well_formed : seq nat -> Rml -> Prop :=
 | well_const : forall A c l, well_formed l (Const A c)
@@ -289,8 +267,8 @@ Proof.
     + apply is_const.
   - destruct y ; try easy.
   - simpl in H.
-    unfold obind in H.
-    (do 3 destruct replace_var_for_let) ; inversion H.
+    unfold bind in H.
+    (do 3 destruct replace_var_for_let); inversion H.
     inversion x_valid ; subst.
     inversion x_well ; subst.
     inversion H0 ; subst.
@@ -341,7 +319,7 @@ Proof.
     reflexivity.  
   - intros.
     inversion H.
-    unfold obind in *.
+    unfold bind in *.
     destruct (replace_var_for_let b).
     + destruct (replace_var_for_let m1).
       * destruct (replace_var_for_let m2).
@@ -370,7 +348,7 @@ Proof.
     + easy.
   - intros.
     inversion H.
-    unfold obind in *.
+    unfold bind in *.
     destruct (replace_var_for_let e1).
     + destruct (replace_var_for_let e2).
       * inversion H1.
@@ -397,4 +375,5 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well :
   - refine None.
 Defined.
 
-Compute @interp_rml _ (Const nat 4) nat (valid_const nat nat 4) (well (Const nat 4) (well_const nat 4 nil)).
+Compute @interp_rml _ (@Const nat 4) nat (@valid_const nat nat 4 (@erefl Set nat)) (@well (@Const nat 4) (@well_const nat 4 (@nil nat))).
+
