@@ -164,6 +164,67 @@ Inductive rml_is_simple : Rml -> Prop :=
 | is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (If_stm b m1 m2)
 | is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (App_stm B e1 e2).
 
+Fixpoint is_rml_simple (x : Rml) : bool :=
+  match x with
+  | Var _ => false
+  | Const _ _ => true
+  | Let_stm n a b => false
+  | If_stm b m1 m2 => is_rml_simple b && is_rml_simple m1 && is_rml_simple m2
+  | App_stm B e1 e2 => is_rml_simple e1 && is_rml_simple e2
+  end.
+
+Lemma double_andb_true : forall {b1 b2}, b1 && b2 = true <-> b1 = true /\ b2 = true.
+Proof.
+  destruct b1.
+  - destruct b2 ; easy.
+  - easy.
+Qed.
+
+Lemma triple_andb_true : forall {b1 b2 b3}, b1 && b2 && b3 = true <-> b1 = true /\ b2 = true /\ b3 = true.
+Proof.
+  destruct b1.
+  - destruct b2.
+    + destruct b3 ; easy.
+    + easy.
+  - easy.
+Qed.
+  
+Theorem is_rml_simple_reflect_rml_is_simple :
+  forall (x : Rml),
+    is_rml_simple x = true <-> rml_is_simple x.
+Proof.
+  induction x.
+  - simpl.
+    easy.
+  - simpl.
+    split.
+    + intros.
+      apply is_const.
+    + easy.
+  - simpl.
+    easy.
+  - simpl.
+    split.
+    + intros.
+      apply triple_andb_true in H.
+      inversion H as [H1 [H2 H3]] ; clear H.
+      apply is_if ; intuition.
+    + intros.
+      inversion H ; subst.
+      intuition.
+  - simpl.
+    split.
+    + intros.
+      apply double_andb_true in H.
+      inversion H ; clear H.
+      apply is_app ; intuition.
+    + intros.
+      inversion H ; subst.
+      intuition.
+Qed.  
+
+(* -------------------------------------------------------------------------------- *)
+
 Inductive rml_valid_type : Type -> Rml -> Prop :=
 | valid_const : forall (A B : Type) (c : B) {_ : @eq Type A B}, rml_valid_type A (Const B c)
 | valid_if : forall (A : Type) b m1 m2, rml_valid_type bool b -> rml_valid_type A m1 -> rml_valid_type A m2 -> rml_valid_type A (If_stm b m1 m2)
@@ -171,37 +232,32 @@ Inductive rml_valid_type : Type -> Rml -> Prop :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint rml_to_sRml {A : Type} (rml : Rml) `{_ : rml_is_simple rml} `{_ : rml_valid_type A rml}
-  : @sRml A.
-Proof.  
-  case rml eqn : o_rml ; try (exfalso ; easy).
-  - assert (forall (A B : Type) c, rml_valid_type A (Const B c) -> A = B) by (intros; inversion H ; subst ; easy).
+Fixpoint rml_to_sRml {A : Type} (rml : Rml) `{rml_simple : rml_is_simple rml} `{rml_valid : rml_valid_type A rml} : @sRml A.
+Proof.
+  (* apply is_rml_simple_reflect_rml_is_simple in rml_simple. *)
+  case rml eqn : o_rml.
+  - exfalso.
+    easy.
+  - assert (forall (A B : Type) c, rml_valid_type A (Const B c) -> A = B) by (intros ; inversion H ; subst ; reflexivity).
     assert (A = A0) by (apply (H A A0 a) ; assumption).
-    pose (a).
-    rewrite <- H0 in a0.
-    refine (sConst a0).
-  - assert (if_valid_type : forall A r1 r2 r3, rml_valid_type A (If_stm r1 r2 r3) -> (rml_valid_type bool r1 /\ rml_valid_type A r2 /\ rml_valid_type A r3)) by (intros; inversion H; easy).
-    pose (a := if_valid_type A r1 r2 r3 rml_valid_type0) ; inversion a as [p1 [p2 p3]] ; clear a.
+    subst.
+    refine (sConst a).
+  - exfalso.
+    easy.
+  - assert (if_valid_type : (rml_valid_type bool r1 /\ rml_valid_type A r2 /\ rml_valid_type A r3)) by (intros; inversion rml_valid; easy).
+    inversion if_valid_type as [p1 [p2 p3]] ; clear if_valid_type.
 
-    assert (if_is_simple : forall r1 r2 r3, rml_is_simple (If_stm r1 r2 r3) -> (rml_is_simple r1 /\ rml_is_simple r2 /\ rml_is_simple r3)) by (intros; inversion H ; easy).
-    pose (if_is_simple r1 r2 r3 rml_is_simple0) ; inversion a as [s1 [s2 s3]] ; clear a.
+    assert (if_is_simple : rml_is_simple r1 /\ rml_is_simple r2 /\ rml_is_simple r3) by (inversion rml_simple ; subst ; easy).        
+    inversion if_is_simple as [s1 [s2 s3]] ; clear if_is_simple.
     
-    pose (b := @rml_to_sRml bool r1 s1 p1).
-    pose (m1 := @rml_to_sRml A r2 s2 p2).
-    pose (m2 := @rml_to_sRml A r3 s3 p3).
-    
-    refine (sIf_stm b m1 m2).
-  - assert (app_valid_type : forall A B r1 r2, (rml_valid_type A (App_stm B r1 r2)) -> rml_valid_type (B -> A) r1 /\ rml_valid_type B r2) by (intros ; inversion H ; easy).
-    
-    pose (temp := app_valid_type A T r1 r2 rml_valid_type0).
+    refine (sIf_stm (@rml_to_sRml bool r1 s1 p1) (@rml_to_sRml A r2 s2 p2) (@rml_to_sRml A r3 s3 p3)).
+  - assert (app_valid_type : rml_valid_type (T -> A) r1 /\ rml_valid_type T r2) by (intros ; inversion rml_valid ; easy).
+    inversion app_valid_type as [p1 p2] ; clear app_valid_type.
 
-    assert (app_is_simple : forall B r1 r2, rml_is_simple (App_stm B r1 r2) -> (rml_is_simple r1 /\ rml_is_simple r2)) by (intros; inversion H ; easy).
-    pose (a := app_is_simple T r1 r2 rml_is_simple0) ; inversion a as [s1 s2] ; clear a.
-
-    inversion temp as [p1 p2].
-    pose (e1 := @rml_to_sRml (T -> A) r1 s1 p1).
-    pose (e2 := @rml_to_sRml T r2 s2 p2).
-    apply (sApp_stm T e1 e2).
+    assert (app_is_simple : rml_is_simple r1 /\ rml_is_simple r2) by (inversion rml_simple ; subst ; easy).
+    inversion app_is_simple as [H1 H2] ; clear app_is_simple.
+    
+    apply (sApp_stm T (@rml_to_sRml (T -> A) r1 H1 p1) (@rml_to_sRml T r2 H2 p2)).
 Defined.
 
 Example correct_translation_const :
@@ -218,7 +274,7 @@ Example correct_translation_if :
       (@is_if cb cn cns (@is_const bool b) (@is_const A n1) (@is_const A n2))
       (@valid_if A cb cn cns (@valid_const bool bool b (@erefl Type bool)) (@valid_const A A n1 (erefl A)) (@valid_const A A n2 (erefl A)))
     = sIf_stm (sConst b) (sConst n1) (sConst n2).
-Proof. reflexivity. Qed.
+Proof.  reflexivity. Qed.
 
 Example correct_translation_app :
   forall (A B : Type) f x,
@@ -230,7 +286,7 @@ Example correct_translation_app :
       (@valid_app B A cf cx (@valid_const (A -> B) (A -> B) f (erefl (A -> B))) (@valid_const A A x (erefl A)))
     = sApp_stm A (sConst f) (sConst x).
 Proof. reflexivity. Qed.
-
+  
 (* -------------------------------------------------------------------------------- *)
 
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
@@ -246,6 +302,8 @@ Definition valid_const' {A} c := @valid_const A A c (erefl A).
 Definition is_const' {A} c := @is_const A c.
 
 Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (valid_const' c).
+
+Compute interp_srml (rml_to_sRml_const 4).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -323,14 +381,48 @@ Proof.
       assumption.
 Qed.
 
+Definition computable_replace_var_for_let_valid x {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : rml_valid_type A (replace_var_for_let x).
+Proof.
+  (* apply (@replace_var_for_let_valid x A x_valid x_well). Defined. *)
+  induction x_valid.
+  - simpl.
+    apply valid_const.
+    assumption.
+  - simpl.
+    inversion x_well ; subst.
+    inversion H ; subst.
+    apply valid_if.
+    + apply IHx_valid1.
+      apply well.
+      assumption.
+    + apply IHx_valid2.
+      apply well.
+      assumption.
+    + apply IHx_valid3.
+      apply well.
+      assumption.
+  - simpl.
+    inversion x_well ; subst.
+    inversion H ; subst.
+    apply valid_app.
+    + apply IHx_valid1.
+      apply well.
+      assumption.
+    + apply IHx_valid2.
+      apply well.
+      assumption.
+Defined.
+
 (* -------------------------------------------------------------------------------- *)
 
 Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x} `{x_well : well_formed_empty x} : continuation_monad_type R A :=
   let y := replace_var_for_let x in
   let y_simple := @replace_var_for_let_simple x A x_valid x_well in
-  let y_valid := @replace_var_for_let_valid x A x_valid x_well in
+  let y_valid := @computable_replace_var_for_let_valid x A x_valid x_well in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
 
 Compute @interp_rml _ (@Const nat 4) nat (@valid_const nat nat 4 (@erefl Type nat)) (@well (@Const nat 4) (@well_const nat 4 (@nil nat))).
 
 (* -------------------------------------------------------------------------------- *)
+
+Compute @interp_rml _ (@Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat)) _.
