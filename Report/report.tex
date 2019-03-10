@@ -49,39 +49,24 @@ Defined for some context \set{ident : eqType} \set{mem : memType ident}. We have
 \end{align*}
 
 \subsection{Rml}
+
 \begin{align*}
-  \mathtt{expr : type} &:= \mathtt{var~vars} \mid \mathtt{fun~(vars : type) \Rightarrow expr}
-  \\ \\
-  \mathtt{vars} &\in \mathbb{N} \\
-  \mathtt{value} &\in V
+\mathtt{Inductive~Rml : Type} &:= \mathtt{Var} : \mathbb{N} \rightarrow \mathtt{Rml} \\
+&~~|~\mathtt{Const} : \forall~(A : \mathtt{Type}), A \rightarrow \mathtt{Rml} \\
+&~~|~\mathtt{Let\_stm} : \mathbb{N} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \\
+&~~|~\mathtt{If\_stm} : \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \\
+&~~|~\mathtt{App\_stm} : \mathtt{Type} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml}. \\
 \end{align*}
 
-\section{Translation}
-Example translation:\\
-\begin{center}
-  \begin{minipage}{0.45\linewidth}
-    \begin{lstlisting}[language=pwhile]
-      if (4 > 2) then 1 else 0
-    \end{lstlisting}
-  \end{minipage}
-  \begin{minipage}{0.45\linewidth}
-    \begin{lstlisting}[language=rml]
-      if (> 4 2) then 1 else 0
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
-Another example
-\begin{center}
-  \begin{minipage}{0.45\linewidth}
-    \begin{lstlisting}[language=pwhile]
-      x := 3 ; x
-    \end{lstlisting}
-  \end{minipage}
-  \begin{minipage}{0.45\linewidth}
-    \begin{lstlisting}[language=rml]
-      let x := 3 in x
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
+\section{Rml in Coq}
+
+\subsection{Well Formed}
+A Rml program is well formed when there are no variables not bound. So all consts are well formed, all variables are well formed if there is a binding for it in the environment. all let statements are well formed, if what is being assigned is well formed under the current environment, and what it is binded in is well formed under the current environment extended with the new bounded variable. All if and app statements are well formed, if each subexpression is well formed in the current environment.
+
+\subsection{Replace var with value}
+Given a Rml expression, we can substitute the value of a variable for the expression by induction. This may still leave \(\mathtt{Var}~n\) expressions.
+
+\subsection{sRml}
+
 
 \end{document}

@@ -4,6 +4,8 @@ From xhl Require Import inhabited notations.
 
 Require Import Rml.
 
+From mathcomp.analysis Require Import boolp reals distr.
+
 Check @cmd.
 
 Check (vars_ _) _.
@@ -13,28 +15,41 @@ Inductive well_defined_pWhile : cmd -> Prop :=
 | well_def_abort : well_defined_pWhile skip
 | well_def_assign : forall {t} (x : (vars_ _) t) e, well_defined_pWhile (assign x e).
 
-Definition initial_env : forall T, vars T -> nat :=
-  fun T y => 0. (* Return is always 0 *)
+Definition initial_env : ident -> nat :=
+  fun y => 0. (* Return is always 0 *)
 
-Fixpoint extend_env {T} (x : vars T) (v : nat) (env : forall T, vars T -> nat) : forall T, vars T -> nat :=
-  fun U y =>
-    if  vname x = vname y (* TODO: Make more precise *)
+Check ident.
+
+Fixpoint extend_env (x : ident) (v : nat) (env : ident -> nat) : ident -> nat :=
+  fun y =>
+    if pselect (y = x)
+    (* @mget _ k (x%V).(vtype) m (x%V).(vname) == @mget _ _ (y%V).(vtype) m (y%V).(vname) *)
     then v
-    else @env U y.
+    else env y.
 
-Example lookup_in_env :
-  forall T x n, (extend_env x n initial_env) T x = n.
+Theorem get_set :
+  forall m x v, (@extend_env x v m) x = v.
 Proof.
   intros.
-  destruct x.
+  induction v.
   - simpl.
-    destruct (s == s) eqn : s_old.
-    * reflexivity.
-    * easy.
+    case (pselect _).
+    + intros.
+      reflexivity.
+    + intros.
+      easy.
+  - simpl.
+    case (pselect _).
+    + intros.
+      reflexivity.
+    + intros.
+      easy.
+Qed.
 
-Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (env : forall T, vars T -> nat) :=
+Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (env : ident -> nat) :=
   match x with
-  | var_ A n => Var (env A n)
+  | var_ A n =>
+    Var (env n.(vname))
   | cst_ A a => Const A a
   | prp_ m => Const bool true (* What does this mean? *)
   | app_ A B f x => App_stm B (translate_pWhile_expr_to_rml f (@env)) (translate_pWhile_expr_to_rml x (@env))
@@ -50,61 +65,42 @@ Proof.
 Qed.
 
 Example translate_exp_var :
-    forall T x n, translate_pWhile_expr_to_rml (var_ x) (@extend_env T x n initial_env) = Var n.
+    forall T x n, translate_pWhile_expr_to_rml (var_ x) (@extend_env (@vname _ T x) n initial_env) = Var n.
 Proof.
   intros.
   simpl.
-  unfold extend_env.
-
-  induction x eqn : old_x.
-  - unfold initial_env.
-    
-    
-    Locate "==".
-    
-    destruct (s == s) eqn : old_s.
-    + reflexivity.
-    + 
-  
   destruct n.
-  - induction x.
-    + simpl.
-      destruct (s == s).
-      * reflexivity.
-      * unfold initial_env.
-        reflexivity.
-    + simpl.
-      
-      
-      
-  
-  reflexivity.
+  - simpl.
+    case (pselect _).
+    + intros.
+      simpl.
+      reflexivity.
+    + intros.
+      easy.
+  - simpl.
+    case (pselect _).
+    + intros.
+      simpl.
+      reflexivity.
+    + intros.
+      easy.
 Qed.
 
-Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : forall {T}, vars T -> nat) : Rml :=
+Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -> nat) : Rml :=
   match x with
-  | abort => Var (env ret)
-  | skip => Var (env ret)
-  | assign A n e => Let_stm (env n) (translate_pWhile_expr_to_rml e (@env)) (Var (env ret))
-  | random A n e => Var (env ret)
-  | cond b m1 m2 => Var (env ret)
-  | while b e => Var (env ret)
-  | seqc e1 e2 => Var (env ret)
+  | seqc (assign A n e) e2 => Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (translate_pWhile_cmd_to_rml e2 ret env)
+    
+  | abort => Var (env ret.(vname))
+  | skip => Var (env ret.(vname))
+  | assign A n e => Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (Var (env ret.(vname)))
+  | random A n e => Var (env ret.(vname))
+  | cond b m1 m2 => Var (env ret.(vname))
+  | while b e => Var (env ret.(vname))
+  | seqc e1 e2 => App_stm T (translate_pWhile_cmd_to_rml e1 ret env) (translate_pWhile_cmd_to_rml e2 ret env)
   end.
 
-Example translate_exp_cst :
-    forall n, translate_pWhile_expr_to_rml (cst_ n) (@initial_env) = Const nat n.
-Proof.
-  intros.
-  simpl.
-  unfold initial_env.
-  reflexivity.
-Qed.
-
-
-Example translate_assignment :
-  forall x,
-    translate_pWhile_cmd_to_rml (assign x (cst_ 2)) x (@initial_env) = Const nat 2.
+Example translate_cmd_cst :
+    forall x (n1 n2 : nat), translate_pWhile_cmd_to_rml (seqc (assign x (cst_ n1)) (assign x (cst_ n2))) x (@initial_env) = Let_stm 0 (Const nat n1) (Let_stm 0 (Const nat n2) (Var 0)).
 Proof.
   intros.
   simpl.

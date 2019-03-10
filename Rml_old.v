@@ -1,46 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import analysis.reals.
 
-(* -------------------------------------------------------------------------------- *)
-
-Lemma nat_S_equal :
-  forall n x, (n.+1 == x.+1) = true <-> (n == x) = true.
-Proof.
-  induction n ; destruct x ; try easy ; try reflexivity.
-Qed.
-
-Lemma nat_equal :
-  forall (n x : nat), n = x <-> (n == x) = true.
-Proof.
-  induction n ; destruct x ; try easy ; try reflexivity.
-  split.
-  - intros.
-    inversion H.
-    inversion H.
-    apply nat_S_equal.
-    apply (IHn x) in H1.
-    rewrite H2 in H1.
-    assumption.
-  - intros.
-    pose (nat_S_equal n x).
-    symmetry in i.
-    apply i in H.
-    apply (IHn x) in H.
-    rewrite H.
-    reflexivity.
-Qed.
-
-Lemma nat_refl_equal :
-  forall x : nat, (x == x) = true.
-Proof.
-  intros.
-  pose (nat_equal x x).
-  rewrite <- i.
-  reflexivity.
-Qed.
-
-(* -------------------------------------------------------------------------------- *)
-
 Reserved Notation "x >>= f" (at level 40, left associativity).
 Class Monad (M : Type -> Type) :=
   {
@@ -114,9 +74,11 @@ Proof.
   intros.
   inversion H0 ; subst ; clear H0.
   inversion H1 ; subst ; clear H1.
-  - clear H4.
-    inversion H6 ; subst ; clear H6.
-    inversion H2 ; easy.
+  clear H4.
+  inversion H6 ; subst ; clear H6.
+  inversion H2.
+  easy.
+  easy.
 Qed.  
 
 (* -------------------------------------------------------------------------------- *)
@@ -143,35 +105,6 @@ Inductive rml_trans_correct {A} : Rml -> @sRml A -> Prop :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint var_in_exp (e : Rml) : seq nat :=
-  match e with
-  | Var n => [:: n]
-  | If_stm b m1 m2 => var_in_exp b ++ var_in_exp m1 ++ var_in_exp m2
-  | App_stm _ e1 e2 => var_in_exp e1 ++ var_in_exp e2
-  | Let_stm x a b => var_in_exp a ++ filter (fun y => negb (x == y)) (var_in_exp b)
-  | _ => [::]
-  end.
-
-Compute var_in_exp (Let_stm 10 (Const nat 4) (Var 10)).
-Compute (well_let_stm 10 (Const nat 4) (Var 10) nil (well_const nat 4 nil) (well_var 10 [:: 10] _)).
-
-Theorem var_in_exp_correctness :
-  forall (x : Rml) (x_well : well_formed nil x), var_in_exp x = nil.
-Proof.
-  intros.
-  induction x.
-  - inversion x_well ; subst.     
-    easy.
-  - reflexivity.
-  - inversion x_well ; subst.
-    simpl.
-    unfold filter.
-    destruct x2.
-    + simpl.
-Admitted.
-    
-(* -------------------------------------------------------------------------------- *)
-
 Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : Rml :=
   match x with
   | Var n =>
@@ -195,125 +128,6 @@ Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : Rml :=
     App_stm B e1' e2'
   end.
 
-Inductive replaced_var_in_rml : nat -> Rml -> Rml -> Rml -> Prop :=
-| replaced_var_diff : forall n0 n1 y, (n1 == n0) = false -> replaced_var_in_rml n0 y (Var n1) (Var n1)
-| replaced_var_same : forall n y, replaced_var_in_rml n y (Var n) y
-| replaced_const : forall n y, forall A c, replaced_var_in_rml n y (Const A c) (Const A c)
-| replaced_let_diff : forall n0 n1 y, forall a b a' b', (n1 == n0) = false -> replaced_var_in_rml n0 y a a' -> replaced_var_in_rml n0 y b b' -> replaced_var_in_rml n0 y (Let_stm n1 a b) (Let_stm n1 a' b')
-| replaced_let_same : forall n y, forall a b a' b', replaced_var_in_rml n y a a' -> replaced_var_in_rml n a' b b' -> replaced_var_in_rml n y (Let_stm n a b) b'
-| replace_if : forall n y, forall b m1 m2 b' m1' m2', replaced_var_in_rml n y b b' -> replaced_var_in_rml n y m1 m1' -> replaced_var_in_rml n y m2 m2' -> replaced_var_in_rml n y (If_stm b m1 m2) (If_stm b' m1' m2')
-| replace_app : forall n y, forall B e1 e2 e1' e2', replaced_var_in_rml n y e1 e1' -> replaced_var_in_rml n y e2 e2' -> replaced_var_in_rml n y (App_stm B e1 e2) (App_stm B e1' e2').
-
-Theorem replace_var_with_value_correctness :
-  forall x n y, replaced_var_in_rml n y x (replace_var_with_value x n y).
-Proof.
-  induction x ; intros.
-  - simpl.
-    destruct (n == n0) eqn : n0n.
-    + apply nat_equal in n0n ; subst.
-      apply replaced_var_same.
-    + apply replaced_var_diff.
-      assumption.
-  - simpl.
-    apply replaced_const.
-  - simpl.
-    destruct (n == n0) eqn : n0n.
-    + apply nat_equal in n0n ; subst.
-      apply (replaced_let_same n0 y x1 x2 (replace_var_with_value x1 n0 y)) ; easy.
-    + apply replaced_let_diff ; easy.
-  - apply replace_if ; easy.
-  - apply replace_app ; easy.
-Qed.      
-
-Theorem replace_var_with_value_refl :
-  forall x n y k, replaced_var_in_rml n y x k <-> replace_var_with_value x n y = k.
-Proof.
-  split ; intros.
-  - induction H ; simpl ; try rewrite H ; try rewrite (nat_refl_equal n) ; try rewrite (nat_refl_equal n) ; subst ; reflexivity.
-  - subst.
-    apply replace_var_with_value_correctness.
-Qed.
-
-Lemma well_formed_let :
-  forall x y n l, well_formed l (Let_stm n x y) -> ~List.In n (var_in_exp y) -> well_formed l y.
-Proof.
-  intros.
-
-Qed.
-
-Theorem replace_var_with_value_stays_well_formed :
-  forall x y n (x_well : well_formed nil x) (y_well : well_formed nil y), forall k, replaced_var_in_rml n y x k -> well_formed nil k.
-Proof.
-  induction x ; intros.
-  - inversion x_well ; subst.
-    easy.
-  - inversion H ; subst.
-    apply well_const.
-  - inversion H ; subst.
-    + apply IHx1 in H7.
-      apply well_let_stm_wrap.
-      assumption.
-    + apply IHx2 in H8.
-      apply H8.
-      inversion x_well ; subst.
-      assumption.
-    
-    + apply well_let_stm.
-      * inversion x_well ; subst.
-        apply (IHx1 y n0 H3 [:: n]).
-        
-        
-    
-    
-
-    induction k ; inversion H.
-    + inversion H.
-    + inversion H.
-  
-Theorem replace_var_with_value_stays_well_formed :
-  forall x y n (x_well : well_formed nil (Let_stm n x y)), well_formed nil (replace_var_with_value x n y).
-Proof.
-  induction x ; intros.
-  - simpl.
-    inversion x_well ; subst.
-    inversion H2 ; subst.
-    easy.
-  - simpl.
-    apply well_const.
-  - 
-      
-Qed.
-
-Theorem var_in_exp_replace_var_with_value_comp :
-  forall y x n (let_well : well_formed nil (Let_stm n x y)), var_in_exp (replace_var_with_value x n y) = var_in_exp x ++ filter (fun b => negb (b == n)) (var_in_exp y).
-Proof.
-  intros.
-  destruct (replace_var_with_value) eqn : let_val.
-  - simpl.
-    inversion let_well ; subst.
-    apply var_in_exp_correctness in H2.
-    rewrite H2.
-    simpl.
-    induction x.
-    + easy.
-    + easy.
-    + simpl in *.
-      destruct (n1 == n).
-      * simpl in *.
-    
-Qed.
-
-Theorem replace_var_with_value_correctness :
-  forall x y, forall n, well_formed nil y -> well_formed nil x -> ~ List.In n (var_in_exp (replace_var_with_value x n y)).
-Proof.
-  intros.
-  simpl.
-  unfold not.
-  intros.
-  apply var_in_exp_correctness in H.
-  apply var_in_exp_correctness in H0.
-  
-      
 (* TODO: Make proof for correctness these two definitions *)
 
 Fixpoint replace_var_for_let_aux (x : Rml) {l} `{x_well : well_formed l x}: Rml.
@@ -358,51 +172,124 @@ Check List.fold_left.
 
 Check List.remove.
 
-Theorem replace_vars_makes_simple_inductive_step :
-  forall n1 n2 x (x_well : well_formed nil x) var2_well, var_in_exp (@replace_var_for_let x x_well) = nil -> var_in_exp (@replace_var_for_let (Let_stm n1 x (Var n2)) (well_let_stm n1 x (Var n2) nil x_well var2_well)) = nil.
+Fixpoint var_in_exp (e : Rml) : seq nat :=
+  match e with
+  | Var n => [:: n]
+  | If_stm b m1 m2 => var_in_exp b ++ var_in_exp m1 ++ var_in_exp m2
+  | App_stm _ e1 e2 => var_in_exp e1 ++ var_in_exp e2
+  | Let_stm x a b => var_in_exp a ++ filter (fun y => negb (x == y)) (var_in_exp b)
+  | _ => [::]
+  end.
+
+Theorem helper :
+  forall x l n,
+    ~List.In n (var_in_exp x) -> well_formed l x -> well_formed (n :: l) x.
 Proof.
-  intros.
-  unfold replace_var_for_let in *.
-  simpl.
-  destruct (n2 == n1) eqn : nen.
-  - apply nat_equal in nen.
-    apply H.
-  - inversion var2_well ; subst.
-    inversion H2.
-    + symmetry in H0.
-      apply nat_equal in H0.
-      rewrite H0 in nen.
-      easy.
-    + inversion H0.
-Qed.
+  induction x ; intros ; simpl in *.
+  + inversion H0 ; subst.
+    induction l.
+    * easy.
+    * inversion H0 ; subst.
+      simpl in H.
+      intuition.
+      apply well_var.
+      apply List.in_cons.
+      assumption.      
+  + apply well_const.
+  + apply well_let_stm.
+    * apply IHx1.
+      -- inversion H0 ; subst.
+         simpl in H.
+         intuition.
+        -- inversion H0 ; subst.
+           easy.
+    * apply IHx2.
+      induction (var_in_exp x2) eqn : varx2o.
+      -- easy.
+      -- simpl.
+         unfold not.
+         intros.
+         inversion H1 ; clear H1.
+         ++ subst.
+            intuition.
+
+            apply IHl0.
+            
+            
+            apply H.
+
+            simpl.
+            apply List.in_app_iff.
+            assert (forall (n : nat), (n != n) = false).
+            --- intros.
+                induction n1.
+                +++ reflexivity.
+                +++ apply IHn1.
+            --- rewrite H1.
+                
+                
+
+            
+            inversion varx2o
+            
+            simpl.
+            inversion H0 ; subst.
+
+            apply H1.
+               inversion H3.
+               --- subst.
+                   
+                  apply List.in_cons in H3.
+              apply H1.
+            
+        
+      
+      
+      
+
+Theorem helper :
+  forall x1 x2 n l x1_well x2_well,
+    ~List.In n (var_in_exp (@replace_var_for_let_aux x2 l x2_well))
+    -> 
+    (replace_var_with_value (@replace_var_for_let_aux x2 (n :: l) x2_well) n (@replace_var_for_let_aux x1 l x1_well)) = (replace_var_for_let_aux x2 l x2_well).
+    
 
 Theorem replace_vars_makes_simple :
   forall (x : Rml) (x_well : well_formed nil x), (var_in_exp (@replace_var_for_let x x_well)) = nil.
 Proof.
   intros.
-  induction x.
-  - inversion x_well ; subst.
+  destruct x.
+  + inversion x_well ; subst.
     easy.
-  - simpl.
+  + simpl.
     reflexivity.
-  - unfold replace_var_for_let.
-    destruct x2.
-    * inversion x_well ; subst.
-      pose (replace_vars_makes_simple_inductive_step n n0 x1 H2 H4).
-      Set Printing All.
-      apply e.
-      * 
-      2 : { unfold replace_var_for_let.
-            apply IHx1. }
-        
-      destruct x_well.
-    
-    apply e.
+  + inversion x_well ; subst.
+    unfold replace_var_for_let.
     simpl.
 
-    apply replace_vars_makes_simple_inductive_step.
     
-Admitted.
+            
+    
+    
+    
+
+(* Fixpoint replace_var_for_let (x : Rml) : Rml := *)
+(*   match x with *)
+(*   | Let_stm n a b => *)
+(*     let b' := replace_var_for_let b in *)
+(*     let a' := replace_var_for_let a in *)
+(*     replace_var_with_value b' n a' *)
+(*   | If_stm b m1 m2 => *)
+(*     let b' := replace_var_for_let b in *)
+(*     let m1' := replace_var_for_let m1 in *)
+(*     let m2' := replace_var_for_let m2 in *)
+(*       If_stm b' m1' m2' *)
+(*   | App_stm B e1 e2 => *)
+(*     let e1' := replace_var_for_let e1 in *)
+(*     let e2' := replace_var_for_let e2 in *)
+(*       App_stm B e1' e2' *)
+(*   | _ => x *)
+(*   end. *)
 
 Definition example : Rml :=
   (If_stm (Const bool true)
@@ -568,6 +455,42 @@ Definition rml_to_sRml_const {A} c := @rml_to_sRml A (Const A c) (is_const' c) (
 Compute interp_srml (rml_to_sRml_const 4).
 
 (* -------------------------------------------------------------------------------- *)
+
+Lemma nat_S_equal :
+  forall n x, (n.+1 == x.+1) = true <-> (n == x) = true.
+Proof.
+  induction n ; destruct x ; try easy ; try reflexivity.
+Qed.
+
+Lemma nat_equal :
+  forall (n x : nat), n = x <-> (n == x) = true.
+Proof.
+  induction n ; destruct x ; try easy ; try reflexivity.
+  split.
+  - intros.
+    inversion H.
+    inversion H.
+    apply nat_S_equal.
+    apply (IHn x) in H1.
+    rewrite H2 in H1.
+    assumption.
+  - intros.
+    pose (nat_S_equal n x).
+    symmetry in i.
+    apply i in H.
+    apply (IHn x) in H.
+    rewrite H.
+    reflexivity.
+Qed.
+
+Lemma nat_refl_equal :
+  forall x : nat, (x == x) = true.
+Proof.
+  intros.
+  pose (nat_equal x x).
+  rewrite <- i.
+  reflexivity.
+Qed.
 
 Lemma replace_let_helper_lemma_simple :
   forall v1 v2 n, rml_is_simple v1 -> rml_is_simple (replace_var_with_value v1 n v2).
