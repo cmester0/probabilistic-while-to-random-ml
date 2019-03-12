@@ -1,6 +1,5 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import analysis.reals.
-From mathcomp.analysis Require Import boolp reals distr.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -68,17 +67,17 @@ Proof. all: reflexivity. Defined.
 (* -------------------------------------------------------------------------------- *)
 
 Inductive Rml : Type :=
-| Var : (nat * Type) -> Rml
+| Var : nat -> Rml
 | Const : forall (A : Type), A -> Rml
-| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
+| Let_stm : nat -> Rml -> Rml -> Rml
 (* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *)
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive well_formed : seq (nat * Type) -> Rml -> Prop :=
-| well_var : forall A x l, List.In (x,A) l -> well_formed l (Var (x,A))
+Inductive well_formed : seq nat -> Rml -> Prop :=
+| well_var : forall x l, List.In x l -> well_formed l (Var x)
 | well_const : forall A c l, well_formed l (Const A c)
 | well_let_stm : forall x e1 e2 l, well_formed l e1 -> well_formed (x :: l) e2 -> well_formed l (Let_stm x e1 e2)
 | well_if : forall b m1 m2 l, well_formed l b -> well_formed l m1 -> well_formed l m2 -> well_formed l (If_stm b m1 m2)
@@ -93,47 +92,20 @@ Inductive sRml {A : Type} : Type :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Compute (well_let_stm (10,_) (Const nat 4) (Var (10,_)) nil (well_const nat 4 nil) (well_var _ 10 [:: (10,_)] _)).
+Compute (well_let_stm 10 (Const nat 4) (Var 10) nil (well_const nat 4 nil) (well_var 10 [:: (10)] _)).
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
-| valid_var : forall x l A, List.In (x,A) l -> rml_valid_type A (Var (x,A)) l
-| valid_const : forall (A B : Type) (c : B) {_ : @eq Type A B} l, rml_valid_type A (Const B c) l
-| valid_let : forall A B x a b l, rml_valid_type B a l -> rml_valid_type A b ((x,B) :: l) -> rml_valid_type A (Let_stm (x,A) a b) l
-| valid_if : forall (A : Type) b m1 m2 l, rml_valid_type bool b l -> rml_valid_type A m1 l -> rml_valid_type A m2 l -> rml_valid_type A (If_stm b m1 m2) l
-| valid_app : forall (A B : Type) e1 e2 l, rml_valid_type (B -> A) e1 l -> rml_valid_type B e2 l -> rml_valid_type A (App_stm B e1 e2) l.
-
-(* -------------------------------------------------------------------------------- *)
-
-Inductive replaced_var_in_rml : (nat * Type) -> Rml -> Rml -> Rml -> Prop :=
-| replaced_var_diff : forall n0 A, forall n1 B, forall y,
-        (n0,A) <> (n1,B) ->
-        replaced_var_in_rml (n0,A) y (Var (n1,B)) (Var (n1,B))
-| replaced_var_same : forall n y, replaced_var_in_rml n y (Var n) y
-| replaced_const : forall n y, forall A c, replaced_var_in_rml n y (Const A c) (Const A c)
-| replaced_let_diff : forall n0 A, forall n1 B, forall y, forall a b a' b',
-          (n0,A) <> (n1,B) ->
-          replaced_var_in_rml (n0,A) y a a' ->
-          replaced_var_in_rml (n0,A) y b b' ->
-          replaced_var_in_rml (n0,A) y (Let_stm (n1,B) a b) (Let_stm (n1,B) a' b')
-| replaced_let_same : forall n y, forall a b a' b',
-      replaced_var_in_rml n y a a' ->
-      replaced_var_in_rml n a' b b' ->
-      replaced_var_in_rml n y (Let_stm n a b) b'
-| replace_if : forall n y, forall b m1 m2 b' m1' m2', replaced_var_in_rml n y b b' -> replaced_var_in_rml n y m1 m1' -> replaced_var_in_rml n y m2 m2' -> replaced_var_in_rml n y (If_stm b m1 m2) (If_stm b' m1' m2')
-| replace_app : forall n y, forall B e1 e2 e1' e2', replaced_var_in_rml n y e1 e1' -> replaced_var_in_rml n y e2 e2' -> replaced_var_in_rml n y (App_stm B e1 e2) (App_stm B e1' e2').
-
-Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) : Rml :=
+Fixpoint replace_var_with_value (x : Rml) (index : nat) (value : Rml) : Rml :=
   match x with
   | Var n =>
-    if pselect (index = n)
+    if n == index
     then value
     else x
   | Const A c => x
   | Let_stm n a b =>
     let new_value := replace_var_with_value a index value in
-    if pselect (index = n)
+    if n == index
     then replace_var_with_value b index new_value
     else Let_stm n new_value (replace_var_with_value b index value)
   | If_stm b m1 m2 =>
@@ -147,36 +119,42 @@ Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) :
     App_stm B e1' e2'
   end.
 
+Inductive replaced_var_in_rml : nat -> Type -> Rml -> Rml -> Rml -> Prop :=
+| replaced_var_diff : forall n0 n1 y, (n1 == n0) = false -> replaced_var_in_rml n0 y (Var n1) (Var n1)
+| replaced_var_same : forall n y, replaced_var_in_rml n y (Var n) y
+| replaced_const : forall n y, forall A c, replaced_var_in_rml n y (Const A c) (Const A c)
+| replaced_let_diff : forall n0 n1 y, forall a b a' b', (n1 == n0) = false -> replaced_var_in_rml n0 y a a' -> replaced_var_in_rml n0 y b b' -> replaced_var_in_rml n0 y (Let_stm n1 a b) (Let_stm n1 a' b')
+| replaced_let_same : forall n y, forall a b a' b', replaced_var_in_rml n y a a' -> replaced_var_in_rml n a' b b' -> replaced_var_in_rml n y (Let_stm n a b) b'
+| replace_if : forall n y, forall b m1 m2 b' m1' m2', replaced_var_in_rml n y b b' -> replaced_var_in_rml n y m1 m1' -> replaced_var_in_rml n y m2 m2' -> replaced_var_in_rml n y (If_stm b m1 m2) (If_stm b' m1' m2')
+| replace_app : forall n y, forall B e1 e2 e1' e2', replaced_var_in_rml n y e1 e1' -> replaced_var_in_rml n y e2 e2' -> replaced_var_in_rml n y (App_stm B e1 e2) (App_stm B e1' e2').
+
 Theorem replace_var_with_value_correctness :
-  forall A x n y, replaced_var_in_rml (n,A) y x (replace_var_with_value x (n,A) y).
+  forall x n y, replaced_var_in_rml n y x (replace_var_with_value x n y).
 Proof.
   induction x ; intros.
   - simpl.
-    destruct (pselect _) ; simpl.
-    + rewrite e.
+    destruct (n == n0) eqn : n0n.
+    + apply nat_equal in n0n ; subst.
       apply replaced_var_same.
-    + destruct p.
-      apply replaced_var_diff.
+    + apply replaced_var_diff.
       assumption.
   - simpl.
     apply replaced_const.
   - simpl.
-    destruct (pselect _) ; simpl.
-    + subst.
-      apply replaced_let_same with (a' := (replace_var_with_value x1 (n,A) y)).
-      * easy.
-      * easy.
-    + destruct p.
-      apply replaced_let_diff ; easy.
+    destruct (n == n0) eqn : n0n.
+    + apply nat_equal in n0n ; subst.
+      apply (replaced_let_same n0 y x1 x2 (replace_var_with_value x1 n0 y)) ; easy.
+    + apply replaced_let_diff ; easy.
   - apply replace_if ; easy.
   - apply replace_app ; easy.
 Qed.
 
 Theorem replace_var_with_value_refl :
-  forall A x n y k, replaced_var_in_rml (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
+  forall x n y k, replaced_var_in_rml n y x k <-> replace_var_with_value x n y = k.
 Proof.
   split ; intros.
-  - induction H ; simpl ; try rewrite H ; try rewrite (nat_refl_equal n) ; try rewrite (nat_refl_equal n) ; subst ; try reflexivity ; try destruct pselect ; easy.
+  - induction H ; simpl ; try rewrite H ; try rewrite (nat_refl_equal n) ; try rewrite (nat_refl_equal n) ; subst ; try reflexivity.
+    + 
   - subst.
     apply replace_var_with_value_correctness.
 Qed.
@@ -195,11 +173,11 @@ Fixpoint replace_var_for_let_aux (x : Rml) {l} `{x_well : well_formed l x}: Rml.
     intros. refine x.
   - (* Let *)
     assert (a_well : well_formed l r1) by (inversion x_well ; subst ; assumption).
-    assert (b_well : well_formed (p :: l) r2) by (inversion x_well ; subst ; assumption).
+    assert (b_well : well_formed (n :: l) r2) by (inversion x_well ; subst ; assumption).
     
     refine (let a' := replace_var_for_let_aux r1 l a_well in
-            let b' := replace_var_for_let_aux r2 (p :: l) b_well in
-            replace_var_with_value b' p a').
+            let b' := replace_var_for_let_aux r2 (n :: l) b_well in
+            replace_var_with_value b' n a').
   - (* If *)
     assert (b_well : well_formed l r1) by (inversion x_well ; subst ; assumption).
     assert (m1_well : well_formed l r2) by (inversion x_well ; subst ; assumption).
@@ -225,19 +203,17 @@ Check List.fold_left.
 
 Check List.remove.
 
-Definition type_nat : Type := nat.
-
 Definition example : Rml :=
   (If_stm (Const bool true)
           (Let_stm
-             (16,type_nat) (Const bool true)
+             16 (Const bool true)
              (Let_stm
-                (12,type_nat) (Const nat 4)
-                (If_stm (Var (16,type_nat)) (Var (12,type_nat)) (Const nat 10))))
+                12 (Const nat 4)
+                (If_stm (Var 16) (Var 12) (Const nat 10))))
           (Const nat 900)).
 
-Compute replace_var_with_value example (16,type_nat) (Const bool true).
-Compute replace_var_with_value example (12,type_nat) (Const nat 4).   
+Compute replace_var_with_value example 16 (Const bool true).
+Compute replace_var_with_value example 12 (Const nat 4).   
 Compute replace_var_for_let example.
 
 (* -------------------------------------------------------------------------------- *)
@@ -246,6 +222,15 @@ Inductive rml_is_simple : Rml -> Prop :=
 | is_const : forall (A : Type) c, rml_is_simple (Const A c)
 | is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (If_stm b m1 m2)
 | is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (App_stm B e1 e2).
+
+(* -------------------------------------------------------------------------------- *)
+
+Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
+| valid_var : forall x l A, List.In (x,A) l -> rml_valid_type A (Var x) l
+| valid_const : forall (A B : Type) (c : B) {_ : @eq Type A B} l, rml_valid_type A (Const B c) l
+| valid_let : forall A B x a b l, rml_valid_type B a l -> rml_valid_type A b ((x,B) :: l) -> rml_valid_type A (Let_stm x a b) l
+| valid_if : forall (A : Type) b m1 m2 l, rml_valid_type bool b l -> rml_valid_type A m1 l -> rml_valid_type A m2 l -> rml_valid_type A (If_stm b m1 m2) l
+| valid_app : forall (A B : Type) e1 e2 l, rml_valid_type (B -> A) e1 l -> rml_valid_type B e2 l -> rml_valid_type A (App_stm B e1 e2) l.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -310,72 +295,32 @@ Proof.
     + apply IHv1_2. assumption.
 Qed.
 
-(* -------------------------------------------------------------------------------- *)
-
-Example replace_is_success :
-  forall A, replace_var_with_value (Let_stm (4,A) (Const nat 4) (Var (4,A))) (4,A) (Const nat 4) = (Const nat 4).
+Lemma not_or_is_not :
+  forall A B, ~(A \/ B) <-> ~A /\ ~B.
 Proof.
   intros.
-  simpl.
-  destruct (pselect _).
-  - simpl.
-    reflexivity.
-  - simpl.
-    easy.
+  intuition.
 Qed.
 
-Compute replace_var_with_value (Let_stm (4,_) (Const nat 4) (Var (4,_))) (4,_) (Const nat 4).
-
-(* -------------------------------------------------------------------------------- *)
-
-Lemma replace_var_with_value_type_correct :
-  forall y x z n A l, replaced_var_in_rml (n,A) y x z -> rml_valid_type A y l.
-Proof.
-  induction y ; intros.
-  - destruct p.
-    
-    apply (valid_var n l A).
-
-Qed.
+Compute replace_var_with_value (Let_stm 4 (Const nat 4) (Var 4)).
 
 Theorem replace_var_for_with_value_valid :
-  forall (x y : Rml) n {A} l `{x_valid : rml_valid_type A x l} {B} `{y_valid : rml_valid_type B y l}, forall z, replaced_var_in_rml n y x z -> rml_valid_type A z l.
+  forall (x y : Rml) n l {A} `{x_valid : rml_valid_type A x l} `{y_valid : rml_valid_type A y l}, forall z, replaced_var_in_rml n y x z -> rml_valid_type A z l.
 Proof.
   induction x ; intros.
-  - inversion x_valid ; subst.
-    inversion H ; subst.
-    + easy.
-    + inversion y_valid ; .
-      inversion H2.
-      
-    
-
-    inversion H ; subst.
+  - inversion H ; subst.
     + apply valid_var.
       inversion x_valid ; subst.
       assumption.
-    + 
+    + apply y_valid.
   - inversion H ; subst.
     inversion x_valid ; subst.
     apply valid_const.
     reflexivity.
   - inversion H ; subst.
     + inversion x_valid ; subst.
-      apply valid_let with (B := B1).
-      * pose (IHx1 y (n0,A0) B1 H9 B y_valid a' H7).
-        apply r.
-      * pose (IHx2 y (n0,A0)).
-
-      pose (valid_let A B x a' b' l).
-      pose (IHx1 y (n0,A) l B H5).
-      
       apply valid_let with (B := B).
-
-    inversion H ; subst.
-    + inversion x_valid ; subst.
-      apply valid_let with (B := B).
-      * pose (IHx1 y (n0,A0) l B0 H9).
-        apply (IHx1 y n1).
+      * apply (IHx1 y n).
         apply H6.
         
       

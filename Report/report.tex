@@ -63,6 +63,9 @@ Defined for some context \set{ident : eqType} \set{mem : memType ident}. We have
 \subsection{Well Formed}
 A Rml program is well formed when there are no variables not bound. So all consts are well formed, all variables are well formed if there is a binding for it in the environment. all let statements are well formed, if what is being assigned is well formed under the current environment, and what it is binded in is well formed under the current environment extended with the new bounded variable. All if and app statements are well formed, if each subexpression is well formed in the current environment.
 
+\subsection{Correct RML program}
+The program should be typeable, well formed, since this meakes it possible to simplify the program.
+
 \subsection{Replace var with value}
 Given a Rml expression, we can substitute the value of a variable for the expression by induction. This may still leave \(\mathtt{Var}~n\) expressions.
 

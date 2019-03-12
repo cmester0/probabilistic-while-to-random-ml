@@ -27,6 +27,8 @@ Fixpoint extend_env (x : ident) (v : nat) (env : ident -> nat) : ident -> nat :=
     then v
     else env y.
 
+Check ident.
+
 Theorem get_set :
   forall m x v, (@extend_env x v m) x = v.
 Proof.
@@ -94,9 +96,9 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -
   | skip => Var (env ret.(vname))
   | assign A n e => Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (Var (env ret.(vname)))
   | random A n e => Var (env ret.(vname))
-  | cond b m1 m2 => Var (env ret.(vname))
+  | cond b m1 m2 => If_stm (translate_pWhile_cmd_to_rml b) (translate_pWhile_cmd_to_rml b) (translate_pWhile_cmd_to_rml b) 
   | while b e => Var (env ret.(vname))
-  | seqc e1 e2 => App_stm T (translate_pWhile_cmd_to_rml e1 ret env) (translate_pWhile_cmd_to_rml e2 ret env)
+  | seqc e1 e2 => Let_stm 999 (translate_pWhile_cmd_to_rml e1 ret env) (translate_pWhile_cmd_to_rml e2 ret env)
   end.
 
 Example translate_cmd_cst :
