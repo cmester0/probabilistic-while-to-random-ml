@@ -106,23 +106,41 @@ Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive replaced_var_in_rml : (nat * Type) -> Rml -> Rml -> Rml -> Prop :=
-| replaced_var_diff : forall n0 A, forall n1 B, forall y,
+Inductive replaced_var_in_rml : seq (nat * Type) -> (nat * Type) -> Rml -> Rml -> Rml -> Prop :=
+| replaced_var_diff : forall (n0 : nat) A, forall (n1 : nat) B, forall y l,
         (n0,A) <> (n1,B) ->
-        replaced_var_in_rml (n0,A) y (Var (n1,B)) (Var (n1,B))
-| replaced_var_same : forall n y, replaced_var_in_rml n y (Var n) y
-| replaced_const : forall n y, forall A c, replaced_var_in_rml n y (Const A c) (Const A c)
-| replaced_let_diff : forall n0 A, forall n1 B, forall y, forall a b a' b',
+        (* rml_valid_type A y l  -> *)
+        replaced_var_in_rml l (n0,A) y (Var (n1,B)) (Var (n1,B))
+                            
+| replaced_var_same : forall l n A y,
+    (* rml_valid_type A y l -> *)
+    replaced_var_in_rml l (n,A) y (Var (n,A)) y
+                        
+| replaced_const : forall l n y, forall A c,
+      replaced_var_in_rml l n y (Const A c) (Const A c)
+
+| replaced_let_diff : forall l, forall n0 A, forall n1 B, forall y, forall a b a' b',
           (n0,A) <> (n1,B) ->
-          replaced_var_in_rml (n0,A) y a a' ->
-          replaced_var_in_rml (n0,A) y b b' ->
-          replaced_var_in_rml (n0,A) y (Let_stm (n1,B) a b) (Let_stm (n1,B) a' b')
-| replaced_let_same : forall n y, forall a b a' b',
-      replaced_var_in_rml n y a a' ->
-      replaced_var_in_rml n a' b b' ->
-      replaced_var_in_rml n y (Let_stm n a b) b'
-| replace_if : forall n y, forall b m1 m2 b' m1' m2', replaced_var_in_rml n y b b' -> replaced_var_in_rml n y m1 m1' -> replaced_var_in_rml n y m2 m2' -> replaced_var_in_rml n y (If_stm b m1 m2) (If_stm b' m1' m2')
-| replace_app : forall n y, forall B e1 e2 e1' e2', replaced_var_in_rml n y e1 e1' -> replaced_var_in_rml n y e2 e2' -> replaced_var_in_rml n y (App_stm B e1 e2) (App_stm B e1' e2').
+          replaced_var_in_rml l (n0,A) y a a' ->
+          replaced_var_in_rml l (n0,A) y b b' ->
+          replaced_var_in_rml l (n0,A) y (Let_stm (n1,B) a b) (Let_stm (n1,B) a' b')
+                              
+| replaced_let_same : forall l n A y, forall a b a' b',
+      (* rml_valid_type A a' l -> *)
+      replaced_var_in_rml l (n,A) y a a' ->
+      replaced_var_in_rml l (n,A) a' b b' ->
+      replaced_var_in_rml l (n,A) y (Let_stm (n,A) a b) b'
+
+| replaced_if : forall l n y, forall b m1 m2 b' m1' m2',
+      replaced_var_in_rml l n y b b' ->
+      replaced_var_in_rml l n y m1 m1' ->
+      replaced_var_in_rml l n y m2 m2' ->
+      replaced_var_in_rml l n y (If_stm b m1 m2) (If_stm b' m1' m2')
+
+| replaced_app : forall l n y, forall B e1 e2 e1' e2',
+      replaced_var_in_rml l n y e1 e1' ->
+      replaced_var_in_rml l n y e2 e2' ->
+      replaced_var_in_rml l n y (App_stm B e1 e2) (App_stm B e1' e2').
 
 Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) : Rml :=
   match x with
@@ -132,10 +150,13 @@ Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) :
     else x
   | Const A c => x
   | Let_stm n a b =>
-    let new_value := replace_var_with_value a index value in
+    let a' := replace_var_with_value a index value in
+    let b'1 := replace_var_with_value b n a' in
+    let b'2 :=  (replace_var_with_value b index value) in
+    
     if pselect (index = n)
-    then replace_var_with_value b index new_value
-    else Let_stm n new_value (replace_var_with_value b index value)
+    then b'1
+    else Let_stm n a' b'2
   | If_stm b m1 m2 =>
     let b' := replace_var_with_value b index value in
     let m1' := replace_var_with_value m1 index value in
@@ -147,41 +168,42 @@ Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) :
     App_stm B e1' e2'
   end.
 
-Theorem replace_var_with_value_correctness :
-  forall A x n y, replaced_var_in_rml (n,A) y x (replace_var_with_value x (n,A) y).
-Proof.
-  induction x ; intros.
-  - simpl.
-    destruct (pselect _) ; simpl.
-    + rewrite e.
-      apply replaced_var_same.
-    + destruct p.
-      apply replaced_var_diff.
-      assumption.
-  - simpl.
-    apply replaced_const.
-  - simpl.
-    destruct (pselect _) ; simpl.
-    + subst.
-      apply replaced_let_same with (a' := (replace_var_with_value x1 (n,A) y)).
-      * easy.
-      * easy.
-    + destruct p.
-      apply replaced_let_diff ; easy.
-  - apply replace_if ; easy.
-  - apply replace_app ; easy.
-Qed.
-
 Theorem replace_var_with_value_refl :
-  forall A x n y k, replaced_var_in_rml (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
+  forall A x n y k l, replaced_var_in_rml l (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
 Proof.
   split ; intros.
   - induction H ; simpl ; try rewrite H ; try rewrite (nat_refl_equal n) ; try rewrite (nat_refl_equal n) ; subst ; try reflexivity ; try destruct pselect ; easy.
   - subst.
-    apply replace_var_with_value_correctness.
+    generalize dependent l.
+    generalize dependent y.
+    induction x ; intros.
+    + simpl.
+      destruct pselect ; simpl.
+      * subst.
+        apply replaced_var_same.
+      * destruct p.
+        apply replaced_var_diff.
+        assumption.
+    + simpl.
+      apply replaced_const.
+    + simpl.
+      destruct pselect ; simpl.
+      * subst.
+        apply replaced_let_same with (a' := (replace_var_with_value x1 (n, A) y)).
+        -- apply IHx1.
+        -- apply IHx2.
+      * destruct p.
+        apply replaced_let_diff.
+        -- assumption.
+        -- apply IHx1.
+        -- apply IHx2.
+    + apply replaced_if ; easy.
+    + apply replaced_app ; easy.
 Qed.
-      
-(* TODO: Make proof for correctness these two definitions *)
+
+Corollary replace_var_with_value_refl_nil :
+  forall A x n y k, replaced_var_in_rml nil (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
+Proof. intros. apply replace_var_with_value_refl. Qed.
 
 Fixpoint replace_var_for_let_aux (x : Rml) {l} `{x_well : well_formed l x}: Rml.
   case x eqn : x_old.
@@ -329,7 +351,7 @@ Compute replace_var_with_value (Let_stm (4,_) (Const nat 4) (Var (4,_))) (4,_) (
 (* -------------------------------------------------------------------------------- *)
 
 Lemma replace_var_with_value_type_correct :
-  forall y x z n A l, replaced_var_in_rml (n,A) y x z -> rml_valid_type A y l.
+  forall y x z n A l, replaced_var_in_rml l (n,A) y x z -> rml_valid_type A y l.
 Proof.
   induction y ; intros.
   - destruct p.
