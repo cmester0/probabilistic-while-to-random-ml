@@ -422,3 +422,112 @@ Proof.
   intros.
   intuition.
 Qed.
+
+(* -------------------------------------------------------------------------------- *)
+
+Lemma replace_let_helper_lemma_simple :
+  forall v1 v2 n, rml_is_simple v1 -> rml_is_simple (replace_var_with_value v1 n v2).
+Proof.
+  induction v1 ; intros.
+  - easy.
+  - apply is_const.
+  - easy.
+  - simpl in *.    
+    inversion_clear H as [H1 | H2 | H3] ; subst.
+    
+    apply is_if.
+    + apply IHv1_1. assumption.
+    + apply IHv1_2. assumption.
+    + apply IHv1_3. assumption.
+  - simpl in *.
+    inversion_clear H as [H1 | H2 | H3] ; subst.
+
+    apply is_app.
+    + apply IHv1_1. assumption.
+    + apply IHv1_2. assumption.
+Qed.
+
+(* -------------------------------------------------------------------------------- *)
+
+Example replace_is_success :
+  forall A, replace_var_with_value (Let_stm (4,A) (Const nat 4) (Var (4,A))) (4,A) (Const nat 4) = (Const nat 4).
+Proof.
+  intros.
+  simpl.
+  destruct (pselect _).
+  - simpl.
+    reflexivity.
+  - simpl.
+    easy.
+Qed.
+
+Compute replace_var_with_value (Let_stm (4,_) (Const nat 4) (Var (4,_))) (4,_) (Const nat 4).
+
+(* -------------------------------------------------------------------------------- *)
+
+Lemma replace_var_with_value_type_correct :
+  forall y x z n A l, replaced_var_in_rml l (n,A) y x z -> rml_valid_type A y l.
+Proof.
+  induction y ; intros.
+  - destruct p.
+    inversion H ; subst.
+    
+    pose (valid_var n0 l T).
+    apply (valid_var n l A).
+
+Qed.
+
+(* -------------------------------------------------------------------------------- *)
+
+Theorem replace_var_for_with_value_valid :
+  forall (x y : Rml) n {A} `{x_valid : rml_valid_type A x nil} {B} `{y_valid : rml_valid_type B y nil}, forall z, replaced_var_in_rml nil (n,A) y x z -> rml_valid_type A z nil.
+Proof.
+  induction x ; intros.
+  - inversion x_valid ; subst.
+    easy.
+  - inversion x_valid ; subst.
+    inversion H ; subst.
+    apply valid_const.
+    reflexivity.
+  - inversion H ; subst.
+    + inversion x_valid ; subst.
+      apply valid_let with (B := B1).
+      * pose (IHx1 y n B1 H6 B y_valid a').
+Admitted.
+
+(* -------------------------------------------------------------------------------- *)
+
+Fixpoint replace_var_for_let_aux (x : Rml) {l} `{x_well : well_formed l x}: Rml.
+  case x eqn : x_old.
+  - (* Var *)
+    intros.
+    induction l.
+    + easy.
+    + refine x.
+    
+  - (* Const *)
+    intros. refine x.
+  - (* Let *)
+    assert (a_well : well_formed l r1) by (inversion x_well ; subst ; assumption).
+    assert (b_well : well_formed (p :: l) r2) by (inversion x_well ; subst ; assumption).
+    
+    refine (let a' := replace_var_for_let_aux r1 l a_well in
+            let b' := replace_var_for_let_aux r2 (p :: l) b_well in
+            replace_var_with_value b' p a').
+  - (* If *)
+    assert (b_well : well_formed l r1) by (inversion x_well ; subst ; assumption).
+    assert (m1_well : well_formed l r2) by (inversion x_well ; subst ; assumption).
+    assert (m2_well : well_formed l r3) by (inversion x_well ; subst ; assumption).
+
+    refine (let b' := replace_var_for_let_aux r1 l b_well in
+            let m1' := replace_var_for_let_aux r2 l m1_well in
+            let m2' := replace_var_for_let_aux r3 l m2_well in
+            If_stm b' m1' m2').
+  - (* App *)
+    assert (e1_well : well_formed l r1) by (inversion x_well ; subst ; assumption).
+    assert (e2_well : well_formed l r2) by (inversion x_well ; subst ; assumption).
+
+    refine (let e1' := replace_var_for_let_aux r1 l e1_well in
+            let e2' := replace_var_for_let_aux r2 l e2_well  in
+            App_stm T e1' e2').
+Defined.
