@@ -4,44 +4,6 @@ From mathcomp.analysis Require Import boolp reals distr.
 
 (* -------------------------------------------------------------------------------- *)
 
-Lemma nat_S_equal :
-  forall n x, (n.+1 == x.+1) = true <-> (n == x) = true.
-Proof.
-  induction n ; destruct x ; try easy ; try reflexivity.
-Qed.
-
-Lemma nat_equal :
-  forall (n x : nat), n = x <-> (n == x) = true.
-Proof.
-  induction n ; destruct x ; try easy ; try reflexivity.
-  split.
-  - intros.
-    inversion H.
-    inversion H.
-    apply nat_S_equal.
-    apply (IHn x) in H1.
-    rewrite H2 in H1.
-    assumption.
-  - intros.
-    pose (nat_S_equal n x).
-    symmetry in i.
-    apply i in H.
-    apply (IHn x) in H.
-    rewrite H.
-    reflexivity.
-Qed.
-
-Lemma nat_refl_equal :
-  forall x : nat, (x == x) = true.
-Proof.
-  intros.
-  pose (nat_equal x x).
-  rewrite <- i.
-  reflexivity.
-Qed.
-
-(* -------------------------------------------------------------------------------- *)
-
 Reserved Notation "x >>= f" (at level 40, left associativity).
 Class Monad (M : Type -> Type) :=
   {
@@ -93,45 +55,6 @@ Inductive sRml {A : Type} : Type :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Compute (well_let_stm (10,_) (Const nat 4) (Var (10,_)) nil (well_const nat 4 nil) (well_var _ 10 [:: (10,_)] _)).
-
-(* -------------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------------- *)
-
-Inductive replaced_var_in_rml : seq (nat * Type) -> (nat * Type) -> Rml -> Rml -> Rml -> Prop :=
-| replaced_var_diff : forall (n0 : nat) A, forall (n1 : nat) B, forall y l,
-        (n0,A) <> (n1,B) ->
-        replaced_var_in_rml l (n0,A) y (Var (n1,B)) (Var (n1,B))
-                            
-| replaced_var_same : forall l n A y,
-    replaced_var_in_rml l (n,A) y (Var (n,A)) y
-                        
-| replaced_const : forall l n y, forall A c,
-      replaced_var_in_rml l n y (Const A c) (Const A c)
-
-| replaced_let_diff : forall l, forall n0 A, forall n1 B, forall y, forall a b a' b',
-          (n0,A) <> (n1,B) ->
-          replaced_var_in_rml l (n0,A) y a a' ->
-          replaced_var_in_rml l (n0,A) y b b' ->
-          replaced_var_in_rml l (n0,A) y (Let_stm (n1,B) a b) (Let_stm (n1,B) a' b')
-                              
-| replaced_let_same : forall l n A y, forall a b a' b',
-      replaced_var_in_rml l (n,A) y a a' ->
-      replaced_var_in_rml l (n,A) a' b b' ->
-      replaced_var_in_rml l (n,A) y (Let_stm (n,A) a b) b'
-
-| replaced_if : forall l n y, forall b m1 m2 b' m1' m2',
-      replaced_var_in_rml l n y b b' ->
-      replaced_var_in_rml l n y m1 m1' ->
-      replaced_var_in_rml l n y m2 m2' ->
-      replaced_var_in_rml l n y (If_stm b m1 m2) (If_stm b' m1' m2')
-
-| replaced_app : forall l n y, forall B e1 e2 e1' e2',
-      replaced_var_in_rml l n y e1 e1' ->
-      replaced_var_in_rml l n y e2 e2' ->
-      replaced_var_in_rml l n y (App_stm B e1 e2) (App_stm B e1' e2').
-
 Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) : Rml :=
   match x with
   | Var n =>
@@ -158,43 +81,6 @@ Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) :
     App_stm B e1' e2'
   end.
 
-Theorem replace_var_with_value_refl :
-  forall A x n y k l, replaced_var_in_rml l (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
-Proof.
-  split ; intros.
-  - induction H ; simpl ; try rewrite H ; try rewrite (nat_refl_equal n) ; try rewrite (nat_refl_equal n) ; subst ; try reflexivity ; try destruct pselect ; easy.
-  - subst.
-    generalize dependent l.
-    generalize dependent y.
-    induction x ; intros.
-    + simpl.
-      destruct pselect ; simpl.
-      * subst.
-        apply replaced_var_same.
-      * destruct p.
-        apply replaced_var_diff.
-        assumption.
-    + simpl.
-      apply replaced_const.
-    + simpl.
-      destruct pselect ; simpl.
-      * subst.
-        apply replaced_let_same with (a' := (replace_var_with_value x1 (n, A) y)).
-        -- apply IHx1.
-        -- apply IHx2.
-      * destruct p.
-        apply replaced_let_diff.
-        -- assumption.
-        -- apply IHx1.
-        -- apply IHx2.
-    + apply replaced_if ; easy.
-    + apply replaced_app ; easy.
-Qed.
-
-Corollary replace_var_with_value_refl_nil :
-  forall A x n y k, replaced_var_in_rml nil (n,A) y x k <-> replace_var_with_value x (n,A) y = k.
-Proof. intros. apply replace_var_with_value_refl. Qed.
-
 Fixpoint replace_var_for_let_aux (x : Rml) {l} : Rml :=
   match x with
   | Const _ _ | Var _ => x
@@ -215,25 +101,6 @@ Fixpoint replace_var_for_let_aux (x : Rml) {l} : Rml :=
 
 Definition replace_var_for_let (x : Rml) `{x_well : well_formed nil x} : Rml :=
   @replace_var_for_let_aux x nil.
-
-Check List.fold_left.
-
-Check List.remove.
-
-Definition type_nat : Type := nat.
-
-Definition example : Rml :=
-  (If_stm (Const bool true)
-          (Let_stm
-             (16,type_nat) (Const bool true)
-             (Let_stm
-                (12,type_nat) (Const nat 4)
-                (If_stm (Var (16,type_nat)) (Var (12,type_nat)) (Const nat 10))))
-          (Const nat 900)).
-
-Compute replace_var_with_value example (16,type_nat) (Const bool true).
-Compute replace_var_with_value example (12,type_nat) (Const nat 4).   
-Compute replace_var_for_let example.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -325,8 +192,6 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   end.
 
 (* -------------------------------------------------------------------------------- *)
-
-Check valid_is_well.           
 
 Lemma replace_var_for_let_simple_helper :
   forall (x y : Rml) n {A B},
@@ -438,17 +303,3 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : cont
   let y_simple := @replace_var_for_let_simple x A x_valid in
   let y_valid := @replace_var_for_let_valid x A nil x_valid in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
-
-(* -------------------------------------------------------------------------------- *)
-
-(** * Examples **)
-
-Compute @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil). (* _ => bug *)
-
-Compute @interp_rml _ (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat _)).
-
-Example const_4_interp :
-  forall R Q, @interp_rml R (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat Q)) = @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil).
-Proof.
-  simpl.
-Admitted.
