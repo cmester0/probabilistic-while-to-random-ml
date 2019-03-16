@@ -1,5 +1,6 @@
 all : 
-	coqc *.v
+	coqc Rml.v
+	coqc Rml_semantic.v
 
 clean : 
 	rm *.glob
