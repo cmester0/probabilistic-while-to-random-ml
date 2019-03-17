@@ -3,6 +3,7 @@ From xhl Require Import pwhile.pwhile.
 From xhl Require Import inhabited notations.
 
 Require Import Rml.
+Require Import Rml_semantic.
 
 From mathcomp.analysis Require Import boolp reals distr.
 
