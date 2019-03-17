@@ -71,7 +71,8 @@ Qed.
 
 Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -> (nat * Type)) : Rml :=
   match x with
-  | seqc (assign A n e) e2 => Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (translate_pWhile_cmd_to_rml e2 ret env)
+  | seqc (assign A n e) e2 =>
+    Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (translate_pWhile_cmd_to_rml e2 ret env)
     
   | abort => Var (env ret.(vname))
   | skip => Var (env ret.(vname))
@@ -95,3 +96,11 @@ Proof.
   unfold initial_env.
   reflexivity.
 Qed.
+
+(* translate_pWhile_cmd_to_rml (seqc (skip) (assign x (cst_ n))) x (@initial_env (0,T))) *)
+
+Lemma nat_at_type : Type.
+Proof.
+  pose nat.
+  apply P.
+Defined.

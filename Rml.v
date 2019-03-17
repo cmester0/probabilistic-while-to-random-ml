@@ -22,7 +22,7 @@ Notation "x >>= f" := (bind x f).
 Definition continuation_monad_type := fun ZO A => (A -> ZO) -> ZO.
 Instance continuation_monad {ZO} : Monad (continuation_monad_type ZO) :=
   {
-    unit := fun {A} (x : A) (f : A -> ZO) => f x ;
+    unit := fun {A} (x : A) => @^~ x ;
     bind := fun {A B} (mu : (A -> ZO) -> ZO) (M : A -> (B -> ZO) -> ZO) (f : B -> ZO) => mu (fun (x : A) => M x f)
   }. 
 Proof. all: reflexivity. Defined.
@@ -193,6 +193,19 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 
 (* -------------------------------------------------------------------------------- *)
 
+Lemma replace_var_for_let_simple_helper_helper :
+  forall p x1 x2 y n A B ,
+    rml_valid_type A (Let_stm p x1 x2) [:: (n, B)]
+    ->
+    rml_is_simple (@replace_var_for_let_aux y nil)
+    ->
+    rml_is_simple
+    (replace_var_with_value
+       (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: nil)) p (@replace_var_for_let_aux x1 [:: (n,B)]))
+       (n, B) (@replace_var_for_let_aux y nil)).
+Proof.
+Admitted.
+  
 Lemma replace_var_for_let_simple_helper :
   forall (x y : Rml) n {A B},
     rml_valid_type A x [:: (n,B)] ->
@@ -206,10 +219,17 @@ Proof.
       inversion H ; subst.
       inversion H5 ; contradiction.
   - apply is_const.
-  - inversion_clear H ; subst.
-    apply IHx1 with (y := y) in H1.
-    (* apply IHx2 in H2. *)
-Admitted.  
+  - apply replace_var_for_let_simple_helper_helper with (A := A) ; assumption.
+  - inversion H ; subst.
+    apply is_if.
+    + apply IHx1 with (A := bool) ; assumption.
+    + apply IHx2 with (A := A) ; assumption.
+    + apply IHx3 with (A := A) ; assumption.
+  - inversion H ; subst.
+    apply is_app.
+    + apply IHx1 with (A := (T -> A)) ; assumption.
+    + apply IHx2 with (A := T) ; assumption.
+Defined.
 
 Theorem replace_var_for_let_simple :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x nil},
@@ -223,8 +243,6 @@ Proof.
     apply is_const.
   - simpl.
     inversion x_valid ; subst.
-    (* pose (@replace_var_for_let_simple_helper x2 x1 x A B H5). *)
-    (* apply r. *)
     apply replace_var_for_let_simple_helper with (A := A).
     + assumption.
     + apply (IHx1 B).
@@ -242,14 +260,26 @@ Proof.
     + apply (IHx2 T) ; assumption.
 Defined.
 
+Lemma replace_var_for_let_valid_helper_helper :
+  forall p (x1 x2 y : Rml) n {A B} l,
+    rml_valid_type A
+        (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: l)) p
+           (@replace_var_for_let_aux x1 ((n,B) :: l))) ((n, B) :: l) ->
+    rml_valid_type B (@replace_var_for_let_aux y l) l ->
+  rml_valid_type A
+    (replace_var_with_value
+       (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: l)) p (@replace_var_for_let_aux x1 ((n,B) :: l)))
+       (n, B) (@replace_var_for_let_aux y l)) l.
+Proof.
+Admitted.
+
 Lemma replace_var_for_let_valid_helper :
   forall (x y : Rml) n {A B} l,
     rml_valid_type A (@replace_var_for_let_aux x ((n,B) :: l)) ((n,B) :: l) ->
     rml_valid_type B (@replace_var_for_let_aux y l) l ->
     rml_valid_type A (@replace_var_with_value (@replace_var_for_let_aux x ((n,B) :: l)) (n,B) (@replace_var_for_let_aux y l)) l.
 Proof.
-  intros.
-  induction x ; simpl.
+  induction x ; simpl ; intros.
   - inversion H ; subst.
     simpl.
     destruct pselect ; simpl.
@@ -262,7 +292,18 @@ Proof.
   - apply valid_const.
     inversion H ; subst.
     easy.
-Admitted.  
+  - simpl.
+    apply replace_var_for_let_valid_helper_helper ; assumption. (* TODO *)
+  - inversion H ; subst.
+    apply valid_if.
+    + apply IHx1 ; assumption.
+    + apply IHx2 ; assumption.
+    + apply IHx3 ; assumption.
+  - inversion H ; subst.
+    apply valid_app.
+    + apply IHx1 ; assumption.
+    + apply IHx2 ; assumption.
+Defined.
 
 Theorem replace_var_for_let_valid :
   forall (x : Rml) {A} l `{x_valid : rml_valid_type A x l},
@@ -303,3 +344,5 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : cont
   let y_simple := @replace_var_for_let_simple x A x_valid in
   let y_valid := @replace_var_for_let_valid x A nil x_valid in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
+
+Compute @interp_rml _ (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat _)).
