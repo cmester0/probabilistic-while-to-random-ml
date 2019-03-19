@@ -33,7 +33,7 @@ Inductive Rml : Type :=
 | Var : (nat * Type) -> Rml
 | Const : forall (A : Type), A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
-(* | Fun_stm : forall B, nat -> B -> @Rml A -> @Rml A *)
+(* | Fun_stm : forall B, (nat * Type) -> B -> Rml -> Rml *)
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml.
 
@@ -345,4 +345,38 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : cont
   let y_valid := @replace_var_for_let_valid x A nil x_valid in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
 
-Compute @interp_rml _ (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat _)).
+Definition raised_nat : Type := nat.
+
+Definition example_a := (@Const nat 4).
+Definition example_b := (Var (12,raised_nat)).
+Definition example_let := (Let_stm (12,raised_nat) example_a example_b).
+
+Definition valid_a := (@valid_const nat nat 4 (@erefl Type nat) nil).
+Check valid_a.
+Definition valid_b : rml_valid_type nat example_b [:: (12, raised_nat)].
+Proof.
+  refine (@valid_var 12 [:: (12, raised_nat)] nat _).
+  simpl.
+  left.
+  reflexivity.
+Defined.
+  
+Definition valid_let' := (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil valid_a valid_b).
+
+Compute @interp_rml _ example_let nat valid_let'.
+
+Definition example_function := (fix contains_zero l :=
+                                  match l with
+                                  | nil => false
+                                  | x :: xs => if x == 0
+                                             then true
+                                             else contains_zero xs end).
+Definition example_list := 2 :: 3 :: 0 :: 4 :: 8 :: nil.
+
+Definition example_e1 := (Const (list nat -> bool) example_function).
+Definition example_e2 := (Const (list nat) example_list).
+
+Definition example_valid1 := (@valid_const (list nat -> bool) (list nat -> bool) (example_function) (@erefl Type (list nat -> bool)) nil).
+Definition example_valid2 := (@valid_const (list nat) (list nat) (example_list) (@erefl Type (list nat)) nil).
+
+Compute @interp_rml _ (App_stm (list nat) example_e1 example_e2) bool (@valid_app bool (list nat) example_e1 example_e2 nil example_valid1 example_valid2).

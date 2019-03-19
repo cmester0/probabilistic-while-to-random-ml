@@ -98,6 +98,8 @@ Proof.
   reflexivity.
 Qed.
 
+Compute (fun x => translate_pWhile_cmd_to_rml (seqc (assign x (cst_ 4)) (assign x (cst_ 6))) x (@initial_env (0,_))).
+
 (* translate_pWhile_cmd_to_rml (seqc (skip) (assign x (cst_ n))) x (@initial_env (0,T))) *)
 
 Lemma nat_at_type : Type.

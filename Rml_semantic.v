@@ -45,6 +45,5 @@ Compute (fun R => @ssem R nat (Const nat 4) (@valid_const nat nat 4 (@erefl Type
 Example ssem_example1 : forall R, @ssem R nat (Const nat 4) (@valid_const nat nat 4 (@erefl Type nat) nil) = @dunit R (Choice nat) 4.
 Proof. reflexivity. Qed.
 
+Compute (fun R => @ssem R nat (Let_stm (12,_) (Const nat 4) (Var (12,_))) (@valid_let _ _ 12 (Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 (nil) _ _))) R 4.
 
-Example ssem_example1 : forall R, @ssem R nat (Const nat 4) (@valid_const nat nat 4 (@erefl Type nat) nil) = @dunit R (Choice nat) 4.
-Proof. reflexivity. Qed.
