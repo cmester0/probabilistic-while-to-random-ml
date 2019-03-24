@@ -15,8 +15,6 @@ Inductive well_defined_pWhile : cmd -> Prop :=
 Definition initial_env p : ident -> (nat * Type) :=
   fun y => p. (* Return is always (0,Set), make better default (return var name) *)
 
-Check ident.
-
 Fixpoint extend_env (x : ident) (v : (nat * Type)) (env : ident -> (nat * Type)) : ident -> (nat * Type) :=
   fun y =>
     if pselect (y = x)
@@ -46,30 +44,6 @@ Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (env : ident -> (nat * Ty
   | app_ A B f x => App_stm B (translate_pWhile_expr_to_rml f (@env)) (translate_pWhile_expr_to_rml x (@env))
   end.  
 
-Example translate_exp_cst :
-    forall n p, translate_pWhile_expr_to_rml (cst_ n) (initial_env p) = Const nat n.
-Proof.
-  intros.
-  simpl.
-  unfold initial_env.
-  reflexivity.
-Qed.
-
-Example translate_exp_var :
-    forall T x n p, translate_pWhile_expr_to_rml (var_ x) (@extend_env (@vname _ T x) n (initial_env p)) = Var n.
-Proof.
-  intros.
-  simpl.
-  destruct n.
-  - simpl.
-    case (pselect _).
-    + intros.
-      simpl.
-      reflexivity.
-    + intros.
-      easy.
-Qed.
-
 Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -> (nat * Type)) : Rml :=
   match x with
   | seqc (assign A n e) e2 =>
@@ -83,27 +57,3 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -
   | while b e => Var (env ret.(vname))
   | seqc e1 e2 => Let_stm (999,Set) (translate_pWhile_cmd_to_rml e1 ret env) (translate_pWhile_cmd_to_rml e2 ret env)
   end.
-
-Example translate_cmd_example1 :
-  forall (T : Type) x (n1 n2 : nat),
-    T = nat ->
-    translate_pWhile_cmd_to_rml
-      (seqc (assign x (cst_ n1)) (assign x (cst_ n2))) x (@initial_env (0,T))
-    = Let_stm (0,T) (Const nat n1) (Let_stm (0,T) (Const nat n2) (Var (0,T))).
-Proof.
-  intros.
-  subst.
-  simpl.
-  unfold initial_env.
-  reflexivity.
-Qed.
-
-Compute (fun x => translate_pWhile_cmd_to_rml (seqc (assign x (cst_ 4)) (assign x (cst_ 6))) x (@initial_env (0,_))).
-
-(* translate_pWhile_cmd_to_rml (seqc (skip) (assign x (cst_ n))) x (@initial_env (0,T))) *)
-
-Lemma nat_at_type : Type.
-Proof.
-  pose nat.
-  apply P.
-Defined.

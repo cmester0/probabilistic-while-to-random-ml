@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99998 (TeX Live 2017/Debian) (preloaded format=xelatex 2018.10.17)  10 MAR 2019 12:11
+This is XeTeX, Version 3.14159265-2.6-0.99998 (TeX Live 2017/Debian) (preloaded format=xelatex 2018.10.17)  24 MAR 2019 22:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -277,6 +277,26 @@ tly
 )
 \Hy@SectionHShift=\skip46
 )
+(/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
+Package: xcolor 2016/05/11 v2.12 LaTeX color extensions (UK)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package xcolor Info: Driver file: xetex.def on input line 225.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/xetex.def
+File: xetex.def 2017/06/24 v5.0h Graphics/color driver for xetex
+)
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1348.
+Package xcolor Info: Model `RGB' extended on input line 1364.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1366.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1367.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1368.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1369.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1370.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1371.
+)
 (/usr/share/texlive/texmf-dist/tex/latex/listings/listings.sty
 \lst@mode=\count116
 \lst@gtempboxa=\box29
@@ -304,24 +324,24 @@ Package: listings 2015/06/04 1.6 (Carsten Heinz)
  (./report.aux)
 \openout1 = `report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 35.
+LaTeX Font Info:    ... okay on input line 35.
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -357,7 +377,7 @@ LaTeX Font Info:    ... okay on input line 26.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 \AtBeginShipoutBox=\box31
-Package hyperref Info: Link coloring OFF on input line 26.
+Package hyperref Info: Link coloring OFF on input line 35.
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
 
@@ -366,21 +386,21 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count124
 )
-LaTeX Info: Redefining \ref on input line 26.
-LaTeX Info: Redefining \pageref on input line 26.
-LaTeX Info: Redefining \nameref on input line 26.
+LaTeX Info: Redefining \ref on input line 35.
+LaTeX Info: Redefining \pageref on input line 35.
+LaTeX Info: Redefining \nameref on input line 35.
 
 (./report.out) (./report.out)
 \@outlinefile=\write3
 \openout3 = `report.out'.
 
 \c@lstlisting=\count125
-LaTeX Font Info:    Try loading font information for U+msa on input line 29.
+LaTeX Font Info:    Try loading font information for U+msa on input line 38.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 29.
+LaTeX Font Info:    Try loading font information for U+msb on input line 38.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -389,78 +409,37 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: se-ascii-print.def 2016/05/16 v1.11 stringenc: Printable ASCII characters
 
 )
+Underfull \hbox (badness 10000) in paragraph at lines 40--43
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 50--54
+
+ []
+
 [1
 
 ]
-./report.tex:69: Missing $ inserted.
-<inserted text> 
-                $
-l.69 Fixpoint replace_
-                      var_with_value (x : Rml) (index : nat) (value : Rml) :...
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-./report.tex:91: Missing $ inserted.
-<inserted text> 
-                $
-l.91 
-     
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-
-Overfull \hbox (72.0406pt too wide) in paragraph at lines 69--91
-\OML/cmm/m/it/10.95 ifn \OT1/cmr/m/n/10.95 == \OML/cmm/m/it/10.95 indexthenvalu
-eelsex\OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 ConstAc \OT1/cmr/m/n/10.95 =\OML
-/cmm/m/it/10.95 > x\OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 Let[]tmnab \OT1/cmr
-/m/n/10.95 =\OML/cmm/m/it/10.95 > letnew[]alue \OT1/cmr/m/n/10.95 := \OML/cmm/m
-/it/10.95 replace[]ar[]ith[]alueaindexvalueinifn \OT1/cmr/m/n/10.95 ==
+Overfull \hbox (32.37038pt too wide) detected at line 84
+[]
  []
 
-
-Overfull \hbox (79.02968pt too wide) in paragraph at lines 69--91
-\OML/cmm/m/it/10.95 indexthenreplace[]ar[]ith[]aluebindexnew[]alueelseLet[]tmnn
-ew[]alue\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 replace[]ar[]ith[]aluebindexval
-ue\OT1/cmr/m/n/10.95 )\OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 If[]tmbm\OT1/cmr
-/m/n/10.95 1\OML/cmm/m/it/10.95 m\OT1/cmr/m/n/10.95 2 =\OML/cmm/m/it/10.95 >
- []
-
-
-Overfull \hbox (314.23524pt too wide) in paragraph at lines 69--91
-\OML/cmm/m/it/10.95 letb[] \OT1/cmr/m/n/10.95 := \OML/cmm/m/it/10.95 replace[]a
-r[]ith[]aluebindexvalueinletm\OT1/cmr/m/n/10.95 1[] := \OML/cmm/m/it/10.95 repl
-ace[]ar[]ith[]aluem\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 indexvalueinletm\OT1
-/cmr/m/n/10.95 2[] := \OML/cmm/m/it/10.95 replace[]ar[]ith[]aluem\OT1/cmr/m/n/1
-0.95 2\OML/cmm/m/it/10.95 indexvalueinIf[]tmb[]m\OT1/cmr/m/n/10.95 1[]\OML/cmm/
-m/it/10.95 m\OT1/cmr/m/n/10.95 2[]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 App[
-]tmBe\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 e\OT1/cmr/m/n/10.95 2 =\OML/cmm/m/
-it/10.95 >
- []
-
-
-Overfull \hbox (23.25754pt too wide) in paragraph at lines 69--91
-\OML/cmm/m/it/10.95 lete\OT1/cmr/m/n/10.95 1[] := \OML/cmm/m/it/10.95 replace[]
-ar[]ith[]aluee\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 indexvalueinlete\OT1/cmr/
-m/n/10.95 2[] := \OML/cmm/m/it/10.95 replace[]ar[]ith[]aluee\OT1/cmr/m/n/10.95 
-2\OML/cmm/m/it/10.95 indexvalueinApp[]tmBe\OT1/cmr/m/n/10.95 1[]\OML/cmm/m/it/1
-0.95 e\OT1/cmr/m/n/10.95 2[]\OML/cmm/m/it/10.95 end:$ 
- []
-
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 96.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 87.
 [2]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 96.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 87.
  (./report.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 96.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 96.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 96.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 87.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 87.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 87.
  ) 
 Here is how much of TeX's memory you used:
- 10710 strings out of 493007
- 149418 string characters out of 6136718
- 244260 words of memory out of 5000000
- 14600 multiletter control sequences out of 15000+600000
+ 11297 strings out of 493007
+ 156269 string characters out of 6136718
+ 256909 words of memory out of 5000000
+ 15175 multiletter control sequences out of 15000+600000
  10761 words of font info for 50 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 28i,11n,45p,523b,348s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 28i,11n,45p,588b,357s stack positions out of 5000i,500n,10000p,200000b,80000s
 
 Output written on report.pdf (2 pages).

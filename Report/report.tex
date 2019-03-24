@@ -9,6 +9,8 @@
 
 \usepackage[hidelinks]{hyperref}
 
+\usepackage{xcolor}
+
 \usepackage{listings}
 
 \lstdefinelanguage{rml}{
@@ -23,53 +25,63 @@
 
 \newcommand{\set}[1]{\{#1\}}
 
+\newcommand{\Rml}{\textcolor{orange}{\mathtt{Rml}}}
+\newcommand{\sRml}{\textcolor{orange}{\mathtt{sRml}}}
+\newcommand{\Type}{\textcolor{blue}{\mathtt{Type}}}
+\newcommand{\wellformed}{\texttt{well\_formed}}
+\newcommand{\valid}{\texttt{rml\_valid\_type}}
+\newcommand{\bind}{\textcolor{magenta}{>\!\!>\!\!=}}
+
 \begin{document}
 
 \maketitle
 
-\section{Semantics}
-\subsection{pWhile}
-Defined for some context \set{ident : eqType} \set{mem : memType ident}. We have:
+\section{Rml}
+We have two representations of Rml, continuations and distributions. Both build on a monad, for ease of use.
+\\ \\
+The data structure used to represent Rml terms is as follows:
 \begin{align*}
-  \mathtt{cmd} &:= \mathtt{abort} \\
-               &~~\mid \mathtt{skip} \\
-               &~~\mid \mathtt{assign~\set{t}~name~expr} \\
-               &~~\mid \mathtt{random~\set{t}~distr} \\
-               &~~\mid \mathtt{cond~boolexp~cmd~cmd} \\
-               &~~\mid \mathtt{while~expr~cmd} \\
-               &~~\mid \mathtt{seqc~cmd~cmd}
-  \\ \\
-  \mathtt{(expr : T)} &:= \mathtt{var~\set{T}~vars} & \mathtt{expr~T} \\
-               &~~\mid \mathtt{cst~\set{T}~value} & \mathtt{expr~T} \\
-               &~~\mid \mathtt{prp~m} & \mathtt{expr~bool} \\
-               &~~\mid \mathtt{app~\set{T~U}~(expr : T \rightarrow U)~(expr : T)} & \mathtt{expr~U}
-  \\ \\
-  \mathtt{vars} &\subseteq \Sigma^* \\
-  \mathtt{value} &\in V
+  &\mathtt{Inductive}~\Rml : \Type := \\
+  &~~|~ \mathtt{Var} : (\mathbb{N} * \Type) \rightarrow \Rml \\
+  &~~|~ \mathtt{Const} : \forall~(A : \Type),~A \rightarrow \Rml \\
+  &~~|~ \mathtt{Let\_stm} : (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
+  &~~|~ \mathtt{If\_stm} : \Rml \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
+  &~~|~ \mathtt{App\_stm} : \Type \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml.
 \end{align*}
-
-\subsection{Rml}
-
+We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
+\\ \\
+We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
 \begin{align*}
-\mathtt{Inductive~Rml : Type} &:= \mathtt{Var} : \mathbb{N} \rightarrow \mathtt{Rml} \\
-&~~|~\mathtt{Const} : \forall~(A : \mathtt{Type}), A \rightarrow \mathtt{Rml} \\
-&~~|~\mathtt{Let\_stm} : \mathbb{N} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \\
-&~~|~\mathtt{If\_stm} : \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \\
-&~~|~\mathtt{App\_stm} : \mathtt{Type} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml} \rightarrow \mathtt{Rml}. \\
+  &\mathtt{Inductive}~\sRml : \Type := \\
+  &~~|~ \mathtt{sConst} : \forall~(A : \Type),~A \rightarrow \sRml \\
+  &~~|~ \mathtt{sIf\_stm} : \sRml \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
+  &~~|~ \mathtt{sApp\_stm} : \Type \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml.
 \end{align*}
-
-\section{Rml in Coq}
-
-\subsection{Well Formed}
-A Rml program is well formed when there are no variables not bound. So all consts are well formed, all variables are well formed if there is a binding for it in the environment. all let statements are well formed, if what is being assigned is well formed under the current environment, and what it is binded in is well formed under the current environment extended with the new bounded variable. All if and app statements are well formed, if each subexpression is well formed in the current environment.
-
-\subsection{Correct RML program}
-The program should be typeable, well formed, since this meakes it possible to simplify the program.
-
-\subsection{Replace var with value}
-Given a Rml expression, we can substitute the value of a variable for the expression by induction. This may still leave \(\mathtt{Var}~n\) expressions.
-
-\subsection{sRml}
-
+That is Rml where we remove expressions with variables. We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations):
+\begin{align*}  
+  &\mathtt{Fixpoint}~\mathtt{interp\_srml}~\set{A}~\set{R}~(x : @\sRml~A) : \mathtt{continuation\_monad\_type}~R~A := \\
+  &~~\mathtt{match}~x~\mathtt{with} \\
+  &~~~~|~ \mathtt{sConst}~c \Rightarrow \mathtt{unit}~c \\
+  &~~~~|~ \mathtt{sIf\_stm}~b~m_1~m_2 \Rightarrow \\
+  & \qquad \quad (\mathtt{interp\_srml}~b)~\bind~(\lambda~(t : \mathbb{B}) \Rightarrow \mathtt{if}~t~\mathtt{then}~(\mathtt{interp\_srml}~m_1)~\mathtt{else}~(\mathtt{interp\_srml}~m_2)) \\
+  &~~~~|~ \mathtt{sApp\_stm}~C~e_1~e_2 \Rightarrow \\
+  & \qquad \quad (\mathtt{interp\_srml}~e_1)~\bind~(\lambda~(g : C \rightarrow A) \Rightarrow (\mathtt{interp\_srml}~e_2)~\bind~(\lambda~k \Rightarrow \mathtt{unit}~(g~k)))\\
+  &~~\mathtt{end}.
+\end{align*}
+We have a similar function for Rml, using the posibility distributions as interpretations:
+\begin{align*}
+  &\mathtt{Fixpoint}~\mathtt{ssem\_aux}~\set{R : \mathtt{realType}}~\set{T : \Type}~(x : @\sRml~T) : \mathtt{distr}~R~(\mathtt{Choice}~T)~:=\\
+  &~~\mathtt{match}~x~\mathtt{with}\\
+  &~~~~|~\mathtt{sConst}~c~\Rightarrow~@\mathtt{dunit}~R~(\mathtt{Choice}~T)~c\\
+  &~~~~|~\mathtt{sIf\_stm}~b~m_1~m_2~\Rightarrow\\
+  & \qquad \quad \mathtt{let}~b'':= \mathtt{ssem\_aux}~b~\mathtt{in}\\
+  & \qquad \quad \backslash\mathtt{dlet}\_(b'~\leftarrow~b'')~~(\mathtt{if}~b'~\mathtt{then}~\mathtt{ssem\_aux}~m_1~\mathtt{else}~\mathtt{ssem\_aux}~m_2)\\
+  &~~~~|~\mathtt{sApp\_stm}~A~e_1~e_2~\Rightarrow\\
+  & \qquad \quad @\mathtt{dlet}~R~(\mathtt{Choice}~(A~\rightarrow~T))~(\mathtt{Choice}~T)~\\
+  &~\qquad~\quad~(\lambda~t \Rightarrow @\mathtt{dlet}~R~(\mathtt{Choice}~A)~(\mathtt{Choice}~T)~(\lambda~u~\Rightarrow @\mathtt{dunit}~R~(\mathtt{Choice}~T)~(t~u))~(@\mathtt{ssem\_aux}~R~A~e_2))\\
+  &~\qquad~\quad~(\mathtt{ssem\_aux}~e_1)\\
+  &~~\mathtt{end}.
+\end{align*}
+We see similar patterns arising, since both interpretations are monadic.
 
 \end{document}

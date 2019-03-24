@@ -1,6 +1,7 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import analysis.reals.
 From mathcomp.analysis Require Import boolp reals distr.
+From Hammer Require Import Hammer.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -193,33 +194,84 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 
 (* -------------------------------------------------------------------------------- *)
 
+Lemma valid_var_nil_is_false :
+  forall A p, ~ rml_valid_type A (Var p) nil.
+Proof.
+  intros.
+  unfold not.
+  intros.
+  inversion H ; subst.
+  contradiction.
+Qed.
+
+Lemma replace_var_for_let_aux_once :
+  forall (x : Rml) {A} l `{x_valid : rml_valid_type A x l},
+    rml_is_simple (@replace_var_for_let_aux x l).
+Proof.
+  induction x ; intros.
+  - induction l.
+    + apply valid_var_nil_is_false in x_valid ; contradiction.
+    + simpl.
+  - constructor.
+  - simpl.
+    inversion x_valid ; subst.
+  
+
 Lemma replace_var_for_let_simple_helper_helper :
-  forall p x1 x2 y n A B ,
-    rml_valid_type A (Let_stm p x1 x2) [:: (n, B)]
+  forall p1 p2 x1 x2 y A,
+  forall IHx1 : (forall (y : Rml) (n : nat) (A B : Type),
+               rml_valid_type A x1 [:: (n, B)] ->
+               rml_is_simple (@replace_var_for_let_aux y [::]) ->
+               rml_is_simple
+                 (replace_var_with_value (@replace_var_for_let_aux x1 [:: (n,B)])
+                                         (n, B) (@replace_var_for_let_aux y [::]))),
+  forall IHx2 : (forall (y : Rml) (n : nat) (A B : Type),
+               rml_valid_type A x2 [:: (n, B)] ->
+               rml_is_simple (@replace_var_for_let_aux y nil) ->
+               rml_is_simple
+                 (replace_var_with_value (@replace_var_for_let_aux x2 [:: (n,B)]) 
+                                         (n, B) (@replace_var_for_let_aux y nil))),
+    rml_valid_type A (Let_stm p1 x1 x2) [:: p2]
     ->
     rml_is_simple (@replace_var_for_let_aux y nil)
     ->
     rml_is_simple
     (replace_var_with_value
-       (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: nil)) p (@replace_var_for_let_aux x1 [:: (n,B)]))
-       (n, B) (@replace_var_for_let_aux y nil)).
-Proof.
+       (replace_var_with_value
+          (@replace_var_for_let_aux x2 (p1 :: p2 :: nil))
+          p1
+          (@replace_var_for_let_aux x1 [:: p2]))
+       p2
+       (@replace_var_for_let_aux y nil)).
+Proof.  
 Admitted.
+
+Lemma valid_env_weakening :
+  forall l1 l2 p T, rml_valid_type T (Var p) l1 -> rml_valid_type T (Var p) (l1 ++ l2).
+Proof.
+  intros.
+  inversion H ; subst.
+  constructor.
+  apply List.in_or_app.
+  left.
+  assumption.
+Qed.
   
 Lemma replace_var_for_let_simple_helper :
   forall (x y : Rml) n {A B},
-    rml_valid_type A x [:: (n,B)] ->
+    rml_valid_type A x ((n,B) :: nil) ->
     rml_is_simple (@replace_var_for_let_aux y nil) ->
-    rml_is_simple (@replace_var_with_value (@replace_var_for_let_aux x [:: (n,B)]) (n,B) (@replace_var_for_let_aux y nil)).
-Proof.  
+    rml_is_simple (@replace_var_with_value (@replace_var_for_let_aux x ((n,B) :: nil)) (n,B) (@replace_var_for_let_aux y nil)).
+Proof.
   induction x ; intros ; simpl.
   - destruct pselect ; simpl.
     + assumption.
     + destruct p.
       inversion H ; subst.
-      inversion H5 ; contradiction.
+      simpl in *.
+      inversion H5 ; contradiction.        
   - apply is_const.
-  - apply replace_var_for_let_simple_helper_helper with (A := A) ; assumption.
+  - apply replace_var_for_let_simple_helper_helper with (A := A) ; try assumption.
   - inversion H ; subst.
     apply is_if.
     + apply IHx1 with (A := bool) ; assumption.
@@ -237,8 +289,7 @@ Theorem replace_var_for_let_simple :
 Proof.  
   unfold replace_var_for_let.
   induction x ; intros.
-  - inversion x_valid ; subst.
-    easy.
+  - apply valid_var_nil_is_false in x_valid ; contradiction.
   - simpl.
     apply is_const.
   - simpl.
@@ -249,15 +300,10 @@ Proof.
       assumption.
   - simpl.
     inversion x_valid ; subst.
-    apply is_if.
-    + apply (IHx1 bool) ; assumption.
-    + apply (IHx2 A) ; assumption.
-    + apply (IHx3 A) ; assumption.
+    apply is_if ; auto 2 using (IHx1 bool), (IHx2 A), (IHx3 A).
   - simpl.
     inversion x_valid ; subst.
-    apply is_app.
-    + apply (IHx1 (T -> A)) ; assumption.
-    + apply (IHx2 T) ; assumption.
+    apply is_app ; auto 2 using (IHx1 (T -> A)), (IHx2 T).
 Defined.
 
 Lemma replace_var_for_let_valid_helper_helper :
@@ -344,39 +390,3 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : cont
   let y_simple := @replace_var_for_let_simple x A x_valid in
   let y_valid := @replace_var_for_let_valid x A nil x_valid in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
-
-Definition raised_nat : Type := nat.
-
-Definition example_a := (@Const nat 4).
-Definition example_b := (Var (12,raised_nat)).
-Definition example_let := (Let_stm (12,raised_nat) example_a example_b).
-
-Definition valid_a := (@valid_const nat nat 4 (@erefl Type nat) nil).
-Check valid_a.
-Definition valid_b : rml_valid_type nat example_b [:: (12, raised_nat)].
-Proof.
-  refine (@valid_var 12 [:: (12, raised_nat)] nat _).
-  simpl.
-  left.
-  reflexivity.
-Defined.
-  
-Definition valid_let' := (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil valid_a valid_b).
-
-Compute @interp_rml _ example_let nat valid_let'.
-
-Definition example_function := (fix contains_zero l :=
-                                  match l with
-                                  | nil => false
-                                  | x :: xs => if x == 0
-                                             then true
-                                             else contains_zero xs end).
-Definition example_list := 2 :: 3 :: 0 :: 4 :: 8 :: nil.
-
-Definition example_e1 := (Const (list nat -> bool) example_function).
-Definition example_e2 := (Const (list nat) example_list).
-
-Definition example_valid1 := (@valid_const (list nat -> bool) (list nat -> bool) (example_function) (@erefl Type (list nat -> bool)) nil).
-Definition example_valid2 := (@valid_const (list nat) (list nat) (example_list) (@erefl Type (list nat)) nil).
-
-Compute @interp_rml _ (App_stm (list nat) example_e1 example_e2) bool (@valid_app bool (list nat) example_e1 example_e2 nil example_valid1 example_valid2).
