@@ -204,19 +204,6 @@ Proof.
   contradiction.
 Qed.
 
-Lemma replace_var_for_let_aux_once :
-  forall (x : Rml) {A} l `{x_valid : rml_valid_type A x l},
-    rml_is_simple (@replace_var_for_let_aux x l).
-Proof.
-  induction x ; intros.
-  - induction l.
-    + apply valid_var_nil_is_false in x_valid ; contradiction.
-    + simpl.
-  - constructor.
-  - simpl.
-    inversion x_valid ; subst.
-  
-
 Lemma replace_var_for_let_simple_helper_helper :
   forall p1 p2 x1 x2 y A,
   forall IHx1 : (forall (y : Rml) (n : nat) (A B : Type),
@@ -243,7 +230,17 @@ Lemma replace_var_for_let_simple_helper_helper :
           (@replace_var_for_let_aux x1 [:: p2]))
        p2
        (@replace_var_for_let_aux y nil)).
-Proof.  
+Proof.
+  intros.
+  induction (replace_var_for_let_aux y).
+  all: induction (replace_var_with_value (replace_var_for_let_aux x2) p1
+                                         (replace_var_for_let_aux x1)).
+  all: simpl.
+  all: try easy ; try constructor.
+  - destruct pselect ; simpl.
+    + constructor.
+    + Focus 2.
+      destruct pselect.  
 Admitted.
 
 Lemma valid_env_weakening :
