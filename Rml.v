@@ -56,52 +56,33 @@ Inductive sRml {A : Type} : Type :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint replace_var_with_value (x : Rml) (index : (nat * Type)) (value : Rml) : Rml :=
+Fixpoint replace_all_variables_aux (x : Rml) (env : seq (nat * Type * Rml)) : Rml :=
+  let lookup := (fix lookup env p := match env with
+                                     | nil => (Var p) (* Should never happen, TODO remove using proof terms *)
+                                     | y :: ys =>
+                                       if pselect (y.1 = p)
+                                       then y.2
+                                       else lookup ys p
+                                     end) in
   match x with
-  | Var n =>
-    if pselect (index = n)
-    then value
-    else x
-  | Const A c => x
+  | Var n => lookup env n
+  | Const _ _ => x
   | Let_stm n a b =>
-    let a' := replace_var_with_value a index value in
-    let b'1 := replace_var_with_value b n a' in
-    let b'2 :=  (replace_var_with_value b index value) in
-    
-    if pselect (index = n)
-    then b'1
-    else Let_stm n a' b'2
+    let a' := replace_all_variables_aux a env in
+    replace_all_variables_aux b ((n,a') :: env)
   | If_stm b m1 m2 =>
-    let b' := replace_var_with_value b index value in
-    let m1' := replace_var_with_value m1 index value in
-    let m2' := replace_var_with_value m2 index value in
+    let b' := replace_all_variables_aux b env in
+    let m1' := replace_all_variables_aux m1 env in
+    let m2' := replace_all_variables_aux m2 env in
     If_stm b' m1' m2'
-  | App_stm B e1 e2 =>
-    let e1' := replace_var_with_value e1 index value in
-    let e2' := replace_var_with_value e2 index value in
-    App_stm B e1' e2'
-  end.
-
-Fixpoint replace_var_for_let_aux (x : Rml) {l} : Rml :=
-  match x with
-  | Const _ _ | Var _ => x
-  | Let_stm p r1 r2 =>
-    let a' := @replace_var_for_let_aux r1 l in
-    let b' := @replace_var_for_let_aux r2 (p :: l) in
-    replace_var_with_value b' p a'
-  | If_stm r1 r2 r3 =>
-    let b' := @replace_var_for_let_aux r1 l in
-    let m1' := @replace_var_for_let_aux r2 l in
-    let m2' := @replace_var_for_let_aux r3 l in
-    If_stm b' m1' m2'
-  | App_stm T r1 r2 =>
-    let e1' := @replace_var_for_let_aux r1 l in
-    let e2' := @replace_var_for_let_aux r2 l in
+  | App_stm T e1 e2 =>
+    let e1' := replace_all_variables_aux e1 env in
+    let e2' := replace_all_variables_aux e2 env in
     App_stm T e1' e2'
   end.
 
-Definition replace_var_for_let (x : Rml) `{x_well : well_formed nil x} : Rml :=
-  @replace_var_for_let_aux x nil.
+Definition replace_all_variables (x : Rml) `{x_well : well_formed nil x} : Rml :=
+  replace_all_variables_aux x nil.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -204,186 +185,93 @@ Proof.
   contradiction.
 Qed.
 
-Lemma replace_var_for_let_simple_helper_helper :
-  forall p1 p2 x1 x2 y A,
-  forall IHx1 : (forall (y : Rml) (n : nat) (A B : Type),
-               rml_valid_type A x1 [:: (n, B)] ->
-               rml_is_simple (@replace_var_for_let_aux y [::]) ->
-               rml_is_simple
-                 (replace_var_with_value (@replace_var_for_let_aux x1 [:: (n,B)])
-                                         (n, B) (@replace_var_for_let_aux y [::]))),
-  forall IHx2 : (forall (y : Rml) (n : nat) (A B : Type),
-               rml_valid_type A x2 [:: (n, B)] ->
-               rml_is_simple (@replace_var_for_let_aux y nil) ->
-               rml_is_simple
-                 (replace_var_with_value (@replace_var_for_let_aux x2 [:: (n,B)]) 
-                                         (n, B) (@replace_var_for_let_aux y nil))),
-    rml_valid_type A (Let_stm p1 x1 x2) [:: p2]
-    ->
-    rml_is_simple (@replace_var_for_let_aux y nil)
-    ->
+Theorem replace_var_for_let_simple_helper :
+  forall x A l `{x_valid : rml_valid_type A x (map fst l)},
+    (forall k, List.In k l -> rml_is_simple k.2) ->
     rml_is_simple
-    (replace_var_with_value
-       (replace_var_with_value
-          (@replace_var_for_let_aux x2 (p1 :: p2 :: nil))
-          p1
-          (@replace_var_for_let_aux x1 [:: p2]))
-       p2
-       (@replace_var_for_let_aux y nil)).
+      (replace_all_variables_aux x l).
 Proof.
-  intros.
-  induction (replace_var_for_let_aux y).
-  all: induction (replace_var_with_value (replace_var_for_let_aux x2) p1
-                                         (replace_var_for_let_aux x1)).
-  all: simpl.
-  all: try easy ; try constructor.
-  - destruct pselect ; simpl.
-    + constructor.
-    + Focus 2.
-      destruct pselect.  
-Admitted.
-
-Lemma valid_env_weakening :
-  forall l1 l2 p T, rml_valid_type T (Var p) l1 -> rml_valid_type T (Var p) (l1 ++ l2).
-Proof.
-  intros.
-  inversion H ; subst.
-  constructor.
-  apply List.in_or_app.
-  left.
-  assumption.
+  induction x ; intros.
+  - induction l.
+    + inversion x_valid ; subst.
+      contradiction.
+    + simpl.
+      destruct pselect.
+      * simpl.
+        apply H.
+        simpl.
+        left.
+        reflexivity.
+      * simpl.
+        apply IHl.
+        -- inversion x_valid ; subst.
+           inversion H2.
+           ++ contradiction.
+           ++ constructor.
+              assumption.
+        -- intros.
+           apply H.
+           simpl.
+           right.
+           assumption.
+  - simpl.
+    constructor.
+  - simpl.
+    apply IHx2 with (A := A).
+    + simpl.
+      inversion x_valid ; subst.
+      assumption.
+    + intros.
+      inversion H0 ; subst.
+      * simpl.
+        inversion x_valid ; subst.
+        apply IHx1 with (A := B).
+        -- assumption.
+        -- assumption.
+      * apply H.
+        assumption.
+  - simpl.
+    inversion x_valid ; subst.
+    apply is_if ; eauto 2.
+  - simpl.
+    inversion x_valid ; subst.
+    apply is_app ; eauto 2.  
 Qed.
   
-Lemma replace_var_for_let_simple_helper :
-  forall (x y : Rml) n {A B},
-    rml_valid_type A x ((n,B) :: nil) ->
-    rml_is_simple (@replace_var_for_let_aux y nil) ->
-    rml_is_simple (@replace_var_with_value (@replace_var_for_let_aux x ((n,B) :: nil)) (n,B) (@replace_var_for_let_aux y nil)).
-Proof.
-  induction x ; intros ; simpl.
-  - destruct pselect ; simpl.
-    + assumption.
-    + destruct p.
-      inversion H ; subst.
-      simpl in *.
-      inversion H5 ; contradiction.        
-  - apply is_const.
-  - apply replace_var_for_let_simple_helper_helper with (A := A) ; try assumption.
-  - inversion H ; subst.
-    apply is_if.
-    + apply IHx1 with (A := bool) ; assumption.
-    + apply IHx2 with (A := A) ; assumption.
-    + apply IHx3 with (A := A) ; assumption.
-  - inversion H ; subst.
-    apply is_app.
-    + apply IHx1 with (A := (T -> A)) ; assumption.
-    + apply IHx2 with (A := T) ; assumption.
-Defined.
-
 Theorem replace_var_for_let_simple :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x nil},
-  rml_is_simple (@replace_var_for_let x (@valid_is_well x A nil x_valid)).
-Proof.  
-  unfold replace_var_for_let.
-  induction x ; intros.
-  - apply valid_var_nil_is_false in x_valid ; contradiction.
+  rml_is_simple (@replace_all_variables x (@valid_is_well x A nil x_valid)).
+Proof.
+  unfold replace_all_variables.
+  intros.
+  apply replace_var_for_let_simple_helper with (A := A).
   - simpl.
-    apply is_const.
-  - simpl.
-    inversion x_valid ; subst.
-    apply replace_var_for_let_simple_helper with (A := A).
-    + assumption.
-    + apply (IHx1 B).
-      assumption.
-  - simpl.
-    inversion x_valid ; subst.
-    apply is_if ; auto 2 using (IHx1 bool), (IHx2 A), (IHx3 A).
-  - simpl.
-    inversion x_valid ; subst.
-    apply is_app ; auto 2 using (IHx1 (T -> A)), (IHx2 T).
-Defined.
+    assumption.
+  - intros.
+    contradiction.
+Qed.
 
-Lemma replace_var_for_let_valid_helper_helper :
-  forall p (x1 x2 y : Rml) n {A B} l,
-    rml_valid_type A
-        (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: l)) p
-           (@replace_var_for_let_aux x1 ((n,B) :: l))) ((n, B) :: l) ->
-    rml_valid_type B (@replace_var_for_let_aux y l) l ->
-  rml_valid_type A
-    (replace_var_with_value
-       (replace_var_with_value (@replace_var_for_let_aux x2 (p :: (n,B) :: l)) p (@replace_var_for_let_aux x1 ((n,B) :: l)))
-       (n, B) (@replace_var_for_let_aux y l)) l.
+Theorem replace_var_for_let_valid_helper :
+  forall x A l `{x_valid : rml_valid_type A x (map fst l)},
+    (forall k, List.In k l -> rml_valid_type k.1.2 k.2 (map fst l)) ->
+    rml_valid_type A (replace_all_variables_aux x l) (map fst l).
 Proof.
 Admitted.
 
-Lemma replace_var_for_let_valid_helper :
-  forall (x y : Rml) n {A B} l,
-    rml_valid_type A (@replace_var_for_let_aux x ((n,B) :: l)) ((n,B) :: l) ->
-    rml_valid_type B (@replace_var_for_let_aux y l) l ->
-    rml_valid_type A (@replace_var_with_value (@replace_var_for_let_aux x ((n,B) :: l)) (n,B) (@replace_var_for_let_aux y l)) l.
-Proof.
-  induction x ; simpl ; intros.
-  - inversion H ; subst.
-    simpl.
-    destruct pselect ; simpl.
-    + inversion e ; subst.
-      assumption.
-    + inversion H3.
-      * easy.
-      * apply valid_var.
-        assumption.
-  - apply valid_const.
-    inversion H ; subst.
-    easy.
-  - simpl.
-    apply replace_var_for_let_valid_helper_helper ; assumption. (* TODO *)
-  - inversion H ; subst.
-    apply valid_if.
-    + apply IHx1 ; assumption.
-    + apply IHx2 ; assumption.
-    + apply IHx3 ; assumption.
-  - inversion H ; subst.
-    apply valid_app.
-    + apply IHx1 ; assumption.
-    + apply IHx2 ; assumption.
-Defined.
-
 Theorem replace_var_for_let_valid :
-  forall (x : Rml) {A} l `{x_valid : rml_valid_type A x l},
-    rml_valid_type A (@replace_var_for_let_aux x l) l.
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x nil},
+    rml_valid_type A (@replace_all_variables_aux x nil) nil.
 Proof.
-  induction x ; intros.
-  - inversion x_valid ; subst.
-    easy.
-  - simpl.
-    apply valid_const.
-    inversion x_valid ; subst.
-    reflexivity.
-  - simpl.
-    inversion x_valid ; subst.
-    pose (@replace_var_for_let_valid_helper x2 x1 x A B l).
-    apply r.
-    + apply IHx2.
-      assumption.
-    + apply IHx1.
-      assumption.
-  - simpl.
-    inversion x_valid ; subst.
-    apply valid_if.
-    + apply IHx1 ; assumption.
-    + apply IHx2 ; assumption.
-    + apply IHx3 ; assumption.
-  - simpl.
-    inversion x_valid ; subst.
-    apply valid_app.
-    + apply IHx1 ; assumption.
-      apply IHx2 ; assumption.
-Defined.
+  intros.
+  apply replace_var_for_let_valid_helper.
+  - assumption.
+  - contradiction.
+Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
 Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : continuation_monad_type R A :=
-  let y := @replace_var_for_let x (@valid_is_well x A nil x_valid) in
+  let y := @replace_all_variables x (@valid_is_well x A nil x_valid) in
   let y_simple := @replace_var_for_let_simple x A x_valid in
-  let y_valid := @replace_var_for_let_valid x A nil x_valid in
+  let y_valid := @replace_var_for_let_valid x A x_valid in
   (interp_srml (@rml_to_sRml A y y_simple y_valid)).
