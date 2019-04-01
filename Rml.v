@@ -363,4 +363,4 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 (* -------------------------------------------------------------------------------- *)
 
 Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : continuation_monad_type R A :=
-  (interp_srml (@replace_all_variables_type A x x_valid)).
+  interp_srml (@replace_all_variables_type A x x_valid).
