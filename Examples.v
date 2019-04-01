@@ -21,15 +21,83 @@ Definition example : Rml :=
                 (If_stm (Var (16,nat_at_type)) (Var (12,nat_at_type)) (Const nat 10))))
           (Const nat 900)).
 
-Compute replace_var_with_value example (16,nat_at_type) (Const bool true).
-Compute replace_var_with_value example (12,_) (Const nat 4).   
-Compute replace_var_for_let example.
+Compute replace_all_variables example.
 Compute interp_rml example.
+
+Check replace_all_variables_aux.
+Compute replace_all_variables_aux example nil.
+
+Example re1 :
+  replace_all_variables_aux example nil = If_stm (Const bool true) (If_stm (Const bool true) (Const nat 4) (Const nat 10))
+    (Const nat 900).
+Proof.
+  simpl.
+  destruct pselect.
+  - easy.
+  - destruct pselect.
+    + simpl.
+      destruct pselect.
+      * simpl.
+        reflexivity.
+      * easy.
+    + easy.
+Qed.
+
+Example re2 :
+  rml_is_simple (replace_all_variables_aux example nil).
+Proof.
+  simpl.
+  constructor.
+  - constructor.
+  - constructor.
+    + destruct pselect.
+      * easy.
+      * simpl.
+    + destruct pselect.
+      * simpl.
+        constructor.
+      * easy.
+    + destruct pselect.
+      * simpl.
+        constructor.
+      * easy.
+  - constructor.
+  - constructor.
+Qed.
+
+Example re3 :
+  rml_valid_type nat (replace_all_variables_aux example nil) nil.
+Proof.
+  simpl.
+  constructor.
+  - constructor.
+    reflexivity.
+  - constructor.
+    + destruct pselect.
+      * easy.
+      * simpl.
+        destruct pselect.
+        -- simpl.
+           constructor.
+           reflexivity.
+        -- easy.
+    + destruct pselect.
+      * simpl.
+        constructor.
+        reflexivity.
+      * simpl.
+        destruct pselect.
+        -- easy.
+        -- easy.
+    + constructor.
+      reflexivity.
+  - constructor.
+    reflexivity.
+Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
 Compute @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil).
-(* _ => bug *)
 
 Compute @interp_rml _ (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat _)).
 
@@ -118,3 +186,42 @@ Qed.
 Compute (fun x => translate_pWhile_cmd_to_rml (seqc (assign x (cst_ 4)) (assign x (cst_ 6))) x (@initial_env (0,_))).
 
 (* translate_pWhile_cmd_to_rml (seqc (skip) (assign x (cst_ n))) x (@initial_env (0,T))) *)
+
+Definition nat2 : Type := nat.
+Example H0 :
+  (forall (n : nat) (A : Type)
+           (t : List.In (n, A) [seq i.1 | i <- [:: (4, nat2, Const nat 4)]]),
+         rml_valid_type A (lookup_in [:: (4, nat2, Const nat 4)] (n, A) t)
+                        [seq i.1 | i <- [:: (4, nat2, Const nat 4)]]).
+Proof.
+  intros.
+    simpl.
+    inversion t ; subst.
+    inversion H.
+    + destruct pselect.
+      * simpl in *.
+        destruct e.
+        simpl.
+        constructor.
+        rewrite <- H2.
+        reflexivity.
+      * contradiction.
+    + contradiction.
+Defined.
+
+Example H1 : (List.In (4, nat2) [seq i.1 | i <- [:: (4, nat2, Const nat 4)]]).
+Proof.
+  simpl.
+  left.
+  reflexivity.
+Defined.
+
+Compute (lookup [:: (4, nat2, (Const nat 4))] (4,nat2) H0 H1).
+Example look :
+  (lookup [:: (4, nat2, (Const nat 4))] (4,nat2) H0 H1) = (Const nat 4).
+Proof.
+  simpl.
+  destruct pselect.
+  -- reflexivity.
+  -- contradiction.
+Qed.
