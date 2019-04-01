@@ -1,7 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import analysis.reals.
 From mathcomp.analysis Require Import boolp reals distr.
-From Hammer Require Import Hammer.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -30,20 +29,20 @@ Proof. all: reflexivity. Defined.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive Rml {n : nat} : Type :=
+Inductive Rml : Type :=
 | Var : (nat * Type) -> Rml
 | Const : forall (A : Type), A -> Rml
-| Let_stm : forall {_ : n > 0}, (nat * Type) -> @Rml n.+1 -> @Rml n.+1 -> Rml
+| Let_stm : (nat * Type) -> @Rml -> @Rml -> Rml
 (* | Fun_stm : forall B, (nat * Type) -> B -> Rml -> Rml *)
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive well_formed {n : nat} : seq (nat * Type) -> @Rml n -> Prop :=
+Inductive well_formed : seq (nat * Type) -> Rml -> Prop :=
 | well_var : forall A x l, List.In (x,A) l -> well_formed l (Var (x,A))
 | well_const : forall A c l, well_formed l (Const A c)
-| well_let_stm : forall x (e1 e2 : @Rml n.+1) l {nz : n > 0}, @well_formed n.+1 l e1 -> @well_formed n.+1 (x :: l) e2 -> well_formed l (@Let_stm n nz x e1 e2)
+| well_let_stm : forall x (e1 e2 : Rml) l, @well_formed l e1 -> @well_formed (x :: l) e2 -> well_formed l (Let_stm x e1 e2)
 | well_if : forall b m1 m2 l, well_formed l b -> well_formed l m1 -> well_formed l m2 -> well_formed l (If_stm b m1 m2)
 | well_app : forall B e1 e2 l, well_formed l e1 -> well_formed l e2 -> well_formed l (App_stm B e1 e2).
 
@@ -56,7 +55,7 @@ Inductive sRml {A : Type} : Type :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive rml_valid_type {n : nat} : Type -> @Rml n -> seq (nat * Type) -> Prop :=
+Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
 | valid_var : forall x l A,
     List.In (x,A) l ->
     rml_valid_type A (Var (x,A)) l
@@ -64,10 +63,10 @@ Inductive rml_valid_type {n : nat} : Type -> @Rml n -> seq (nat * Type) -> Prop 
 | valid_const : forall (A B : Type) (c : B) {_ : @eq Type A B} l,
     rml_valid_type A (Const B c) l
                    
-| valid_let : forall A B x a b l {nz : n > 0},
-    @rml_valid_type n.+1 B a l ->
-    @rml_valid_type n.+1 A b ((x,B) :: l) ->
-    rml_valid_type A (@Let_stm n nz (x,B) a b) l
+| valid_let : forall A B x a b l,
+    @rml_valid_type B a l ->
+    @rml_valid_type A b ((x,B) :: l) ->
+    rml_valid_type A (Let_stm (x,B) a b) l
                    
 | valid_if : forall (A : Type) b m1 m2 l,
     rml_valid_type bool b l ->
@@ -82,57 +81,339 @@ Inductive rml_valid_type {n : nat} : Type -> @Rml n -> seq (nat * Type) -> Prop 
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint lookup (env : seq (nat * Type * @Rml 0)) (p : (nat * Type)) :
-  List.In p (map fst env) -> @Rml 0.
-  intros.  
+Inductive rml_is_simple : Rml -> Prop :=
+| is_const : forall (A : Type) c, rml_is_simple (@Const A c)
+| is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (@If_stm b m1 m2)
+| is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm B e1 e2).
+
+(* -------------------------------------------------------------------------------- *)
+
+Fixpoint rml_to_sRml {A : Type} (rml : Rml) `{rml_simple : @rml_is_simple rml} `{rml_valid : @rml_valid_type A rml nil} : @sRml A.
+Proof.
+  (* apply is_rml_simple_reflect_rml_is_simple in rml_simple. *)
+  case rml eqn : o_rml.
+  - exfalso.
+    easy.
+  - assert (forall (A B : Type) c l, @rml_valid_type A (Const B c) l -> A = B) by (intros ; inversion H ; subst ; reflexivity).
+    assert (A = A0) by (apply (H A A0 a nil) ; assumption).
+    subst.
+    refine (sConst a).
+  - exfalso.
+    easy.
+  - assert (if_valid_type : (rml_valid_type bool r1 nil /\ rml_valid_type A r2 nil /\ rml_valid_type A r3 nil)) by (intros; inversion rml_valid; easy).
+    inversion if_valid_type as [p1 [p2 p3]] ; clear if_valid_type.
+
+    assert (if_is_simple : rml_is_simple r1 /\ rml_is_simple r2 /\ rml_is_simple r3) by (inversion rml_simple ; subst ; easy).        
+    inversion if_is_simple as [s1 [s2 s3]] ; clear if_is_simple.
+    
+    refine (sIf_stm (@rml_to_sRml bool r1 s1 p1) (@rml_to_sRml A r2 s2 p2) (@rml_to_sRml A r3 s3 p3)).
+  - assert (app_valid_type : rml_valid_type (T -> A) r1 nil /\ rml_valid_type T r2 nil) by (intros ; inversion rml_valid ; easy).
+    inversion app_valid_type as [p1 p2] ; clear app_valid_type.
+
+    assert (app_is_simple : rml_is_simple r1 /\ rml_is_simple r2) by (inversion rml_simple ; subst ; easy).
+    inversion app_is_simple as [H1 H2] ; clear app_is_simple.
+    
+    apply (sApp_stm T (@rml_to_sRml (T -> A) r1 H1 p1) (@rml_to_sRml T r2 H2 p2)).
+Defined.
+
+(** Environment **)
+(* -------------------------------------------------------------------------------- *)
+
+Inductive valid_env : seq (nat * Type * Rml) -> Prop :=
+| env_nil : valid_env nil
+| env_cons (x : nat * Type * Rml) xs :
+    (rml_is_simple x.2) ->
+    (rml_valid_type x.1.2 x.2 nil) ->
+    valid_env xs ->
+    valid_env (x :: xs).
+
+Lemma valid_env_valid {l} (env_valid : valid_env l) :
+  forall k, List.In k l -> rml_valid_type k.1.2 k.2 nil.
+Proof.
+  intros.
+  induction l.
+  - contradiction.
+  - inversion env_valid ; subst.
+    inversion H ; subst.
+    + assumption.
+    + apply IHl ; assumption.
+Qed.
+
+Lemma valid_env_simple {l} (env_valid : valid_env l) :
+  forall k, List.In k l -> rml_is_simple k.2.
+Proof.
+  intros.
+  induction l.
+  - contradiction.
+  - inversion env_valid ; subst.
+    inversion H ; subst.
+    + assumption.
+    + apply IHl ; assumption.
+Qed.
+
+Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) `{env_valid : valid_env env} :
+  List.In p (map fst env) -> Rml.
+  intros.
   induction env.
   - contradiction.
   - destruct (pselect (a.1 = p)).
     + intros.
       refine a.2.
     + intros.
-      apply (lookup env p).
-      inversion H.
-      * contradiction.
-      * assumption.
+      apply IHenv.
+      * inversion env_valid ; subst ; assumption.
+      * inversion H ; subst ; easy.
 Defined.
 
-Lemma valid_empty_env :
-  forall (n : nat) (A : Type) (t : List.In (n, A) nil), rml_valid_type A (lookup nil (n, A) t) nil.
-Proof. contradiction. Defined.
+Lemma in_pair_list :
+  forall {A B k l}, @List.In (A * B) k l -> @List.In A k.1 (map fst l).
+Proof.
+  intros.
+  induction l.
+  - contradiction.
+  - simpl in H.
+    inversion H ; subst.
+    + left. reflexivity.
+    + right.
+      apply IHl.
+      assumption.
+Qed.
 
-Fixpoint replace_all_variables_aux_type {n : nat} A (x : @Rml n) (env : seq (nat * Type * @Rml 0)) `{x_valid : @rml_valid_type n A x (map fst env)} : @Rml 0.
+Lemma valid_weakening :
+  forall x T l1 l2 l3,
+    rml_valid_type T x (l3 ++ l1) -> rml_valid_type T x (l3 ++ l2 ++ l1).
+Proof.
+  induction x ; intros.
+  - inversion H ; subst.
+    apply List.in_app_or in H2.
+    constructor.
+    apply List.in_or_app.
+    inversion H2 ; subst.
+    + left. assumption.
+    + right.
+      apply List.in_or_app.
+      right.
+      assumption.
+  - inversion H ; subst.
+    constructor ; reflexivity.
+  - inversion H ; subst.
+    constructor.
+    apply IHx1 ; assumption.
+    apply (IHx2 T l1 l2 ((x,B) :: l3)) ; assumption.
+  - inversion H ; subst.
+    constructor ; eauto 2.
+  - inversion H ; subst.
+    constructor ; eauto 2.
+Qed.
+
+Corollary valid_weakening_rm :
+  forall x T l1 l2,
+    rml_valid_type T x l1 -> rml_valid_type T x (l2 ++ l1).
+Proof.
+  intros.
+  apply (valid_weakening x T l1 l2 nil).
+  assumption.
+Qed.
+
+Corollary valid_weakening_empty :
+  forall x T l,
+    rml_valid_type T x nil -> rml_valid_type T x l.
+Proof.
+  intros.
+  rewrite <- List.app_nil_r.
+  apply (valid_weakening x T nil l nil).
+  assumption.
+Qed.
+
+Lemma valid_env_weakening :
+  forall T l a p env `{env_valid : valid_env env} `{pl : List.In p env} `{a_env_valid : valid_env (a :: env)} `{a_pl : List.In p (a :: env)},
+    p.1.2 = T ->
+    rml_valid_type T (@lookup p.1 env env_valid (in_pair_list pl)) l ->
+    rml_valid_type T (@lookup p.1 (a :: env) a_env_valid (in_pair_list a_pl)) l.
+Proof.
+  intros.
+  destruct p.
+  destruct p.
+  destruct a.
+  destruct p.
+  simpl.
+  destruct pselect.
+  - subst.
+    inversion a_env_valid ; subst.
+    simpl fst in *.
+    simpl snd in *.
+    inversion e ; subst.
+    apply valid_weakening_empty.
+    assumption.
+  -
+Admitted.
+    
+Lemma lookup_valid :
+  forall env `{env_valid : valid_env env},
+  forall k (ki : List.In k env),
+    rml_valid_type k.1.2 (@lookup k.1 env env_valid (in_pair_list ki)) nil.
+Proof.
+  induction env.
+  - contradiction.
+  - inversion env_valid ; subst.
+    destruct k.
+    destruct p.
+    intros.
+    inversion ki.
+    + destruct a.
+      destruct p.
+      inversion H ; subst.
+      apply valid_weakening_empty.
+      simpl in *.
+      destruct pselect ; try contradiction.
+      simpl.
+      assumption.
+    + pose (IHenv H3 (n,T,r) H).
+      destruct a.
+      destruct p.
+      simpl fst in *.
+      simpl snd in *.
+
+      fold (map fst env).
+      
+      pose (@valid_env_weakening T nil (n0,T0,r1) (n,T,r) env H3 H env_valid ki).
+      apply r2.
+      reflexivity.
+      assumption.
+Qed.      
+
+Lemma lookup_simple :
+  forall env `{env_valid : valid_env env},
+  forall p (pi : List.In p (map fst env)),
+    rml_is_simple (@lookup p env env_valid pi).
+Proof.
+  intros.
+  destruct p.
+  induction env.
+  - contradiction.
+  - simpl.
+    destruct pselect.
+    + inversion env_valid ; subst.
+      assumption.
+    + inversion pi.
+      * destruct a.
+        simpl fst in *.
+        inversion H ; subst.
+        contradiction.
+      * inversion env_valid ; subst.
+        (* apply (IHenv H4 H). *)
+Admitted.  
+
+Lemma inside :
+  forall env `{env_valid : valid_env env},
+  forall p (pi : List.In p (map fst env)), List.In (p,@lookup p env env_valid pi) env.
+Proof.
+Admitted.
+
+(* Lemma valid_empty_env : *)
+(*   forall (n : nat) (A : Type) (t : List.In (n, A) nil), *)
+(*     rml_valid_type A (@lookup nil env_nil (n, A) t) nil. *)
+(* Proof. contradiction. Defined. *)
+
+Fixpoint replace_all_variables_aux_type A (x : Rml) (env : seq (nat * Type * Rml))
+         `{env_valid : valid_env env} `{x_valid : @rml_valid_type A x (map fst env)} : @sRml A.
+Proof.
+  generalize dependent env.
+  generalize dependent A.
+  induction x ; intros.
+  - assert (List.In p (map fst env)) by (inversion x_valid ; subst ; easy).
+
+    destruct p.
+    
+    pose (@inside env env_valid (n,T) H).
+    pose (r_valid := @lookup_valid env env_valid ((n,T),@lookup (n,T) env env_valid H) i).
+    simpl in *.
+    pose (r := @lookup (n,T) env env_valid (in_pair_list i)).
+    pose (r_simple := @lookup_simple env env_valid (n,T) (in_pair_list i)).
+    pose (@rml_to_sRml T r r_simple r_valid).
+
+    assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    apply s.
+  - assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    refine (sConst a).
+  - destruct p.
+    assert (x1_valid : rml_valid_type T x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
+
+    pose (a' := IHx1 T env env_valid x1_valid).
+    
+    assert (env_valid' : valid_env ((n,T,x1) :: env)).
+    constructor.
+    induction env.
+    simpl in *.
+    simpl.
+    
+    2 : assumption.
+    
+    
+    assert (x2_valid : rml_valid_type A x2 (map fst ((n,T,a') :: env))) by (inversion x_valid ; subst ; assumption).      
+    
+    refine (replace_all_variables_aux_type A x2 ((n,T,a') :: env) env_valid x2_valid).
+  - assert (x1_valid : rml_valid_type bool x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
+    assert (x2_valid : rml_valid_type A x2 (map fst env)) by (inversion x_valid ; subst ; assumption).
+    assert (x3_valid : rml_valid_type A x3 (map fst env)) by (inversion x_valid ; subst ; assumption).
+    
+    pose (b' := replace_all_variables_aux_type bool x1 env x1_valid).
+    pose (m1' := replace_all_variables_aux_type A x2 env x2_valid).
+    pose (m2' := replace_all_variables_aux_type A x3 env x3_valid).
+
+    refine (If_stm b' m1' m2').
+  - assert (x1_valid : rml_valid_type (T -> A) x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
+    assert (x2_valid : rml_valid_type T x2 (map fst env)) by (inversion x_valid ; subst ; assumption).
+    
+    pose (e1' := replace_all_variables_aux_type (T -> A) x1 env x1_valid).
+    pose (e2' := replace_all_variables_aux_type T x2 env x2_valid).
+
+    refine (App_stm T e1' e2').
+Defined.
+
+
+Fixpoint replace_all_variables_aux_type A (x : Rml) (env : seq (nat * Type * Rml))
+         `{env_valid : valid_env env} `{x_valid : @rml_valid_type A x (map fst env)} : Rml.
 Proof.
   generalize dependent env.
   generalize dependent A.
   induction x ; intros.
   - assert (List.In p (map fst env)) by (inversion x_valid ; subst ; easy).
     refine (lookup env p H).
-  - assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst.
-    refine (Const A a).
+    assumption.
+  - refine (Const A a).
+    (* assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst. *)
+    (* refine (Const A a). *)
   - destruct p.
     assert (x1_valid : rml_valid_type T x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
 
-    pose (a' := IHx1 T env x1_valid).
-    pose (env' := ((n0,T),a') :: env).
+    pose (a' := IHx1 T env env_valid x1_valid).
     
-    assert (x2_valid : rml_valid_type A x2 ((map fst env'))) by (inversion x_valid ; subst ; assumption).
+    assert (env_valid' : valid_env ((n,T,a') :: env)).
+    constructor.
+    induction env.
+    simpl in *.
+    simpl.
+    2 : assumption.
     
-    refine (replace_all_variables_aux_type n.+1 A x2 (((n0,T),a') :: env) x2_valid).
+    
+    assert (x2_valid : rml_valid_type A x2 (map fst ((n,T,a') :: env))) by (inversion x_valid ; subst ; assumption).      
+    
+    refine (replace_all_variables_aux_type A x2 ((n,T,a') :: env) env_valid x2_valid).
   - assert (x1_valid : rml_valid_type bool x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
     assert (x2_valid : rml_valid_type A x2 (map fst env)) by (inversion x_valid ; subst ; assumption).
     assert (x3_valid : rml_valid_type A x3 (map fst env)) by (inversion x_valid ; subst ; assumption).
     
-    pose (b' := replace_all_variables_aux_type n bool x1 env x1_valid).
-    pose (m1' := replace_all_variables_aux_type n A x2 env x2_valid).
-    pose (m2' := replace_all_variables_aux_type n A x3 env x3_valid).
+    pose (b' := replace_all_variables_aux_type bool x1 env x1_valid).
+    pose (m1' := replace_all_variables_aux_type A x2 env x2_valid).
+    pose (m2' := replace_all_variables_aux_type A x3 env x3_valid).
 
     refine (If_stm b' m1' m2').
   - assert (x1_valid : rml_valid_type (T -> A) x1 (map fst env)) by (inversion x_valid ; subst ; assumption).
     assert (x2_valid : rml_valid_type T x2 (map fst env)) by (inversion x_valid ; subst ; assumption).
     
-    pose (e1' := replace_all_variables_aux_type n (T -> A) x1 env x1_valid).
-    pose (e2' := replace_all_variables_aux_type n T x2 env x2_valid).
+    pose (e1' := replace_all_variables_aux_type (T -> A) x1 env x1_valid).
+    pose (e2' := replace_all_variables_aux_type T x2 env x2_valid).
 
     refine (App_stm T e1' e2').
 Defined.
@@ -190,13 +471,13 @@ Defined.
 (* Definition replace_all_variables (x : Rml) `{x_well : well_formed nil x} : Rml := *)
 (*   @replace_all_variables_aux x nil x_well. *)
 
-Definition replace_all_variables_type {n : nat} A (x : @Rml n) `{x_valid : rml_valid_type A x nil} :=
-  @replace_all_variables_aux_type n A x nil x_valid.
+Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A x nil} :=
+  @replace_all_variables_aux_type A x nil x_valid.
 
 (* -------------------------------------------------------------------------------- *)
 
 Theorem valid_is_well :
-  forall {n} (x : @Rml n) A l `{x_valid : rml_valid_type A x l},
+  forall (x : Rml) A l `{x_valid : rml_valid_type A x l},
     well_formed l x.
 Proof.
   induction x ; intros.
@@ -229,43 +510,6 @@ Defined.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive rml_is_simple {n : nat} : Rml -> Prop :=
-| is_const : forall (A : Type) c, rml_is_simple (@Const n A c)
-| is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (@If_stm n b m1 m2)
-| is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm n B e1 e2).
-
-(* -------------------------------------------------------------------------------- *)
-
-Fixpoint rml_to_sRml {n : nat} {A : Type} (rml : @Rml n) `{rml_simple : @rml_is_simple n rml} `{rml_valid : @rml_valid_type n A rml nil} : @sRml A.
-Proof.
-  (* apply is_rml_simple_reflect_rml_is_simple in rml_simple. *)
-  case rml eqn : o_rml.
-  - exfalso.
-    easy.
-  - assert (forall (A B : Type) c l, @rml_valid_type n A (Const B c) l -> A = B) by (intros ; inversion H ; subst ; reflexivity).
-    assert (A = A0) by (apply (H A A0 a nil) ; assumption).
-    subst.
-    refine (sConst a).
-  - exfalso.
-    easy.
-  - assert (if_valid_type : (rml_valid_type bool r1 nil /\ rml_valid_type A r2 nil /\ rml_valid_type A r3 nil)) by (intros; inversion rml_valid; easy).
-    inversion if_valid_type as [p1 [p2 p3]] ; clear if_valid_type.
-
-    assert (if_is_simple : rml_is_simple r1 /\ rml_is_simple r2 /\ rml_is_simple r3) by (inversion rml_simple ; subst ; easy).        
-    inversion if_is_simple as [s1 [s2 s3]] ; clear if_is_simple.
-    
-    refine (sIf_stm (@rml_to_sRml n bool r1 s1 p1) (@rml_to_sRml n A r2 s2 p2) (@rml_to_sRml n A r3 s3 p3)).
-  - assert (app_valid_type : rml_valid_type (T -> A) r1 nil /\ rml_valid_type T r2 nil) by (intros ; inversion rml_valid ; easy).
-    inversion app_valid_type as [p1 p2] ; clear app_valid_type.
-
-    assert (app_is_simple : rml_is_simple r1 /\ rml_is_simple r2) by (inversion rml_simple ; subst ; easy).
-    inversion app_is_simple as [H1 H2] ; clear app_is_simple.
-    
-    apply (sApp_stm T (@rml_to_sRml n (T -> A) r1 H1 p1) (@rml_to_sRml n T r2 H2 p2)).
-Defined.
-
-(* -------------------------------------------------------------------------------- *)
-
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
   | sConst c => unit c
@@ -276,11 +520,14 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 (* -------------------------------------------------------------------------------- *)
 
 Theorem replace_var_for_let_simple_helper :
-  forall n (x : @Rml n) A l `{x_valid : rml_valid_type A x (map fst l)},
+  forall (x : Rml) A l `{x_valid : rml_valid_type A x (map fst l)},
     (forall k, List.In k l -> rml_is_simple k.2) ->
     rml_is_simple
-      (@replace_all_variables_aux_type n A x l x_valid).
-Proof.  
+      (@replace_all_variables_aux_type A x l x_valid).
+Proof.
+  induction x ; intros.
+  - simpl.
+  
 (*   induction x ; intros. *)
 (*   - induction l. *)
 (*     + inversion x_valid ; subst. *)
@@ -330,8 +577,8 @@ Proof.
 Admitted.
 
 Theorem replace_var_for_let_simple :
-  forall n (x : @Rml n) {A} `{x_valid : rml_valid_type A x nil},
-  rml_is_simple (@replace_all_variables_type n A x x_valid).
+  forall (x : Rml) {A} `{x_valid : rml_valid_type A x nil},
+  rml_is_simple (@replace_all_variables_type A x x_valid).
 Proof.
   intros.
   apply replace_var_for_let_simple_helper.
@@ -348,8 +595,8 @@ Defined.
 (* -------------------------------------------------------------------------------- *)
 
 Theorem replace_var_for_let_valid_helper_var :
-  forall n A p l `{x_valid : rml_valid_type A (Var p) (map fst l)} `{env_valid : forall (n : nat) (A : Type) (t : List.In (n, A) [seq i.1 | i <- l]), rml_valid_type A (lookup l (n, A) t) nil},
-    rml_valid_type A (@replace_all_variables_aux_type n A (Var p) l x_valid) nil.
+  forall A p l `{x_valid : rml_valid_type A (Var p) (map fst l)} `{env_valid : forall (n : nat) (A : Type) (t : List.In (n, A) [seq i.1 | i <- l]), rml_valid_type A (lookup l (n, A) t) nil},
+    rml_valid_type A (@replace_all_variables_aux_type A (Var p) l x_valid) nil.
 Proof.
   intros.
   destruct p.
@@ -358,45 +605,47 @@ Proof.
 Defined.
 
 Theorem replace_var_for_let_valid_helper_const :
-  forall n A B c l `{x_valid : rml_valid_type A (Const B c) (map fst l)},
-    rml_valid_type A (@replace_all_variables_aux_type n A (Const B c) l x_valid) nil.
+  forall A B c l `{x_valid : rml_valid_type A (Const B c) (map fst l)},
+    rml_valid_type A (@replace_all_variables_aux_type A (Const B c) l x_valid) nil.
 Proof.
-  induction n.
   intros.
-  simpl.
+  simpl in *.
   inversion x_valid ; subst.
-  simpl replace_all_variables_aux_type.
+  simpl.
+  constructor.
   reflexivity.
 Defined.
 
 Theorem replace_var_for_let_valid_helper :
-  forall x A l `{x_valid : rml_valid_type A x (map fst l)}
-      `{env_valid :
-        forall (n : nat) (A : Type) (t : List.In (n, A) [seq i.1 | i <- l]),
-          rml_valid_type A (lookup l (n, A) t) nil},
-    rml_valid_type A (@replace_all_variables_aux_type A x l env_valid x_valid) nil.
+  forall x A l `{x_valid : rml_valid_type A x (map fst l)} `{env_valid : forall (n : nat) (A : Type) (t : List.In (n, A) [seq i.1 | i <- l]), rml_valid_type A (lookup l (n, A) t) nil},
+    rml_valid_type A (@replace_all_variables_aux_type A x l x_valid) nil.
 Proof.
   induction x ; intros.
   - apply replace_var_for_let_valid_helper_var ; assumption.
   - apply replace_var_for_let_valid_helper_const ; assumption.
-  - simpl.
-    inversion x_valid ; subst.
+  2: {
     simpl.
-    apply IHx2.
-  - simpl.
     inversion x_valid.
     constructor ; eauto.
-  - simpl.
+  }
+  2: {
+    simpl.
     inversion x_valid.
     constructor ; eauto.
-Defined.
+  }
+  - simpl.
+
+    inversion x_valid ; subst.
+    (* apply IHx2 *)
+Admitted.
 
 Theorem replace_var_for_let_valid :
   forall (x : Rml) {A} `{x_valid : rml_valid_type A x nil},
-    rml_valid_type A (@replace_all_variables_aux_type A x nil valid_empty_env x_valid) nil.
+    rml_valid_type A (@replace_all_variables_aux_type A x nil x_valid) nil.
 Proof.
   intros.
   apply replace_var_for_let_valid_helper.
+  apply valid_empty_env.
 Defined.
 
 (* -------------------------------------------------------------------------------- *)
