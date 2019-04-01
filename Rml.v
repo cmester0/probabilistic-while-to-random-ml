@@ -1,5 +1,4 @@
 From mathcomp Require Import all_ssreflect all_algebra.
-From mathcomp Require Import analysis.reals.
 From mathcomp.analysis Require Import boolp reals distr.
 
 (* -------------------------------------------------------------------------------- *)
@@ -159,30 +158,6 @@ Inductive valid_env : seq (nat * Type * Rml) -> Prop :=
     valid_env xs ->
     valid_env (x :: xs).
 
-Lemma valid_env_valid {l} (env_valid : valid_env l) :
-  forall k, List.In k l -> rml_valid_type k.1.2 k.2 nil.
-Proof.
-  intros.
-  induction l.
-  - contradiction.
-  - inversion env_valid ; subst.
-    inversion H ; subst.
-    + assumption.
-    + apply IHl ; assumption.
-Qed.
-
-Lemma valid_env_simple {l} (env_valid : valid_env l) :
-  forall k, List.In k l -> rml_is_simple k.2.
-Proof.
-  intros.
-  induction l.
-  - contradiction.
-  - inversion env_valid ; subst.
-    inversion H ; subst.
-    + assumption.
-    + apply IHl ; assumption.
-Qed.
-
 Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) `{env_valid : valid_env env} :
   List.In p (map fst env) -> @sRml p.2.
   intros.
@@ -196,66 +171,6 @@ Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) `{env_valid : 
       * inversion env_valid ; subst ; assumption.
       * inversion H ; subst ; easy.
 Defined.
-
-Lemma in_pair_list :
-  forall {A B k l}, @List.In (A * B) k l -> @List.In A k.1 (map fst l).
-Proof.
-  intros.
-  induction l.
-  - contradiction.
-  - simpl in H.
-    inversion H ; subst.
-    + left. reflexivity.
-    + right.
-      apply IHl.
-      assumption.
-Qed.
-
-Lemma valid_weakening :
-  forall x T l1 l2 l3,
-    rml_valid_type T x (l3 ++ l1) -> rml_valid_type T x (l3 ++ l2 ++ l1).
-Proof.
-  induction x ; intros.
-  - inversion H ; subst.
-    apply List.in_app_or in H2.
-    constructor.
-    apply List.in_or_app.
-    inversion H2 ; subst.
-    + left. assumption.
-    + right.
-      apply List.in_or_app.
-      right.
-      assumption.
-  - inversion H ; subst.
-    constructor ; reflexivity.
-  - inversion H ; subst.
-    constructor.
-    apply IHx1 ; assumption.
-    apply (IHx2 T l1 l2 ((x,B) :: l3)) ; assumption.
-  - inversion H ; subst.
-    constructor ; eauto 2.
-  - inversion H ; subst.
-    constructor ; eauto 2.
-Qed.
-
-Corollary valid_weakening_rm :
-  forall x T l1 l2,
-    rml_valid_type T x l1 -> rml_valid_type T x (l2 ++ l1).
-Proof.
-  intros.
-  apply (valid_weakening x T l1 l2 nil).
-  assumption.
-Qed.
-
-Corollary valid_weakening_empty :
-  forall x T l,
-    rml_valid_type T x nil -> rml_valid_type T x l.
-Proof.
-  intros.
-  rewrite <- List.app_nil_r.
-  apply (valid_weakening x T nil l nil).
-  assumption.
-Qed.
 
 Fixpoint replace_all_variables_aux_type A (x : Rml) (env : seq (nat * Type * Rml))
          `{env_valid : valid_env env} `{x_valid : @rml_valid_type A x (map fst env)} : @sRml A.
@@ -362,5 +277,4 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : continuation_monad_type R A :=
-  interp_srml (@replace_all_variables_type A x x_valid).
+Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : continuation_monad_type R A := interp_srml (@replace_all_variables_type A x x_valid).
