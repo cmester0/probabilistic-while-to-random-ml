@@ -45,6 +45,7 @@ Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (env : ident -> (nat * Ty
   end.  
 
 Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -> (nat * Type)) : Rml :=
+  (* we might consider to return (Rml * initial_env) in order to get sequences to work properly. *)
   match x with
   | seqc (assign A n e) e2 =>
     Let_stm (env n.(vname)) (translate_pWhile_expr_to_rml e (@env)) (translate_pWhile_cmd_to_rml e2 ret env)
@@ -55,5 +56,7 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T} (ret : vars T) (env : ident -
   | random A n e => Var (env ret.(vname))
   | cond b m1 m2 => If_stm (translate_pWhile_expr_to_rml b (@env)) (translate_pWhile_cmd_to_rml m1 ret (@env)) (translate_pWhile_cmd_to_rml m2 ret (@env)) 
   | while b e => Var (env ret.(vname))
+  (* should be something like   let rec f b = if b then e else skip   ... but how do we express side effects then? *)
   | seqc e1 e2 => Let_stm (999,Set) (translate_pWhile_cmd_to_rml e1 ret env) (translate_pWhile_cmd_to_rml e2 ret env)
+                         (* Here we have a problem if there are side-effects in e1. We have to return the environment and use it for e2. *)
   end.
