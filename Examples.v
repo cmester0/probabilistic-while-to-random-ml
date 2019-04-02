@@ -7,6 +7,8 @@ From mathcomp Require Import all_ssreflect all_algebra.
 Definition nat_at_type : Type := nat.
 Definition bool_at_type : Type := bool.
 
+Compute @interp_rml _ (Const nat 4) nat (@valid_const nat nat 4 (@erefl Type nat) nil).
+
 Definition example : Rml :=
   (If_stm (Const bool true)
           (Let_stm
@@ -30,7 +32,7 @@ Qed.
 
 Definition example_valid : rml_valid_type nat_at_type example nil :=
   valid_if nat_at_type (Const bool true) (Let_stm (16,bool_at_type) (Const bool true) (Let_stm (12,nat_at_type) (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10)))) (Const nat_at_type 900) nil
-           (@valid_const bool_at_type bool_at_type true (erefl bool_at_type) nil)
+           (@valid_const bool_at_type bool_at_type true (@erefl Type bool_at_type) nil)
            (valid_let nat_at_type bool_at_type 16 (Const bool true) (Let_stm (12,nat_at_type) (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10))) [::]
                       (@valid_const bool bool true (@erefl Type bool_at_type) [::])
                       (valid_let nat_at_type nat_at_type 12 (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10)) [:: (16,bool_at_type)]
@@ -38,8 +40,8 @@ Definition example_valid : rml_valid_type nat_at_type example nil :=
                                  (valid_if nat_at_type (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10) [:: (12,nat_at_type) ; (16,bool_at_type)]
                                            (valid_var 16 [:: (12,nat_at_type) ; (16,bool_at_type)] bool_at_type ez1)
                                            (valid_var 12 [:: (12,nat_at_type) ; (16,bool_at_type)] nat_at_type ez2)
-                                           (@valid_const nat_at_type nat 10 (erefl nat_at_type) [:: (12,nat_at_type) ; (16,bool_at_type)])  ) ) )
-           (@valid_const nat_at_type nat_at_type 900 (erefl nat_at_type) nil).
+                                           (@valid_const nat_at_type nat 10 (@erefl Type nat_at_type) [:: (12,nat_at_type) ; (16,bool_at_type)])  ) ) )
+           (@valid_const nat_at_type nat_at_type 900 (@erefl Type nat) nil).
 
 Compute @interp_rml _ example nat example_valid.
 
