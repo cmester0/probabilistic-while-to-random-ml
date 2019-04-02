@@ -9,6 +9,36 @@ Definition bool_at_type : Type := bool.
 
 Compute @interp_rml _ (Const nat 4) nat (@valid_const nat nat 4 (@erefl Type nat) nil).
 
+Definition az :
+  List.In (4,nat_at_type) [:: (4,nat_at_type)].
+Proof.
+  left.
+  reflexivity.
+Qed.
+
+Check @replace_all_variables_type.
+Compute (@replace_all_variables_type
+           nat_at_type
+           (@Let_stm (4, nat_at_type) (@Const nat_at_type 4)
+                    (@Var (4, nat_at_type)))
+           (@valid_let
+              nat_at_type nat_at_type 4
+              (@Const nat_at_type 4)
+              (@Var (4,nat_at_type)) nil
+              (@valid_const nat_at_type nat_at_type 4 (@erefl Type nat_at_type) nil)
+              (@valid_var 4 [:: (4,nat_at_type)] nat_at_type az))
+        ).
+
+
+Compute @interp_rml _
+        (Let_stm (4,nat_at_type) (Const nat 4) (Var (4,nat_at_type)))
+        nat
+        (valid_let nat nat 4
+                   (Const nat 4)
+                   (Var (4,nat_at_type)) nil
+                   (@valid_const nat nat 4 (@erefl Type nat) nil)
+                   (@valid_var 4 [:: (4,nat_at_type)] nat _)).
+
 Definition example : Rml :=
   (If_stm (Const bool true)
           (Let_stm
@@ -43,79 +73,6 @@ Definition example_valid : rml_valid_type nat_at_type example nil :=
                                            (@valid_const nat_at_type nat 10 (@erefl Type nat_at_type) [:: (12,nat_at_type) ; (16,bool_at_type)])  ) ) )
            (@valid_const nat_at_type nat_at_type 900 (@erefl Type nat) nil).
 
-Compute @interp_rml _ example nat example_valid.
-
-Check replace_all_variables_aux.
-Compute replace_all_variables_aux example nil.
-
-Example re1 :
-  replace_all_variables_aux example nil = If_stm (Const bool true) (If_stm (Const bool true) (Const nat 4) (Const nat 10))
-    (Const nat 900).
-Proof.
-  simpl.
-  destruct pselect.
-  - easy.
-  - destruct pselect.
-    + simpl.
-      destruct pselect.
-      * simpl.
-        reflexivity.
-      * easy.
-    + easy.
-Qed.
-
-Example re2 :
-  rml_is_simple (replace_all_variables_aux example nil).
-Proof.
-  simpl.
-  constructor.
-  - constructor.
-  - constructor.
-    + destruct pselect.
-      * easy.
-      * simpl.
-    + destruct pselect.
-      * simpl.
-        constructor.
-      * easy.
-    + destruct pselect.
-      * simpl.
-        constructor.
-      * easy.
-  - constructor.
-  - constructor.
-Qed.
-
-Example re3 :
-  rml_valid_type nat (replace_all_variables_aux example nil) nil.
-Proof.
-  simpl.
-  constructor.
-  - constructor.
-    reflexivity.
-  - constructor.
-    + destruct pselect.
-      * easy.
-      * simpl.
-        destruct pselect.
-        -- simpl.
-           constructor.
-           reflexivity.
-        -- easy.
-    + destruct pselect.
-      * simpl.
-        constructor.
-        reflexivity.
-      * simpl.
-        destruct pselect.
-        -- easy.
-        -- easy.
-    + constructor.
-      reflexivity.
-  - constructor.
-    reflexivity.
-Qed.
-
 (* -------------------------------------------------------------------------------- *)
 
 Compute @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil).
@@ -125,6 +82,11 @@ Compute @interp_rml _ (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_l
 Example const_4_interp :
   forall R Q, @interp_rml R (Let_stm (12,_) (@Const nat 4) (Var (12,_))) nat (@valid_let nat nat 12 (@Const nat 4) (Var (12,_)) nil (@valid_const nat nat 4 (@erefl Type nat) nil) (@valid_var 12 [:: (12, _)] nat Q)) = @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil).
 Proof.
+  simpl.
+  intros.
+  unfold replace_all_variables_type.
+  simpl.
+  destruct boolp.pselect.
   simpl.
 Admitted.
 
