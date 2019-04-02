@@ -18,15 +18,21 @@ Theorem commuting_translations_expr :
 Proof.
   simpl.
   intros.
-  
-Qed.
-  
+Admitted.
+
 Theorem commuting_translations :
-  forall T (k : inhabited.Inhabited.type) cmd ret env mem x_valid val,
+  forall (T : Type) (k : inhabited.Inhabited.type) (cmd : cmd) (ret : vars k) (env : ident -> nat * Type)
+    (mem : cmem) (x_valid : rml_valid_type T (translate_pWhile_cmd_to_rml cmd ret env) [::]) 
+    (val : Choice T),
     @Rml_semantic.ssem _ T (@translate_pWhile_cmd_to_rml cmd k ret env) x_valid val = ssem cmd mem mem.
 Proof.
   induction cmd ; intros.
-  - 
+  - simpl.
+    Check (env (vname ret)).
+    unfold replace_all_variables_type.
+    unfold replace_all_variables_aux_type.
+    
+    induction (env (vname ret)).
   
   intros.
   unfold ssem.

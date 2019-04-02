@@ -73,6 +73,17 @@ Definition example_valid : rml_valid_type nat_at_type example nil :=
                                            (@valid_const nat_at_type nat 10 (@erefl Type nat_at_type) [:: (12,nat_at_type) ; (16,bool_at_type)])  ) ) )
            (@valid_const nat_at_type nat_at_type 900 (@erefl Type nat) nil).
 
+Check @interp_rml.
+Check @interp_rml nat_at_type example nat example_valid id.
+(* Compute @interp_rml nat_at_type example nat example_valid id. *)
+
+Example ie1 :
+  @interp_rml nat_at_type example nat example_valid id = 4.
+Proof.
+  simpl.
+
+Compute interp_rml example _ example_valid.
+
 (* -------------------------------------------------------------------------------- *)
 
 Compute @interp_rml _ (Const nat 4) _ (@valid_const nat nat 4 (@erefl Type nat) nil).

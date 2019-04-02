@@ -133,8 +133,7 @@ Inductive valid_env : seq (nat * Type * Rml) -> Prop :=
     valid_env xs ->
     valid_env (x :: xs).
 
-Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) `{env_valid : valid_env env} :
-  List.In p (map fst env) -> @sRml p.2.
+Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) `{env_valid : valid_env env} `{_ : List.In p (map fst env)} {struct env} : @sRml p.2.
   intros.
   induction env.
   - contradiction.
