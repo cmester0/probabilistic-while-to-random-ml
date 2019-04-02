@@ -2,10 +2,9 @@ From mathcomp Require Import all_ssreflect all_algebra.
 From xhl Require Import pwhile.pwhile.
 From xhl Require Import inhabited notations.
 
-Require Import Rml.
-Require Import Rml_semantic.
-
 From mathcomp.analysis Require Import boolp reals distr.
+
+Require Import Rml.
 
 Inductive well_defined_pWhile : cmd -> Prop :=
 | well_def_skip : well_defined_pWhile skip
@@ -38,7 +37,8 @@ Qed.
 Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (env : ident -> (nat * Type)) :=
   match x with
   | var_ A n =>
-    Var (env n.(vname))
+    let v := env n.(vname) in
+    Var v
   | cst_ A a => Const A a
   | prp_ m => Const bool true (* What does this mean? *)
   | app_ A B f x => App_stm B (translate_pWhile_expr_to_rml f (@env)) (translate_pWhile_expr_to_rml x (@env))
