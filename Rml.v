@@ -133,7 +133,7 @@ Proof.
   - constructor.
   - constructor ; assumption.
   - constructor ; assumption.
-Defined.
+Qed.
 
 Lemma sRml_valid :
   forall A (x : @sRml A),
@@ -145,7 +145,7 @@ Proof.
     reflexivity.
   - constructor ; assumption.
   - constructor ; assumption.
-Defined.
+Qed.
 
 (** Environment **)
 (* -------------------------------------------------------------------------------- *)
@@ -264,7 +264,7 @@ Proof.
       assumption.
     + apply (IHx2 T).
       assumption.
-Defined.
+Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
