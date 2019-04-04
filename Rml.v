@@ -69,9 +69,9 @@ Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
     rml_valid_type A (App_stm B e1 e2) l
 
 | valid_rec : forall (A B C : Type) f x e1 e2 l,
-    rml_valid_type A e1 ((f,B -> A) :: (x,B) :: l) ->
+    rml_valid_type (B -> A) e1 ((f,B -> A) :: (x,B) :: l) ->
     rml_valid_type C e2 ((f,B -> A) :: l) -> 
-    rml_valid_type (B -> A) (Let_rec (f, B -> A) (x,B) e1 e2) l. 
+    rml_valid_type C (Let_rec (f, B -> A) (x,B) e1 e2) l. 
 
 
 (* -------------------------------------------------------------------------------- *)
@@ -227,10 +227,16 @@ Proof.
 
   - destruct p; destruct p0.
 
-    assert (x2_valid : rml_valid_type A x2 (map fst env)).
-    { inversion x_valid. subst. 
+    assert (x2_valid : rml_valid_type A x2 [:: (n,T)  & [seq i.1 | i <- env]])
+      by (inversion x_valid; subst; assumption). 
+
+    pose (x1_env := [:: (n, T), (n0, T0) & [seq i.1 | i <- env]]).
+    assert (x1_valid : rml_valid_type T x1 x1_env)
+      by (inversion x_valid; subst; assumption).
+
     
-    assert (x1_valid : rml_valid_type _ x 
+
+    pose (x1' := IHx1 T env env_valid 
 
     
 Defined.
