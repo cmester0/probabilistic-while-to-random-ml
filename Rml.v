@@ -9,8 +9,8 @@ Inductive Rml : Type :=
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : (nat * Type) -> (nat * Type) -> Rml -> Rml
-(* let rec      f               x        =  e *) .
+| Let_rec : (nat * Type) -> (nat * Type) -> Rml -> Rml -> Rml
+(* let rec      f               x     =  e1 in  e2*) .
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -30,9 +30,10 @@ Inductive well_formed : seq (nat * Type) -> Rml -> Prop :=
     well_formed l e1 -> 
     well_formed l e2 -> 
     well_formed l (App_stm B e1 e2)
-| well_rec : forall f x (e : Rml) l,
-    well_formed (x :: f :: l) e ->
-    well_formed l (Let_rec f x e).
+| well_rec : forall f x (e1 e2 : Rml) l,
+    well_formed (x :: f :: l) e1 ->
+    well_formed (f :: l) e2 ->
+    well_formed l (Let_rec f x e1 e2).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -67,9 +68,10 @@ Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
     rml_valid_type B e2 l ->
     rml_valid_type A (App_stm B e1 e2) l
 
-| valid_rec : forall (A B : Type) f x e l,
-    rml_valid_type (B -> A) e ((f,B -> A) :: (x,B) :: l) ->
-    rml_valid_type (B -> A) (Let_rec (f, B -> A) (x,B) e) l. 
+| valid_rec : forall (A B C : Type) f x e1 e2 l,
+    rml_valid_type A e1 ((f,B -> A) :: (x,B) :: l) ->
+    rml_valid_type C e2 ((f,B -> A) :: l) -> 
+    rml_valid_type (B -> A) (Let_rec (f, B -> A) (x,B) e1 e2) l. 
 
 
 (* -------------------------------------------------------------------------------- *)
@@ -107,6 +109,8 @@ Proof.
     inversion app_is_simple as [H1 H2] ; clear app_is_simple.
     
     apply (sApp_stm T (@rml_to_sRml (T -> A) r1 H1 p1) (@rml_to_sRml T r2 H2 p2)).
+  - exfalso. 
+    easy. 
 Defined.
 
 (* -------------------------------------------------------------------------------- *)
@@ -220,6 +224,15 @@ Proof.
     refine (rml_to_sRml (App_stm T e1'' e2'')).
     constructor ; eauto using sRml_simple.
     constructor ; eauto using sRml_valid.
+
+  - destruct p; destruct p0.
+
+    assert (x2_valid : rml_valid_type A x2 (map fst env)).
+    { inversion x_valid. subst. 
+    
+    assert (x1_valid : rml_valid_type _ x 
+
+    
 Defined.
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A x nil} :=
