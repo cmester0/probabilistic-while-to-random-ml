@@ -6,19 +6,33 @@ From mathcomp.analysis Require Import boolp reals distr.
 Inductive Rml : Type :=
 | Var : (nat * Type) -> Rml
 | Const : forall (A : Type), A -> Rml
-| Let_stm : (nat * Type) -> @Rml -> @Rml -> Rml
-(* | Fun_stm : forall B, (nat * Type) -> B -> Rml -> Rml *)
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : Type -> Rml -> Rml -> Rml.
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : (nat * Type) -> (nat * Type) -> Rml -> Rml
+(* let rec      f               x        =  e *) .
 
 (* -------------------------------------------------------------------------------- *)
 
 Inductive well_formed : seq (nat * Type) -> Rml -> Prop :=
 | well_var : forall A x l, List.In (x,A) l -> well_formed l (Var (x,A))
 | well_const : forall A c l, well_formed l (Const A c)
-| well_let_stm : forall x (e1 e2 : Rml) l, @well_formed l e1 -> @well_formed (x :: l) e2 -> well_formed l (Let_stm x e1 e2)
-| well_if : forall b m1 m2 l, well_formed l b -> well_formed l m1 -> well_formed l m2 -> well_formed l (If_stm b m1 m2)
-| well_app : forall B e1 e2 l, well_formed l e1 -> well_formed l e2 -> well_formed l (App_stm B e1 e2).
+| well_let_stm : forall x (e1 e2 : Rml) l, 
+    well_formed l e1 -> 
+    well_formed (x :: l) e2 -> 
+    well_formed l (Let_stm x e1 e2)
+| well_if : forall b m1 m2 l, 
+    well_formed l b -> 
+    well_formed l m1 -> 
+    well_formed l m2 -> 
+    well_formed l (If_stm b m1 m2)
+| well_app : forall B e1 e2 l, 
+    well_formed l e1 -> 
+    well_formed l e2 -> 
+    well_formed l (App_stm B e1 e2)
+| well_rec : forall f x (e : Rml) l,
+    well_formed (x :: f :: l) e ->
+    well_formed l (Let_rec f x e).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -51,7 +65,12 @@ Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
 | valid_app : forall (A B : Type) e1 e2 l,
     rml_valid_type (B -> A) e1 l ->
     rml_valid_type B e2 l ->
-    rml_valid_type A (App_stm B e1 e2) l.
+    rml_valid_type A (App_stm B e1 e2) l
+
+| valid_rec : forall (A B : Type) f x e l,
+    rml_valid_type (B -> A) e ((f,B -> A) :: (x,B) :: l) ->
+    rml_valid_type (B -> A) (Let_rec (f, B -> A) (x,B) e) l. 
+
 
 (* -------------------------------------------------------------------------------- *)
 
