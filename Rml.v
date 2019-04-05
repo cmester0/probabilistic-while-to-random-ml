@@ -230,12 +230,20 @@ Proof.
     assert (x2_valid : rml_valid_type A x2 [:: (n,T)  & [seq i.1 | i <- env]])
       by (inversion x_valid; subst; assumption). 
 
-    pose (x1_env := [:: (n, T), (n0, T0) & [seq i.1 | i <- env]]).
-    assert (x1_valid : rml_valid_type T x1 x1_env)
+    apply (IHx2 _ [:: (n,T,x1) &  env]).  
+
+    inversion x_valid. subst. 
+
+    pose (x1_env := [:: (n, T, (Const (T -> T) (fun f : T => 
+                                               (fun (x : T0) => 
+                                                  replace_all_variables_aux_type _ x1
+                                                    [:: (n, T, f), (n0, T0, x) & env] )))), 
+(n0, T0) & env]).
+    assert (x1_valid : rml_valid_type T x1 [seq i.1 | i <- x1_env])
       by (inversion x_valid; subst; assumption).
 
+    assert (x1_env_valid : valid_env [:: (n, T, x1), & env]). 
     
-
     pose (x1' := IHx1 T env env_valid 
 
     
