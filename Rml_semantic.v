@@ -39,7 +39,7 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A x nil} : continuation_monad_type R A := interp_srml (@replace_all_variables_type A x x_valid).
+Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A nil x} : continuation_monad_type R A := interp_srml (@replace_all_variables_type A x x_valid).
 
 (* -------------------------------------------------------------------- *)
 
@@ -60,6 +60,6 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) : {distr (Choice T) / 
     @dlet R (Choice (A -> T)) (Choice T) (fun t => @dlet R (Choice A) (Choice T) (fun u => @dunit R (Choice T) (t u)) (@ssem_aux R A e2)) (ssem_aux e1)
   end.
 
-Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T x nil} : {distr (Choice T) / R} :=
+Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil x} : {distr (Choice T) / R} :=
   let y := @replace_all_variables_type T x x_valid in
   @ssem_aux R T y.

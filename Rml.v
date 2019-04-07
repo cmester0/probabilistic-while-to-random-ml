@@ -3,7 +3,7 @@ From mathcomp.analysis Require Import boolp reals distr.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive Rml : Type :=
+Inductive Rml :=
 | Var : (nat * Type) -> Rml
 | Const : forall (A : Type), A -> Rml
 | Let_stm : (nat * Type) -> @Rml -> @Rml -> Rml
@@ -22,7 +22,7 @@ Inductive well_formed : seq (nat * Type) -> Rml -> Prop :=
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive sRml {A : Type} : Type :=
+Inductive sRml {A : Type} :=
 | sConst : A -> @sRml A
 | sIf_stm : @sRml bool -> sRml -> sRml -> sRml
 | sApp_stm : forall (B : Type), @sRml (B -> A) -> @sRml B -> sRml.
@@ -170,7 +170,6 @@ Proof.
   - apply (@replace_all_variables_aux_type_var A p env env_valid x_valid).
   - apply (@replace_all_variables_aux_type_const A0 A a env env_valid x_valid).
   - destruct p.
-
     assert (x1_valid : rml_valid_type T [seq i.1 | i <- env] x1) by (inversion x_valid ; subst ; assumption).
     
     pose (x1' := IHx1 T env env_valid x1_valid).
@@ -214,66 +213,9 @@ Proof.
     constructor ; eauto using sRml_valid.
 Defined.
 
-Inductive replace_all_variables_aux_type_R A : Rml -> @sRml A -> Prop :=
-| replace_var : forall n env env_valid in_list, replace_all_variables_aux_type_R A (Var (n,A)) (@lookup (n,A) env env_valid in_list).
+Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A nil x} :=
+  @replace_all_variables_aux_type A x nil env_nil x_valid.
 
-Lemma var_is_always_lookup :
-  forall A n env env_valid in_list x_valid,
-  forall y,
-    y = @lookup (n,A) env env_valid in_list <->
-    @replace_all_variables_aux_type_var A (n,A) env env_valid x_valid = y.
-Proof.
-  split.
-  - intros.
-    induction env.
-    + contradiction.
-    + reflexivity.
-  - intros.
-    induction env.
-    + contradiction.
-    + inversion_clear H.
-      reflexivity.
-Qed.
-
-Theorem replace_relation_var :
-  forall A p y env env_valid x_valid,
-    @replace_all_variables_aux_type_var A p env env_valid x_valid = y <->
-    replace_all_variables_aux_type_R A (Var p) y.
-Proof.
-  split.
-  2 : {
-    intros.
-    destruct p.
-    inversion x_valid ; subst.
-    pose (var_is_always_lookup T n env env_valid H1 y).
-    destruct i.
-    apply H0.
-    apply (var_is_always_lookup T n env env_valid H1 y).
-    apply var_is_always_lookup.
-  }
-  
-  intros.
-
-  destruct p.
-  inversion x_valid.
-  induction env.
-  - contradiction.
-  - pose var_is_always_lookup.
-    
-      
-Admitted.
-
-Theorem replace_relation :
-  forall A x y env valid_env x_valid,
-    @replace_all_variables_aux_type A x env valid_env x_valid = y <->
-    replace_all_variables_aux_type_R A x y.
-Proof.
-  split.
-  intros.
-  induction x.
-  - inversion x_valid ; subst.
-Admitted.
-  
 (* -------------------------------------------------------------------------------- *)
 
 Theorem valid_is_well :

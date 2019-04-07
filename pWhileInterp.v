@@ -70,7 +70,7 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T : Type} ret (env : seq (nat * 
       
   | while b e => Var (lookup ret.2 ret env)
   | seqc e1 e2 =>
-    Let_stm (999,Set)
+    Let_stm (999,Type)
       (@translate_pWhile_cmd_to_rml e1 T ret env)
       (@translate_pWhile_cmd_to_rml e2 T ret env)
   end.
