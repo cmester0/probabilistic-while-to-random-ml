@@ -60,15 +60,25 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T : Type} ret (env : seq (nat * 
     
   | abort => Var (@lookup ret.2 ret env)
   | skip => Var (lookup ret.2 ret env)
-  | assign A n e => Let_stm (lookup n.(vname) ret env) (translate_pWhile_expr_to_rml e ret (@env)) (Var (lookup ret.2 ret env))
+  | assign A n e =>
+    Let_stm
+      (lookup n.(vname) ret env)
+      (translate_pWhile_expr_to_rml e ret (@env))
+      (Var (lookup ret.2 ret env))
+      
   | random A n e => Var (lookup ret.2 ret env)
   | cond b m1 m2 =>
     If_stm
-      (translate_pWhile_expr_to_rml b ret (@env))
+      (translate_pWhile_expr_to_rml b ret env)
       (@translate_pWhile_cmd_to_rml m1 T ret (@env))
       (@translate_pWhile_cmd_to_rml m2 T ret (@env))
       
-  | while b e => Var (lookup ret.2 ret env)
+  | while b e =>
+    Let_rec
+      (0,T) (* Todo correct index *)
+      (@translate_pWhile_cmd_to_rml e T ret env)
+      (translate_pWhile_expr_to_rml b ret (@env))
+      
   | seqc e1 e2 =>
     Let_stm (999,Type)
       (@translate_pWhile_cmd_to_rml e1 T ret env)

@@ -1,13 +1,53 @@
 Require Import Rml.
 Require Import Rml_semantic.
 From mathcomp Require Import all_ssreflect all_algebra.
+Require Import Util.
 
 (** * Examples **)
 
 Definition nat_at_type : Type := nat.
 Definition bool_at_type : Type := bool.
 
-Compute @interp_rml _ (Const nat 4) nat (@valid_const nat nat 4 (@erefl Type nat) nil).
+Definition rml_ex1 :=
+  (Let_stm
+     (1,nat_at_type)
+     (App_stm nat (Var (1,nat_at_type)) (Const nat 4))
+     (Var (1,nat_at_type))).
+
+Compute (compute_valid nat nil rml_ex1 >>= (fun x_valid =>
+         Some (@interp_rml nat rml_ex1 nat x_valid))).
+
+Example is_none :
+  (compute_valid nat nil rml_ex1 >>= (fun x_valid => Some (@interp_rml nat rml_ex1 nat x_valid)))
+  = None.
+Proof.
+  simpl.
+  unfold eq_rec_r.
+  unfold eq_rec.
+  unfold eq_rect.
+  unfold Logic.eq_sym.
+  
+
+
+Compute @interp_rml _ (Let_stm
+                         (1,nat_at_type)
+                         (App_stm nat (Var (1,nat_at_type)) (Const nat 4))
+                         (Var (1,nat_at_type))) _ _.
+
+Compute @interp_rml _ (Let_stm
+                         (1,nat_at_type)
+                         (Const (nat -> nat) (fun x => 4))
+                         (Let_stm
+                            (1,nat_at_type)
+                            (If_stm (App_stm nat (Const (nat -> bool) (fun x => x > 10)) (Var (1,nat_at_type))) (Const (nat -> nat) id) (Var (1,nat_at_type)))
+                         (App_stm nat (Var (1,nat_at_type)) (Const nat 3)))) _ _.
+
+Compute @interp_rml _ (Let_rec
+                         (1,nat_at_type)
+                         (If_stm (App_stm nat (Const (nat -> bool) (fun x => x > 10)) (Var (1,nat_at_type))) (Const (nat -> nat) id) (Var (1,nat_at_type)))
+                         (App_stm nat (Var (1,nat_at_type)) (Const nat 3))).
+
+Compute @interp_rml _ (Const nat 4) nat (@valid_const nat nil nat 4 (@erefl Type nat)).
 
 Definition az :
   List.In (4,nat_at_type) [:: (4,nat_at_type)].
@@ -22,22 +62,22 @@ Compute (@replace_all_variables_type
            (@Let_stm (4, nat_at_type) (@Const nat_at_type 4)
                     (@Var (4, nat_at_type)))
            (@valid_let
-              nat_at_type nat_at_type 4
+              nat_at_type nil nat_at_type 4
               (@Const nat_at_type 4)
-              (@Var (4,nat_at_type)) nil
-              (@valid_const nat_at_type nat_at_type 4 (@erefl Type nat_at_type) nil)
-              (@valid_var 4 [:: (4,nat_at_type)] nat_at_type az))
+              (@Var (4,nat_at_type))
+              (@valid_const nat_at_type nil nat_at_type 4 (@erefl Type nat_at_type))
+              (@valid_var nat_at_type [:: (4,nat_at_type)] 4 az))
         ).
 
 
 Compute @interp_rml _
         (Let_stm (4,nat_at_type) (Const nat 4) (Var (4,nat_at_type)))
         nat
-        (valid_let nat nat 4
+        (valid_let nat nil nat 4
                    (Const nat 4)
-                   (Var (4,nat_at_type)) nil
-                   (@valid_const nat nat 4 (@erefl Type nat) nil)
-                   (@valid_var 4 [:: (4,nat_at_type)] nat _)).
+                   (Var (4,nat_at_type))
+                   (@valid_const nat nil nat 4 (@erefl Type nat))
+                   (@valid_var nat [:: (4,nat_at_type)] 4 _)).
 
 Definition example : Rml :=
   (If_stm (Const bool true)
@@ -60,27 +100,52 @@ Lemma ez2 : List.In (12, nat_at_type) [:: (12, nat_at_type); (16, bool_at_type)]
   reflexivity.
 Qed.
 
-Definition example_valid : rml_valid_type nat_at_type example nil :=
-  valid_if nat_at_type (Const bool true) (Let_stm (16,bool_at_type) (Const bool true) (Let_stm (12,nat_at_type) (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10)))) (Const nat_at_type 900) nil
-           (@valid_const bool_at_type bool_at_type true (@erefl Type bool_at_type) nil)
-           (valid_let nat_at_type bool_at_type 16 (Const bool true) (Let_stm (12,nat_at_type) (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10))) [::]
-                      (@valid_const bool bool true (@erefl Type bool_at_type) [::])
-                      (valid_let nat_at_type nat_at_type 12 (Const nat_at_type 4) (If_stm (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10)) [:: (16,bool_at_type)]
-                                 (@valid_const nat_at_type nat 4 (@erefl Type nat) [:: (16,bool_at_type)])
-                                 (valid_if nat_at_type (Var (16,bool_at_type)) (Var (12,nat_at_type)) (Const nat_at_type 10) [:: (12,nat_at_type) ; (16,bool_at_type)]
-                                           (valid_var 16 [:: (12,nat_at_type) ; (16,bool_at_type)] bool_at_type ez1)
-                                           (valid_var 12 [:: (12,nat_at_type) ; (16,bool_at_type)] nat_at_type ez2)
-                                           (@valid_const nat_at_type nat 10 (@erefl Type nat_at_type) [:: (12,nat_at_type) ; (16,bool_at_type)])  ) ) )
-           (@valid_const nat_at_type nat_at_type 900 (@erefl Type nat) nil).
+Definition example_valid : rml_valid_type nat_at_type nil example :=
+  @valid_if nat_at_type nil
+            (Const bool_at_type true)
+            (Let_stm (16,bool_at_type)
+                     (Const bool_at_type true)
+                     (Let_stm (12,nat_at_type)
+                              (Const nat_at_type 4)
+                              (If_stm (Var (16,bool_at_type))
+                                      (Var (12,nat_at_type))
+                                      (Const nat_at_type 10))))
+            (Const nat_at_type 900)
+            
+   (@valid_const bool_at_type nil bool_at_type true (@erefl Type bool_at_type) )
+            (valid_let nat_at_type nil bool_at_type 16
+                       (Const bool_at_type true)
+                       (Let_stm (12,nat_at_type)
+                                (Const nat_at_type 4)
+                                (If_stm (Var (16,bool_at_type))
+                                        (Var (12,nat_at_type))
+                                        (Const nat_at_type 10)))
+                       
+            (@valid_const bool_at_type nil bool_at_type true (@erefl Type bool_at_type))
+            (valid_let nat_at_type [:: (16,bool_at_type)] nat_at_type 12
+                       (Const nat_at_type 4)
+                       (If_stm (Var (16,bool_at_type))
+                               (Var (12,nat_at_type))
+                               (Const nat_at_type 10))
+            (@valid_const nat_at_type [:: (16,bool_at_type)] nat_at_type 4 (@erefl Type nat))
+            (valid_if nat_at_type [:: (12,nat_at_type) ; (16,bool_at_type)]
+                      (Var (16,bool_at_type))
+                      (Var (12,nat_at_type))
+                      (Const nat_at_type 10)
+              (valid_var bool_at_type [:: (12,nat_at_type) ; (16,bool_at_type)] 16 ez1)
+              (valid_var nat_at_type [:: (12,nat_at_type) ; (16,bool_at_type)] 12 ez2)
+              (@valid_const nat_at_type [:: (12,nat_at_type) ; (16,bool_at_type)] nat_at_type 10 (@erefl Type nat_at_type)))))
+            (@valid_const nat_at_type nil nat_at_type 900 (@erefl Type nat)).
 
 Check @interp_rml.
 Check @interp_rml nat_at_type example nat example_valid id.
-(* Compute @interp_rml nat_at_type example nat example_valid id. *)
+Compute @interp_rml nat_at_type example nat example_valid id.
 
 Example ie1 :
   @interp_rml nat_at_type example nat example_valid id = 4.
 Proof.
   simpl.
+Admitted.
 
 Compute interp_rml example _ example_valid.
 

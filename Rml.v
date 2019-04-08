@@ -1,5 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp.analysis Require Import boolp reals distr.
+Require Import Util.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -9,7 +10,8 @@ Inductive Rml :=
 | Let_stm : (nat * Type) -> @Rml -> @Rml -> Rml
 (* | Fun_stm : forall B, (nat * Type) -> B -> Rml -> Rml *)
 | If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : Type -> Rml -> Rml -> Rml.
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : (nat * Type) -> @Rml -> @Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -87,6 +89,8 @@ Proof.
     inversion app_is_simple as [H1 H2] ; clear app_is_simple.
     
     apply (sApp_stm T (@rml_to_sRml (T -> A) r1 H1 p1) (@rml_to_sRml T r2 H2 p2)).
+  - exfalso.
+    easy.
 Qed.
 
 (* -------------------------------------------------------------------------------- *)
@@ -211,6 +215,21 @@ Proof.
     refine (rml_to_sRml (App_stm T e1'' e2'')).
     constructor ; eauto using sRml_simple.
     constructor ; eauto using sRml_valid.
+
+  - destruct p.
+    assert (x1_valid : rml_valid_type T [seq i.1 | i <- env] x1) by (inversion x_valid ; subst ; assumption).
+    
+    pose (x1' := IHx1 T env env_valid x1_valid).
+
+    pose (x1'' := sRml_to_rml x1').
+    pose (x1''_simple := sRml_simple T x1').
+    pose (x1''_valid := sRml_valid T x1').
+
+    assert (x2_valid : rml_valid_type A ((n,T) :: [seq i.1 | i <- env]) x2) by (inversion x_valid ; subst ; assumption).
+
+    assert (env_valid' : valid_env ((n,T,x1'') :: env)) by (constructor ; assumption).
+    
+    refine (IHx2 A ((n,T,x1'') :: env) env_valid' x2_valid).
 Defined.
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A nil x} :=
@@ -248,6 +267,74 @@ Proof.
       assumption.
     + apply (IHx2 T).
       assumption.
+  - inversion x_valid ; subst.
 Qed.
 
 (* -------------------------------------------------------------------------------- *)
+
+Definition p_in_list (p : nat*Type) (l : seq (nat * Type)) : bool.
+Proof.
+  induction l.
+  - refine false.
+  - refine (if (pselect (a = p))
+            then true
+            else IHl).  
+Defined.
+
+Theorem in_list_func :
+  forall p l,
+    p_in_list p l -> List.In p l.
+Proof.
+  intros.
+  induction l.
+  - inversion H. (* false *)
+  - simpl in H.
+    destruct pselect.
+    left.
+    assumption.
+    right.
+    apply IHl.
+    simpl in H.
+    assumption.
+Qed.
+
+Definition ob :=
+  fun {A B} (x : option A) (f : A -> option B) =>
+    match x with
+    | Some y => f y
+    | None => None
+    end.
+
+Fixpoint compute_valid A l (x : Rml) : option (rml_valid_type A l x).
+Proof.
+  generalize dependent A.
+  generalize dependent l.
+  induction x ; intros.
+  - destruct (p_in_list p l) eqn : opil.
+    + apply in_list_func in opil.
+      rewrite (surjective_pairing p) in opil.
+      pose (Some (valid_var p.2 l p.1 opil)).
+      destruct (pselect (A = p.2)).
+      * subst.
+        rewrite <- (surjective_pairing p) in o.
+        assumption.
+      * refine None.
+    + refine None.
+  - destruct (pselect (A0 = A)).
+    + refine (Some (valid_const A0 l A a)).
+      assumption.
+    + refine None.
+  - pose (ob (IHx1 l p.2) (fun valid_x1 =>
+          ob (IHx2 ((p.1,p.2) :: l) A) (fun valid_x2 =>
+          Some (valid_let A l p.2 p.1 x1 x2 valid_x1 valid_x2)))).
+    rewrite <- (surjective_pairing p) in o.
+    apply o.
+  - apply (ob (IHx1 l bool) (fun valid_x1 =>
+          ob (IHx2 l A) (fun valid_x2 =>
+          ob (IHx3 l A) (fun valid_x3 =>
+          Some (valid_if A l x1 x2 x3 valid_x1 valid_x2 valid_x3))))).
+  - apply (ob (IHx1 l (T -> A)) (fun valid_x1 =>
+          ob (IHx2 l T) (fun valid_x2 =>
+          Some (valid_app A l T x1 x2 valid_x1 valid_x2)))).
+  - apply None.
+Defined.

@@ -1,4 +1,5 @@
 all : 
+	coqc Util.v
 	coqc Rml.v
 	coqc Rml_semantic.v
 	coqc pWhileInterp.v
