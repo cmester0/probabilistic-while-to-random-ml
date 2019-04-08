@@ -26,21 +26,31 @@ Proof.
   unfold eq_rec.
   unfold eq_rect.
   unfold Logic.eq_sym.
+  reflexivity.
+Qed.
+  
+Example is_some :
+  @interp_rml' nat (Let_stm
+                    (1,nat_at_type)
+                    (App_stm nat (Const (nat -> nat) id) (Const nat 4))
+                    (Var (1,nat_at_type))) _ = Some (@^~ 4).
+Proof.
+  simpl.
+  unfold ob.
+  simpl.
+  destruct boolp.pselect.
+  destruct boolp.pselect.
+  simpl.
+  destruct (boolp.pselect ((1, nat_at_type) = (1, nat_at_type))).
   
 
-
-Compute @interp_rml _ (Let_stm
-                         (1,nat_at_type)
-                         (App_stm nat (Var (1,nat_at_type)) (Const nat 4))
-                         (Var (1,nat_at_type))) _ _.
-
-Compute @interp_rml _ (Let_stm
+Compute @interp_rml' _ (Let_stm
                          (1,nat_at_type)
                          (Const (nat -> nat) (fun x => 4))
                          (Let_stm
                             (1,nat_at_type)
                             (If_stm (App_stm nat (Const (nat -> bool) (fun x => x > 10)) (Var (1,nat_at_type))) (Const (nat -> nat) id) (Var (1,nat_at_type)))
-                         (App_stm nat (Var (1,nat_at_type)) (Const nat 3)))) _ _.
+                         (App_stm nat (Var (1,nat_at_type)) (Const nat 3)))) _.
 
 Compute @interp_rml _ (Let_rec
                          (1,nat_at_type)

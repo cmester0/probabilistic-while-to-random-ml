@@ -296,7 +296,7 @@ Proof.
     apply IHl.
     simpl in H.
     assumption.
-Qed.
+Defined.
 
 Definition ob :=
   fun {A B} (x : option A) (f : A -> option B) =>
@@ -312,11 +312,10 @@ Proof.
   induction x ; intros.
   - destruct (p_in_list p l) eqn : opil.
     + apply in_list_func in opil.
-      rewrite (surjective_pairing p) in opil.
-      pose (Some (valid_var p.2 l p.1 opil)).
-      destruct (pselect (A = p.2)).
+      destruct p.
+      pose (Some (valid_var T l n opil)).
+      destruct (pselect (A = T)).
       * subst.
-        rewrite <- (surjective_pairing p) in o.
         assumption.
       * refine None.
     + refine None.
@@ -324,10 +323,10 @@ Proof.
     + refine (Some (valid_const A0 l A a)).
       assumption.
     + refine None.
-  - pose (ob (IHx1 l p.2) (fun valid_x1 =>
-          ob (IHx2 ((p.1,p.2) :: l) A) (fun valid_x2 =>
-          Some (valid_let A l p.2 p.1 x1 x2 valid_x1 valid_x2)))).
-    rewrite <- (surjective_pairing p) in o.
+  - destruct p.
+    pose (ob (IHx1 l T) (fun valid_x1 =>
+          ob (IHx2 ((n,T) :: l) A) (fun valid_x2 =>
+          Some (valid_let A l T n x1 x2 valid_x1 valid_x2)))).
     apply o.
   - apply (ob (IHx1 l bool) (fun valid_x1 =>
           ob (IHx2 l A) (fun valid_x2 =>

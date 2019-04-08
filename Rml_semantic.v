@@ -22,6 +22,12 @@ Fixpoint interp_rml {R} (x : Rml) {A} `{x_valid : rml_valid_type A nil x} : cont
 
 (* -------------------------------------------------------------------- *)
 
+Fixpoint interp_rml' {R} (x : Rml) {A} : option (continuation_monad_type R A) :=
+  compute_valid A nil x >>= (fun x_valid =>
+  Some (interp_srml (@replace_all_variables_type A x x_valid))).
+
+(* -------------------------------------------------------------------- *)
+
 Definition Choice T := (ChoiceType (EqType T gen_eqMixin) gen_choiceMixin).
 
 Lemma choice_of_type_to_choice_type :
