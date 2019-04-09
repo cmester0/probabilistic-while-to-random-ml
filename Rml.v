@@ -225,11 +225,42 @@ Proof.
     constructor ; eauto using sRml_simple.
     constructor ; eauto using sRml_valid.
 
-  - destruct p; destruct p0.
+  - (* apply (replace_all_variables_aux_type _ (Let_stm (_,_) (*f*) (dlim _))).  *)
+    (* Let_rec f x = a in b *)
+    (* Let f = dlim ((fun f x => a)) in b *)
+    destruct p; destruct p0.
 
     assert (x2_valid : rml_valid_type A x2 [:: (n,T)  & [seq i.1 | i <- env]])
-      by (inversion x_valid; subst; assumption). 
+      by (inversion x_valid; subst; assumption).
 
+    (* apply (IHx2 _ [:: (n,T,x1) &  env]). *)
+
+    (* inversion x_valid. subst. *)
+
+    assert (x1_valid : rml_valid_type T x1 ((n0,T0) :: (n,T) :: [seq i.1 | i <- env]))
+      by (inversion x_valid; subst; assumption).
+
+    (* Added *)
+    assert (valid_env_ext : forall f : T, forall x : T0, valid_env [:: (n0, T0, Const T0 x), (n, T, Const T f) & env]) by (repeat try constructor ; try easy).
+
+    pose (fun f : T =>
+            (fun (x : T0) =>
+               replace_all_variables_aux_type T x1 
+                                              [:: (n0,T0,Const T0 x), (n,T,Const T f) & env] 
+                                              (valid_env_ext f x) x1_valid : @sRml T)).
+
+    pose (x1_env := (fun f x => [:: (n, T, sRml_to_rml (s f x)), (n0, T0, Const T0 x) & env])).
+
+    (* End of added *) 
+
+   pose (x1_env' :=
+           [:: (n, T,
+               (Const (T -> T0 -> Rml) (fun f x => s f x))),
+               (n0, T0, Const T0 _) & env]).
+
+    assert (x1_valid : forall f x, rml_valid_type T x1 [seq i.1 | i <- x1_env f x])
+      by (inversion x_valid; subst; assumption).
+    
     assert (exists (B C : Type), T = (C -> B)).
     { inversion x_valid. subst. exists A0; exists T0. reflexivity. }
 
@@ -240,7 +271,6 @@ Proof.
                                                     [:: (n, T, f), (n0, T0, x) & env] )))), 
 (n0, T0) & env]).
     assert (x1_valid : rml_valid_type T x1 [seq i.1 | i <- x1_env])
-      by (inversion x_valid; subst; assumption).
 
     assert (x1_env_valid : valid_env [:: (n, T, x1), & env]). 
     
