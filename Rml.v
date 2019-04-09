@@ -69,7 +69,7 @@ Inductive rml_valid_type : Type -> Rml -> seq (nat * Type) -> Prop :=
     rml_valid_type A (App_stm B e1 e2) l
 
 | valid_rec : forall (A B C : Type) f x e1 e2 l,
-    rml_valid_type (B -> A) e1 ((f,B -> A) :: (x,B) :: l) ->
+    rml_valid_type (B -> A) e1 ((x,B) :: (f,B -> A) :: l) ->
     rml_valid_type C e2 ((f,B -> A) :: l) -> 
     rml_valid_type C (Let_rec (f, B -> A) (x,B) e1 e2) l. 
 
@@ -230,10 +230,10 @@ Proof.
     assert (x2_valid : rml_valid_type A x2 [:: (n,T)  & [seq i.1 | i <- env]])
       by (inversion x_valid; subst; assumption). 
 
-    apply (IHx2 _ [:: (n,T,x1) &  env]).  
+    assert (exists (B C : Type), T = (C -> B)).
+    { inversion x_valid. subst. exists A0; exists T0. reflexivity. }
 
-    inversion x_valid. subst. 
-
+   (* 
     pose (x1_env := [:: (n, T, (Const (T -> T) (fun f : T => 
                                                (fun (x : T0) => 
                                                   replace_all_variables_aux_type _ x1
@@ -247,7 +247,8 @@ Proof.
     pose (x1' := IHx1 T env env_valid 
 
     
-Defined.
+Defined.*)
+Admitted.
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A x nil} :=
   @replace_all_variables_aux_type A x nil env_nil x_valid.
@@ -284,6 +285,12 @@ Proof.
       assumption.
     + apply (IHx2 T).
       assumption.
+  - inversion x_valid ; subst.
+    apply well_rec.
+    +  apply (IHx1 (B -> A0) _ ).
+       assumption. 
+    + apply (IHx2 A).
+      assumption. 
 Qed.
 
 (* -------------------------------------------------------------------------------- *)

@@ -32,7 +32,7 @@ Proof. all: reflexivity. Defined.
 
 Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   match x with
-  | sConst c => unit c
+  | sConst c => unit c (* here is where I need to take the limit... but over what? *)
   | sIf_stm b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
   | sApp_stm C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
   end.
