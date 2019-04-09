@@ -36,8 +36,8 @@ Inductive rml_valid_type (A : Type) (l : seq (nat * Type)) : Rml -> Prop :=
     List.In (x,A) l ->
     rml_valid_type A l (Var (x,A))
                    
-| valid_const : forall (B : Type) (c : B) {_ : @eq Type A B},
-    rml_valid_type A l (Const B c)
+| valid_const : forall (c : A),
+    rml_valid_type A l (Const A c)
                    
 | valid_let : forall B x a b,
     @rml_valid_type B l a ->
@@ -69,9 +69,7 @@ Proof.
   case rml eqn : o_rml.
   - exfalso.
     easy.
-  - assert (forall (A B : Type) c l, @rml_valid_type A l (Const B c) -> A = B) by (intros ; inversion H ; subst ; reflexivity).
-    assert (A = A0) by (apply (H A A0 a nil) ; assumption).
-    subst.
+  - assert (A0 = A) by (inversion rml_valid ; subst ; reflexivity) ; subst.
     refine (sConst a).
   - exfalso.
     easy.
@@ -117,12 +115,7 @@ Lemma sRml_valid :
   forall A (x : @sRml A),
     rml_valid_type A nil (@sRml_to_rml A x).
 Proof.
-  intros.
-  induction x.
-  - constructor.
-    reflexivity.
-  - constructor ; assumption.
-  - constructor ; assumption.
+  induction x ; constructor ; easy.
 Qed.
 
 (** Environment **)
@@ -320,8 +313,8 @@ Proof.
       * refine None.
     + refine None.
   - destruct (pselect (A0 = A)).
-    + refine (Some (valid_const A0 l A a)).
-      assumption.
+    + subst.
+      refine (Some (valid_const A l a)).
     + refine None.
   - destruct p.
     pose (ob (IHx1 l T) (fun valid_x1 =>
