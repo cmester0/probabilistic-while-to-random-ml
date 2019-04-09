@@ -1,3 +1,5 @@
+From mathcomp Require Import boolp.
+
 Reserved Notation "x >>= f" (at level 40, left associativity).
 Class Monad (M : Type -> Type) :=
   {
@@ -40,3 +42,27 @@ Proof.
   reflexivity.
   reflexivity.
 Defined.
+
+(* -------------------------------------------------------------------------------- *)
+
+Lemma pselect_left :
+  forall (P : Prop),
+    P -> exists x, pselect P = left x.
+Proof.
+  intros.
+  destruct pselect.
+  - exists p.
+    reflexivity.
+  - contradiction.
+Qed.
+
+Lemma pselect_left_eq :
+  forall {A} P,
+    exists x, pselect (@eq A P P) = left x.
+Proof.
+  intros.
+  destruct pselect.
+  - exists e.
+    reflexivity.
+  - contradiction.
+Qed.

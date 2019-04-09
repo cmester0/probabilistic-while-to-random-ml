@@ -15,8 +15,33 @@ Check Rml_semantic.ssem (@translate_pWhile_expr_to_rml nat (cst_ 4) _ nil) _.
 
 Check rml_valid_type nat [::] (translate_pWhile_expr_to_rml (cst_ 4) _ nil).
 
+Require Import Util.
+
+Definition nat2 : Type := nat.
+
+Compute compute_valid nat nil (Let_stm (1, nat2) (Const nat 4) (Rml.Var (1, nat2))) >>= (fun x_valid => Some (@replace_all_variables_type nat (Let_stm (1, _) (Const nat 4) (Rml.Var (1, _))) x_valid)).
+
+Lemma some_help :
+    compute_valid nat nil (Let_stm (1, nat2) (Const nat 4) (Rml.Var (1, nat2))) >>= (fun x_valid =>
+    Some (@replace_all_variables_type nat (Let_stm (1, _) (Const nat 4) (Rml.Var (1, _))) x_valid))
+    = Some (sConst 4).
+Proof.
+  intros.
+  compute.
+
+  destruct (@pselect_left_eq Type nat).
+  rewrite H ; clear H.
+    
+  destruct (pselect_left_eq (@pair nat Type 1 nat)).
+  rewrite H ; clear H.
+    
+      
+
 Lemma sudo_valid :
-  forall T ih x y z x_valid, @interp_rml nat (@translate_pWhile_cmd_to_rml (x <<- (cst_ 4))%S T (0,T,@vname _ ih y) [:: (1,T,@vname _ ih z)]) nat x_valid id = 4.
+  forall T ih x y z x_valid,
+    @interp_rml nat (@translate_pWhile_cmd_to_rml (x <<- (cst_ 4))%S T (0,T,@vname _ ih y)
+                                                [:: (1,T,@vname _ ih z)]) nat x_valid id
+    = 4.
 Proof.
   intros.
   simpl.
@@ -24,16 +49,7 @@ Proof.
   - simpl in *.
     destruct pselect.
     + destruct pselect.
-      * inversion H ; subst.
-        
-        unfold replace_all_variables_type.
-        simpl.
-        unfold eq_rect_r.
-        unfold eq_rect.
-        unfold eq_ind_r.
-        unfold eq_ind.
-        unfold Logic.eq_sym.
-        unfold f_equal.
+      * 
 Qed.
 
 
