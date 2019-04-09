@@ -14,6 +14,7 @@ Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
   | sConst c => unit c
   | sIf_stm b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
   | sApp_stm C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
+  | sFix B C f k => (interp_srml k) >>= (fun (g : ((B -> C) -> B -> C) -> A) => (interp_srml f) >>= (fun t => unit (g t))) (* TODO *)
   end.
 
 (* -------------------------------------------------------------------------------- *)
@@ -41,8 +42,17 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) : {distr (Choice T) / 
   | sIf_stm b m1 m2 =>
     let b'' := choice_of_type_to_choice_type (ssem_aux b) in
     \dlet_(b' <- b'') (if b' then ssem_aux m1 else ssem_aux m2)
+
   | sApp_stm A e1 e2 =>
-    @dlet R (Choice (A -> T)) (Choice T) (fun t => @dlet R (Choice A) (Choice T) (fun u => @dunit R (Choice T) (t u)) (@ssem_aux R A e2)) (ssem_aux e1)
+    @dlet R (Choice (A -> T)) (Choice T) (fun t =>
+    @dlet R (Choice A) (Choice T) (fun u =>
+    @dunit R (Choice T) (t u)) (@ssem_aux R A e2)) (ssem_aux e1)
+
+  | sFix A B f k =>
+    @dlet R (Choice (((A -> B) -> A -> B) -> T)) (Choice T) (fun t =>
+    @dlet R (Choice ((A -> B) -> A -> B)) (Choice T) (fun u =>
+    @dunit R (Choice T) (t u)) (ssem_aux f)) (ssem_aux k)
+    (* TODO Use @dlim instead *)
   end.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil x} : {distr (Choice T) / R} :=

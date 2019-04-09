@@ -10,7 +10,7 @@ From xhl Require Import pwhile.psemantic.
 From xhl Require Import pwhile.inhabited.
 
 Compute @translate_pWhile_expr_to_rml nat (cst_ 4) _ nil.
-Compute @Rml_semantic.ssem pwhile.R _ (Rml.Const nat 4) (@valid_const nat nil nat 4 (erefl)).
+Compute @Rml_semantic.ssem pwhile.R _ (Rml.Const nat 4) (@valid_const nat nil 4).
 Check Rml_semantic.ssem (@translate_pWhile_expr_to_rml nat (cst_ 4) _ nil) _.
 
 Check rml_valid_type nat [::] (translate_pWhile_expr_to_rml (cst_ 4) _ nil).
@@ -27,14 +27,16 @@ Lemma some_help :
     = Some (sConst 4).
 Proof.
   intros.
-  compute.
-
-  destruct (@pselect_left_eq Type nat).
+  simpl.
+  unfold ob.
+  
+  elim (@pselect_left_eq Type nat) ; intros x H
   rewrite H ; clear H.
     
   destruct (pselect_left_eq (@pair nat Type 1 nat)).
   rewrite H ; clear H.
-    
+Qed.
+  
       
 
 Lemma sudo_valid :
@@ -46,10 +48,20 @@ Proof.
   intros.
   simpl.
   inversion x_valid ; subst.
-  - simpl in *.
-    destruct pselect.
-    + destruct pselect.
-      * 
+  simpl in *.
+  destruct pselect.
+  - destruct pselect.
+    + inversion H.
+      subst.
+      unfold replace_all_variables_type.
+      simpl.
+      destruct (pselect_left_eq (1,T)).
+      rewrite H0 ; clear H0.
+      simpl.
+      compute.
+      
+      
+      inversion H3 ; subst.
 Qed.
 
 

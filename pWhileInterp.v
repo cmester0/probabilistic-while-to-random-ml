@@ -76,6 +76,7 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T : Type} ret (env : seq (nat * 
   | while b e =>
     Let_rec
       (0,T) (* Todo correct index *)
+      (0,T) (* Todo correct index *)
       (@translate_pWhile_cmd_to_rml e T ret env)
       (translate_pWhile_expr_to_rml b ret (@env))
       
