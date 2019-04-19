@@ -4,6 +4,7 @@ From mathcomp Require Import boolp classical_sets reals distr.
 Require Import Rml.
 
 From xhl Require Import pwhile.pwhile.
+From xhl Require Import pwhile.psemantic.
 
 Require Import Util.
 
@@ -36,6 +37,11 @@ Lemma choice_of_type_to_choice_type :
 Proof.
 Admitted.
 
+Fixpoint ubn {R : realType} {A : choiceType} (f : A -> distr R A) t n := fun a =>
+  if n is n.+1 return distr R A then
+    if t a then \dlet_(x <- f a) @ubn R A f t n x else @dunit R A a
+  else dnull.
+
 Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) : {distr (Choice T) / R} :=
   match x with
   | sConst c => @dunit R (Choice T) c
@@ -49,10 +55,12 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) : {distr (Choice T) / 
     @dunit R (Choice T) (t u)) (@ssem_aux R A e2)) (ssem_aux e1)
 
   | sFix A B f k =>
-    @dlet R (Choice (((A -> B) -> A -> B) -> T)) (Choice T) (fun t =>
-    @dlet R (Choice ((A -> B) -> A -> B)) (Choice T) (fun u =>
-    @dunit R (Choice T) (t u)) (ssem_aux f)) (ssem_aux k)
-    (* TODO Use @dlim instead *)
+    dlim (fun n => ubn (fun a => ssem_aux k) (ssem_aux f) n)
+    
+    (* @dlet R (Choice (((A -> B) -> A -> B) -> T)) (Choice T) (fun t => *)
+    (* @dlet R (Choice ((A -> B) -> A -> B)) (Choice T) (fun u => *)
+    (* @dunit R (Choice T) (t u)) (ssem_aux f)) (ssem_aux k) *)
+    (* TODO Use @dlim instead *)          
   end.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil x} : {distr (Choice T) / R} :=
