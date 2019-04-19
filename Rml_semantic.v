@@ -10,12 +10,42 @@ Require Import Util.
 
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint interp_srml {A} {R} (x : @sRml A) : continuation_monad_type R A :=
+Check 5 \in [:: 2 ; 3 ; 4 ; 5] = true.
+
+Fixpoint lookup {R} (env : seq (nat * Type * (forall A : Type, continuation_monad_type R A)))
+         (p : nat * Type) `{_ : List.In p (map fst env)} {struct env} : (forall A : Type, continuation_monad_type R A).
+Proof.
+  induction env.
+  - contradiction.
+  - simpl in H.
+    destruct (pselect (a.1 = p)).
+    + exact a.2.
+    + assert (List.In p [seq i.1 | i <- env]) by (inversion H ; easy).
+      intros.
+      apply IHenv with (A := A) in H0.
+      assumption.
+Qed.
+
+Fixpoint interp_srml_aux {A} {R} (x : @sRml A) (fun_env : seq (nat * Type * (forall A, continuation_monad_type R A))) (x_valid : srml_valid_type A (map fst fun_env) x) : continuation_monad_type R A.
+  destruct x ; intros.
+  - assert (List.In p (map fst fun_env)) by (inversion x_valid ; easy).
+    apply (@lookup R fun_env p H).
+  - exact (unit a).
+  - assert (fun_valid : srml_valid_type A (p :: [ seq i.1 | i <- fun_env]) x) by (inversion x_valid ; assumption).
+
+    pose (fun (t : A) => interp_srml_aux A R x ((p,t) :: fun_env) fun_valid).
+    pose (fun (t : A) => interp_srml_aux A R x ((p,t) :: fun_env) fun_valid).
+    pose (fun (f : (A -> continuation_monad_type R A)) => f c).
+    exact .
+    exact (c).
+  - exact ((interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))).
+  :=
   match x with
+  | sVar p => 
   | sConst c => unit c
-  | sIf_stm b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
-  | sApp_stm C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
-  | sFix B C f k => (interp_srml k) >>= (fun (g : ((B -> C) -> B -> C) -> A) => (interp_srml f) >>= (fun t => unit (g t))) (* TODO *)
+  | sIf b m1 m2 => (interp_srml b) >>= (fun (t : bool) => if t then (interp_srml m1) else (interp_srml m2))
+  | sApp C e1 e2 => (interp_srml e1) >>= (fun (g : C -> A) => (interp_srml e2) >>= (fun k => unit (g k)))
+  (* | sFix B C f k => (interp_srml k) >>= (fun (g : ((B -> C) -> B -> C) -> A) => (interp_srml f) >>= (fun t => unit (g t))) (* TODO *) *)
   end.
 
 (* -------------------------------------------------------------------------------- *)
