@@ -48,9 +48,14 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     well_formed vl fl (App_stm B e1 e2)
 
 | well_let_rec : forall f x (e1 e2 : Rml),
-    @well_formed (x :: f :: vl) fl e1 ->
-    @well_formed (f :: vl) fl e2 ->
-    well_formed vl fl (Let_rec f x e1 e2).
+    @well_formed vl (x :: f :: fl) e1 ->
+    @well_formed vl (f :: fl) e2 ->
+    well_formed vl fl (Let_rec f x e1 e2)
+
+| well_fun_app : forall p x1 x2,
+    well_formed vl (p :: fl) x1 ->
+    well_formed vl fl x2 ->
+    well_formed vl fl (App_stm p.2 (Fun_stm p x1) x2).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -61,8 +66,6 @@ Inductive sRml {A : Type} :=
 | sIf : @sRml bool -> sRml -> sRml -> sRml
 | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
 | sFix : forall p p0 : nat * Type, @sRml p.2 -> @sRml (p.2 -> A) -> sRml.
-
-Check nat_rec.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -109,7 +112,6 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
 (*     @rml_valid_type A ((f,B -> C) :: vl) fl b -> *)
 (*     rml_valid_type A vl fl (Let_rec (f,B -> C) (x,B) a b) *)
 
-(* TODO ADD TO WELL FORMED RULES *)
 | valid_fun_app : forall p x1 x2,
     rml_valid_type (p.2 -> A) vl (p :: fl) x1 ->
     rml_valid_type p.2 vl fl x2 ->
@@ -180,7 +182,7 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   | sFun p x => Fun_stm p (sRml_to_rml x)
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
   | sApp T e1 e2 => App_stm T (sRml_to_rml e1) (sRml_to_rml e2)
-  | sFix p p0 f k => Let_rec p p0 (sRml_to_rml k) (sRml_to_rml f) (* TODO *)
+  | sFix p p0 f k => Let_rec p p0 (sRml_to_rml k) (sRml_to_rml f)
   end.
 
 Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :=
@@ -449,7 +451,7 @@ Proof.
   }
 
   (** Let rec **)
-  { exfalso ; easy. } (* Let rec, should be converted to fixpoint on function *)
+  { exfalso ; easy. }
 Defined.
 
 (* -------------------------------------------------------------------------------- *)
@@ -569,7 +571,6 @@ Proof.
     - apply (@replace_all_variables_aux_type_if A x1 x2 x3 env fl env_valid x_valid).
     - apply (@replace_all_variables_aux_type_app A T x1 x2 env fl env_valid x_valid).
     - apply (@replace_all_variables_aux_type_let_rec A p p0 x1 x2 env fl env_valid x_valid).
-      (* let_rec f x = e1 in e2 *)
   }
 
   all: clear replace_all_variables_aux_type_var replace_all_variables_aux_type_const replace_all_variables_aux_type_let replace_all_variables_aux_type_fun replace_all_variables_aux_type_if replace_all_variables_aux_type_app replace_all_variables_aux_type_let_rec.
@@ -673,26 +674,12 @@ Proof.
 
     pose (r2 := Fun_stm p x2).
     assert (r2_valid : rml_valid_type (p.2 -> A) ([seq i.1 | i <- env]) fl r2) by (constructor ; inversion x_valid ; subst ; assumption).
-
-    (* r1 - func f x : (x -> B) -> x -> B *)
-    (* r2 - val f : (x -> B) -> A *)
     
     pose (sr2 := replace_all_variables_aux_type (p.2 -> A) r2 env fl env_valid r2_valid).
     
     refine (sFix p p0 sr1 sr2).
-        
-    (* pose (Let_stm p0 (Fun_stm p0 (App_stm A (App_stm A (Y p p0 A p0.2) (Fun_stm p (Fun_stm p0 x1))) (Var p0))) x2). *)
-
-    (* apply (replace_all_variables_aux_type A r env fl env_valid). *)
-    (* unfold r. *)
-    (* destruct p0. *)
-    (* destruct p. *)
-    (* simpl in *. *)
-    
-    
   }
-Defined.
-Admitted.
+Defined. (* Defined gives stack overflow *)
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A nil nil x} :=
   @replace_all_variables_aux_type A x nil nil (env_nil nil) x_valid.
@@ -703,7 +690,25 @@ Theorem valid_is_well :
   forall (x : Rml) A vl fl `{x_valid : rml_valid_type A vl fl x},
     well_formed vl fl x.
 Proof.
-  induction x ; intros ; inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
+  induction x ; intros.
+
+  6: {
+    inversion x_valid ; subst.
+    - constructor.
+      + eauto.
+      + eauto.
+    - apply well_fun_app.
+      + assert (rml_valid_type (p.2 -> A) vl fl (Fun_stm p x0)).
+        constructor.
+        assumption.
+        apply IHx1 in H.
+        inversion H ; subst.
+        assumption.
+      + apply (IHx2 p.2).
+        assumption.
+  }
+
+  all: inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
 Qed.
 
 (* -------------------------------------------------------------------------------- *)
