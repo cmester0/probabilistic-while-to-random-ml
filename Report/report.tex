@@ -84,7 +84,25 @@ We have a similar function for Rml, using the posibility distributions as interp
 \end{align*}
 We see similar patterns arising, since both interpretations are monadic.
 
-
-\section{Mini ML's way}
+\section{Translation from Rml to $\mathbf{\lambda}$-calculus}
+\begin{center}
+  \begin{tabular}{|c|c|}
+    \hline
+    Rml & $\lambda$-calculus \\ \hline
+    Var $(x,A)$ & $x : A$ \\
+    Const $A$ $c$ & $c : A$ \\
+    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A, e_2)~e_1$ \\
+    Fun $(x,A)$ $e$ & $\lambda x : A, e$ \\
+    App $e_1$ $e_2$ & $e_1~e_2$ \\
+    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
+  \end{tabular}
+\end{center}
+The $Y$ combinator in Rml:
+\begin{align*}
+  Y &= \lambda f, (\lambda x, f~(x~x))~(\lambda x, f~(x~x))\\
+    &= \mathtt{Fun}~(f,A)~(\mathtt{App} \\
+    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B)))))\\
+    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B))))))
+\end{align*}
 
 \end{document}

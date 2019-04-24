@@ -39,3 +39,6 @@ latex.out/
 # auto folder when using emacs and auctex
 ./auto/*
 *.el
+
+# Extra files
+*.glob
