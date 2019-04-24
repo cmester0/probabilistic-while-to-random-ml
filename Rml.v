@@ -8,10 +8,10 @@ Inductive Rml :=
 | Var : (nat * Type) -> Rml
 | Const : forall (A : Type), A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
-| Fun_stm : (nat * Type) -> Rml -> Rml
+| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : (nat * Type) -> (nat * Type) -> @Rml -> @Rml -> Rml.
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -32,9 +32,9 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     @well_formed (x :: vl) fl e2 ->
     well_formed vl fl (Let_stm x e1 e2)
 
-| well_fun : forall p x,
+| well_fun : forall C p x,
     @well_formed vl (p :: fl) x ->
-    @well_formed vl fl (Fun_stm p x)
+    @well_formed vl fl (Fun_stm C p x)
                 
 | well_if : forall b m1 m2,
     well_formed vl fl b ->
@@ -47,25 +47,25 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     well_formed vl fl e2 ->
     well_formed vl fl (App_stm B e1 e2)
 
-| well_let_rec : forall f x (e1 e2 : Rml),
-    @well_formed vl (x :: f :: fl) e1 ->
-    @well_formed vl (f :: fl) e2 ->
-    well_formed vl fl (Let_rec f x e1 e2)
+| well_let_rec : forall B C nf nx (e1 e2 : Rml),
+    @well_formed vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
+    @well_formed vl ((nf,B -> C) :: fl) e2 ->
+    well_formed vl fl (Let_rec B C nf nx e1 e2)
 
-| well_fun_app : forall p x1 x2,
+| well_fun_app : forall C p x1 x2,
     well_formed vl (p :: fl) x1 ->
     well_formed vl fl x2 ->
-    well_formed vl fl (App_stm p.2 (Fun_stm p x1) x2).
+    well_formed vl fl (App_stm p.2 (Fun_stm C p x1) x2).
 
 (* -------------------------------------------------------------------------------- *)
 
 Inductive sRml {A : Type} :=
 | sVar : (nat * Type) -> sRml
 | sConst : A -> sRml
-| sFun : (nat * Type) -> sRml -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
 | sIf : @sRml bool -> sRml -> sRml -> sRml
 | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall p p0 : nat * Type, @sRml p.2 -> @sRml (p.2 -> A) -> sRml.
+| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -86,9 +86,10 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
     @rml_valid_type A ((x,B) :: vl) fl b ->
     rml_valid_type A vl fl (Let_stm (x,B) a b)
 
-| valid_fun : forall p x,
-    rml_valid_type A vl (p :: fl) x ->
-    rml_valid_type A vl fl (Fun_stm p x)
+| valid_fun : forall C p x,
+    (A = (p.2 -> C)) ->
+    rml_valid_type C vl (p :: fl) x ->
+    rml_valid_type A vl fl (Fun_stm C p x)
                    
 | valid_if : forall b m1 m2,
     rml_valid_type bool vl fl b ->
@@ -101,11 +102,11 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
     rml_valid_type B vl fl e2 ->
     rml_valid_type A vl fl (App_stm B e1 e2)
 
-| valid_let_rec : forall B C f x a b,
-    @rml_valid_type (B -> C) vl ((x,B) :: (f,B -> C) :: fl) a ->
+| valid_let_rec : forall B C nf nx e1 e2,
+    @rml_valid_type (B -> C) vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
     (* ^ Should be ((B -> C) -> B -> C) *)
-    @rml_valid_type ((B -> C) -> A) vl ((f,B -> C) :: fl) b ->
-    rml_valid_type A vl fl (Let_rec (f,B -> C) (x,B) a b)
+    @rml_valid_type A vl ((nf,B -> C) :: fl) e2 ->
+    rml_valid_type A vl fl (Let_rec B C nf nx e1 e2)
                    
 (* | valid_let_rec : forall B C f x a b, *)
 (*     @rml_valid_type (B -> C) ((x,B) :: (f,B -> C) :: vl) fl a -> *)
@@ -113,9 +114,9 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
 (*     rml_valid_type A vl fl (Let_rec (f,B -> C) (x,B) a b) *)
 
 | valid_fun_app : forall p x1 x2,
-    rml_valid_type (p.2 -> A) vl (p :: fl) x1 ->
+    rml_valid_type A vl (p :: fl) x1 ->
     rml_valid_type p.2 vl fl x2 ->
-    rml_valid_type A vl fl (App_stm p.2 (Fun_stm p x1) x2).
+    rml_valid_type A vl fl (App_stm p.2 (Fun_stm A p x1) x2).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -159,20 +160,9 @@ Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 | is_const : forall (A : Type) c, rml_is_simple (@Const A c)
 | is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (@If_stm b m1 m2)
 | is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm B e1 e2)
-| is_fun : forall p x, @rml_is_simple (p :: l) x -> rml_is_simple (@Fun_stm p x)
-| is_fix : forall p p0 f x, @rml_is_simple [:: p0, p & l] f -> @rml_is_simple (p :: l) x -> rml_is_simple (@Let_rec p p0 f x).
-
-(* -------------------------------------------------------------------------------- *)
-
-Definition Y p1 p2 A B :=
-  Fun_stm p1 (App_stm A
-(Fun_stm p2 (App_stm B (Var p1) (App_stm B (Var p2) (Var p2))))
-(Fun_stm p2 (App_stm B (Var p1) (App_stm B (Var p2) (Var p2))))).
-
-Definition sY p1 p2 A B :=
-  @sFun A p1 (sApp A
-(sFun p2 (sApp B (sVar p1) (sApp B (sVar p2) (sVar p2))))
-(sFun p2 (sApp B (sVar p1) (sApp B (sVar p2) (sVar p2))))).
+| is_fun_app : forall nx (B C : Type) e1 e2, @rml_is_simple ((nx,B) :: l) e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm B (@Fun_stm C (nx,B) e1) e2)
+| is_fun : forall C p x, @rml_is_simple (p :: l) x -> rml_is_simple (@Fun_stm C p x)
+| is_fix : forall B C nf nx e1 e2, @rml_is_simple [:: (nx,B), (nf,B -> C) & l] e1 -> @rml_is_simple ((nf,B -> C) :: l) e2 -> rml_is_simple (@Let_rec B C nf nx e1 e2).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -180,10 +170,12 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   match x with
   | sVar p => Var p
   | sConst c => Const A c
-  | sFun p x => Fun_stm p (sRml_to_rml x)
+  | sFun C p _ x => Fun_stm C p (sRml_to_rml x)
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
   | sApp T e1 e2 => App_stm T (sRml_to_rml e1) (sRml_to_rml e2)
-  | sFix p p0 f x => Let_rec p p0 (sRml_to_rml f) (sRml_to_rml x)
+  | sFix B nf nx f x =>
+    (Let_rec B A nf nx (sRml_to_rml f) (App_stm B (Var (nf,B -> A)) (sRml_to_rml x)))
+                           (* TODO *)
   end.
 
 Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :=
@@ -205,22 +197,27 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type B fl e2 ->
     @srml_valid_type A fl (sApp B e1 e2)
                      
-| svalid_fix : forall B C f x a b,
-    @srml_valid_type (B -> C) ((x,B) :: (f,B -> C) :: fl) a ->
+| svalid_fix : forall B nf nx f x,
+    @srml_valid_type (B -> A) ((nx,B) :: (nf,B -> A) :: fl) f ->
     (* ^ Should be ((B -> C) -> B -> C) *)
-    @srml_valid_type ((B -> C) -> A) ((f,B -> C) :: fl) b ->
-    srml_valid_type A fl (sFix (f,B -> C) (x,B) a b).
+    @srml_valid_type B ((nf,B -> A) :: fl) x ->
+    srml_valid_type A fl (sFix B nf nx f x).
 
 Lemma helper :
   forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
 Admitted.
 
 Lemma helper2 :
-  forall A B C x f x1 x2 fl,
-    srml_valid_type A fl (sFix (f, B -> C) (x, B) x1 x2) ->
-    srml_valid_type (B -> C) [:: (x, B), (f, B -> C) & fl] x1 /\ srml_valid_type ((B -> C) -> A) ((f, B -> C) :: fl) x2.
+  forall A B nx nf x1 x2 fl,
+    srml_valid_type A fl (sFix B nf nx x1 x2) ->
+    srml_valid_type (B -> A) [:: (nx, B), (nf, B -> A) & fl] x1 /\ srml_valid_type B ((nf, B -> A) :: fl) x2.
 Admitted.
-  
+
+Lemma srml_valid_weakening:
+  forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
+Proof.
+Admitted.
+
 Lemma sRml_simple :
   forall A (x : @sRml A) l (x_valid : srml_valid_type A l x),
     @rml_is_simple l (@sRml_to_rml A x).
@@ -254,10 +251,18 @@ Proof.
 
   (* sFix *)
   {
-    inversion x_valid ; subst.
     apply helper2 in x_valid.
     inversion x_valid ; subst.
-    constructor ; eauto.
+    simpl.
+    constructor.
+    - apply IHx1.
+      assumption.
+    - constructor.
+      + constructor.
+        left.
+        reflexivity.
+      + apply IHx2.
+        assumption.
   }
 Qed.
 
@@ -281,12 +286,19 @@ Proof.
     inversion x_valid.
     constructor ; eauto.
   - simpl.    
-    inversion x_valid ; subst.
-    clear H1 H2 a b.
     apply helper2 in x_valid.
-    inversion x_valid.
     
-    constructor ; eauto.    
+    inversion x_valid ; subst.
+    simpl.
+    constructor.
+    + apply IHx1.
+      assumption.
+    + constructor.
+      * apply valid_fun_var.
+        left.
+        reflexivity.
+      * apply IHx2.
+        assumption.
 Qed.
 
 (** Environment **)
@@ -299,6 +311,11 @@ Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
     (@rml_valid_type x.1.2 (map fst xs) l x.2) ->
     valid_env xs l ->
     valid_env (x :: xs) l.
+
+Lemma helper3 :
+  forall A B C D,
+    (A -> B) = (C -> D) -> A = C /\ B = D.
+Admitted.
 
 Lemma valid_weakening:
   forall (a : nat * Type * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
@@ -333,26 +350,24 @@ Proof.
         assumption.
       * apply (IHr2 ((x,B) :: l1)).
         assumption.
-    + inversion H.
+    + inversion H ; subst.
+      simpl.
+      apply IHr in H4.
+      apply valid_fun ; easy.
     + inversion H ; subst.
       constructor ; eauto.
     + inversion H ; subst.
-      constructor ; eauto.
-    + inversion H ; subst.
-      constructor ; eauto.
-    + apply valid_fun_app.
-      -- assert (rml_valid_type (p.2 -> T0) (l1 ++ l3) fl (Fun_stm p x1)) by (constructor; assumption).
-         apply IHr1 in H0.
-         inversion H0 ; subst.
-         assumption.
-      -- apply IHr2.
-         assumption.      
-    + inversion H ; subst.
-      constructor.
-      * apply IHr1.
+      * constructor ; eauto.
+      * apply valid_fun_app.
+        assert (rml_valid_type (p.2 -> T0) (l1 ++ l2 ++ l3) fl (Fun_stm T0 p x1)).
+          by (apply IHr1 ; apply valid_fun ; try reflexivity ; assumption).
+        inversion H0 ; subst.
+        apply helper3 in H5.
+        inversion H5 ; subst.
         assumption.
-      * apply IHr2.
-        assumption.
+        eauto.        
+    + inversion H ; subst.
+      constructor ; eauto.
 Qed.
 
 Corollary valid_weakening_nil :
@@ -401,23 +416,22 @@ Proof.
     + apply IHr2.
       assumption.
   - inversion H ; subst.
-    constructor. apply (IHr (p :: l1)).
+    apply valid_fun ; eauto.
+    apply (IHr (p :: l1)).
     assumption.
   - inversion H ; subst.
     constructor ; eauto.
   - inversion H ; subst.
-    constructor ; eauto.
-  - apply valid_fun_app.
-    + assert (rml_valid_type (p.2 -> T0) vl (l1 ++ l2 ++ l3) (Fun_stm p x1)) by (apply IHr1 ; constructor ; assumption).
-      inversion H0 ; subst.
-      assumption.
-    + apply IHr2.
-      assumption.    
+    + constructor ; eauto.
+    + constructor.
+      * apply IHr1.
+        apply valid_fun ; easy.
+      * eauto.      
   - inversion H ; subst.
     constructor.
-    + apply (IHr1 [:: (x,B) , (f,B -> C) & l1]).
+    + apply (IHr1 [:: (n1,T) , (n0,T -> T0) & l1]).
       assumption.
-    + apply (IHr2 [:: (f,B -> C) & l1]).
+    + apply (IHr2 [:: (n0,T -> T0) & l1]).
       assumption.
 Qed.
 
@@ -440,13 +454,14 @@ Proof.
 
   (** Fun **)
   {
-    assert (fun_valid_type : (rml_valid_type A vl (p :: fl) r)) by (inversion rml_valid ; subst ; assumption).
+    assert (fun_valid_type : rml_valid_type T vl (p :: fl) r) by (inversion rml_valid ; subst ; assumption).
 
     assert (@rml_is_simple [:: p & fl] r) by (inversion rml_simple ; subst ; assumption).
+    
+    pose (rml_to_sRml_l T r vl (p :: fl) H fun_valid_type).
 
-    pose (rml_to_sRml_l A r vl (p :: fl) H fun_valid_type).
-
-    exact (sFun p s).
+    assert (A = (p.2 -> T)) by (inversion rml_valid ; subst ; reflexivity).
+    exact (sFun T p H0 s).
   }
 
   (** If *)
@@ -462,11 +477,11 @@ Proof.
 
   (** App *)
   {    
-    assert (app_valid_type : rml_valid_type (T -> A) vl fl r1 /\ rml_valid_type T vl fl r2) by (split ; inversion rml_valid ; subst ; try constructor ; assumption).
+    assert (app_valid_type : rml_valid_type (T -> A) vl fl r1 /\ rml_valid_type T vl fl r2) by (inversion rml_valid ; subst ; split ; try constructor ; easy).
     
     inversion app_valid_type as [p1 p2] ; clear app_valid_type.
 
-    assert (app_is_simple : @rml_is_simple fl r1 /\ @rml_is_simple fl r2) by (inversion rml_simple ; subst ; easy).
+    assert (app_is_simple : @rml_is_simple fl r1 /\ @rml_is_simple fl r2) by (inversion rml_simple ; subst ; split ; try easy ; constructor ; assumption).
     
     inversion app_is_simple as [H1 H2] ; clear app_is_simple.
     
@@ -474,18 +489,30 @@ Proof.
   }
 
   (** Let rec **)
-  { assert (@rml_is_simple [:: p0 , p & fl] r1 /\ @rml_is_simple (p :: fl) r2) by (inversion rml_simple ; subst ; easy).
+  { assert (@rml_is_simple [:: (n0,T) , (n,T -> T0) & fl] r1 /\ @rml_is_simple ((n,T -> T0) :: fl) r2) by (inversion rml_simple ; subst ; easy).
 
     inversion_clear H.
     
-    assert (rml_valid_type p.2 vl [:: p0, p & fl] r1 /\ rml_valid_type (p.2 -> A) vl (p :: fl) r2) by (inversion rml_valid ; subst ; easy).
+    assert (rml_valid_type (T -> T0) vl [:: (n0,T), (n,T -> T0) & fl] r1 /\ rml_valid_type A vl ((n,T -> T0) :: fl) r2) by (inversion rml_valid ; subst ; easy).
     
-    inversion_clear H.    
-    
-    pose (rml_to_sRml_l p.2 r1 vl (p0 :: p :: fl) H0 H2).
-    pose (rml_to_sRml_l (p.2 -> A) r2 vl (p :: fl) H1 H3).
+    inversion_clear H.
 
-    exact (sFix p p0 s s0).
+    (* TODO WRITE THIS OUT IN PAPER *)
+    
+    pose (rml_to_sRml_l (T -> T0) r1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
+    pose (rml_to_sRml_l A r2 vl ((n,T -> T0) :: fl) H1 H3).
+
+    assert (@rml_is_simple fl (Fun_stm A (n, T -> T0) r2)) by (constructor ; assumption).
+    assert (rml_valid_type ((T -> T0) -> A) vl fl (Fun_stm A (n, T -> T0) r2)).
+    constructor.
+    reflexivity.
+    assumption.
+        
+    pose (rml_to_sRml_l ((T -> T0) -> A) (Fun_stm A (n,T -> T0) r2) vl fl H H4).
+    
+    (* WORK TO DO HERE *)
+    
+    exact (@sFix A (T -> T0) n n0 s1 s).
   }
 Defined.
 

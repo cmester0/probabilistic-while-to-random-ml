@@ -46,49 +46,27 @@ The data structure used to represent Rml terms is as follows:
   &~~|~ \mathtt{Const} : \forall~(A : \Type),~A \rightarrow \Rml \\
   &~~|~ \mathtt{Let\_stm} : (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
   &~~|~ \mathtt{If\_stm} : \Rml \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{App\_stm} : \Type \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml.
+  &~~|~ \mathtt{App\_stm} : \Type \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
+  &~~|~ \mathtt{Let\_rec} : (\mathbb{N} * \Type) \rightarrow (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml.
 \end{align*}
 We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
 \\ \\
 We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
 \begin{align*}
   &\mathtt{Inductive}~\sRml : \Type := \\
+  &~~|~ \mathtt{sVar} : (\mathbb{N} * \Type) \rightarrow \sRml \\
   &~~|~ \mathtt{sConst} : \forall~(A : \Type),~A \rightarrow \sRml \\
-  &~~|~ \mathtt{sIf\_stm} : \sRml \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
-  &~~|~ \mathtt{sApp\_stm} : \Type \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml.
+  &~~|~ \mathtt{sIf} : \sRml \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
+  &~~|~ \mathtt{sApp} : \Type \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
+  &~~|~ \mathtt{sFix} : \forall~(p~p0 : (\mathbb{N} * \Type)),~@\sRml~p.2 \rightarrow @\sRml~(p.2 \rightarrow A) \rightarrow \sRml.
 \end{align*}
-That is Rml where we remove expressions with variables. We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations):
-\begin{align*}  
-  &\mathtt{Fixpoint}~\mathtt{interp\_srml}~\set{A}~\set{R}~(x : @\sRml~A) : \mathtt{continuation\_monad\_type}~R~A := \\
-  &~~\mathtt{match}~x~\mathtt{with} \\
-  &~~~~|~ \mathtt{sConst}~c \Rightarrow \mathtt{unit}~c \\
-  &~~~~|~ \mathtt{sIf\_stm}~b~m_1~m_2 \Rightarrow \\
-  & \qquad \quad (\mathtt{interp\_srml}~b)~\bind~(\lambda~(t : \mathbb{B}) \Rightarrow \mathtt{if}~t~\mathtt{then}~(\mathtt{interp\_srml}~m_1)~\mathtt{else}~(\mathtt{interp\_srml}~m_2)) \\
-  &~~~~|~ \mathtt{sApp\_stm}~C~e_1~e_2 \Rightarrow \\
-  & \qquad \quad (\mathtt{interp\_srml}~e_1)~\bind~(\lambda~(g : C \rightarrow A) \Rightarrow (\mathtt{interp\_srml}~e_2)~\bind~(\lambda~k \Rightarrow \mathtt{unit}~(g~k)))\\
-  &~~\mathtt{end}.
-\end{align*}
-We have a similar function for Rml, using the posibility distributions as interpretations:
-\begin{align*}
-  &\mathtt{Fixpoint}~\mathtt{ssem\_aux}~\set{R : \mathtt{realType}}~\set{T : \Type}~(x : @\sRml~T) : \mathtt{distr}~R~(\mathtt{Choice}~T)~:=\\
-  &~~\mathtt{match}~x~\mathtt{with}\\
-  &~~~~|~\mathtt{sConst}~c~\Rightarrow~@\mathtt{dunit}~R~(\mathtt{Choice}~T)~c\\
-  &~~~~|~\mathtt{sIf\_stm}~b~m_1~m_2~\Rightarrow\\
-  & \qquad \quad \mathtt{let}~b'':= \mathtt{ssem\_aux}~b~\mathtt{in}\\
-  & \qquad \quad \backslash\mathtt{dlet}\_(b'~\leftarrow~b'')~~(\mathtt{if}~b'~\mathtt{then}~\mathtt{ssem\_aux}~m_1~\mathtt{else}~\mathtt{ssem\_aux}~m_2)\\
-  &~~~~|~\mathtt{sApp\_stm}~A~e_1~e_2~\Rightarrow\\
-  & \qquad \quad @\mathtt{dlet}~R~(\mathtt{Choice}~(A~\rightarrow~T))~(\mathtt{Choice}~T)~\\
-  &~\qquad~\quad~(\lambda~t \Rightarrow @\mathtt{dlet}~R~(\mathtt{Choice}~A)~(\mathtt{Choice}~T)~(\lambda~u~\Rightarrow @\mathtt{dunit}~R~(\mathtt{Choice}~T)~(t~u))~(@\mathtt{ssem\_aux}~R~A~e_2))\\
-  &~\qquad~\quad~(\mathtt{ssem\_aux}~e_1)\\
-  &~~\mathtt{end}.
-\end{align*}
-We see similar patterns arising, since both interpretations are monadic.
+That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\section{Translation from Rml to $\mathbf{\lambda}$-calculus}
+\section{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
-    Rml & $\lambda$-calculus \\ \hline
+    Rml & typed $\lambda$-calculus \\ \hline
     Var $(x,A)$ & $x : A$ \\
     Const $A$ $c$ & $c : A$ \\
     Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A, e_2)~e_1$ \\
@@ -97,12 +75,26 @@ We see similar patterns arising, since both interpretations are monadic.
     Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
   \end{tabular}
 \end{center}
-The $Y$ combinator in Rml:
+The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms.
+
+\subsection{Example: Fib}
+Expression:
 \begin{align*}
-  Y &= \lambda f, (\lambda x, f~(x~x))~(\lambda x, f~(x~x))\\
-    &= \mathtt{Fun}~(f,A)~(\mathtt{App} \\
-    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B)))))\\
-    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B))))))
+\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
+  (&\mathtt{if}~x \leq 0\\
+                 &\mathtt{then}~0\\
+                 &\mathtt{else}~f~(x - 1) + f~(x-2))\\
+  (&f~3)
 \end{align*}
+Typing:
+\begin{align*}
+\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
+  (&\mathtt{if}~x \leq 0\\
+                 &\mathtt{then}~0\\
+                 &\mathtt{else}~f~(x - 1) + f~(x-2) : \mathbb{N})\\
+  (&(f : \mathbb{N} \rightarrow \mathbb{N})~(3 : \mathbb{N}) : \mathbb{N})
+\end{align*}
+Simple form:
+\[\mathtt{Let\_rec~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,A)~}\]
 
 \end{document}
