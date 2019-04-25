@@ -776,7 +776,7 @@ Proof.
     pose (sApp (T -> T0) s2 s1).
     refine s3.
   }
-Defined. (* Defined gives stack overflow *)
+Admitted. (* Defined gives stack overflow *)
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A nil nil x} :=
   @replace_all_variables_aux_type A x nil nil (env_nil nil) x_valid.
@@ -795,8 +795,9 @@ Proof.
       + eauto.
       + eauto.
     - apply well_fun_app.
-      + assert (rml_valid_type (p.2 -> A) vl fl (Fun_stm p x0)).
+      + assert (rml_valid_type (p.2 -> A) vl fl (Fun_stm A p x0)).
         constructor.
+        reflexivity.
         assumption.
         apply IHx1 in H.
         inversion H ; subst.
