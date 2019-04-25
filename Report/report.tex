@@ -89,12 +89,30 @@ Expression:
 Typing:
 \begin{align*}
 \mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
-  (&\mathtt{if}~x \leq 0\\
-                 &\mathtt{then}~0\\
-                 &\mathtt{else}~f~(x - 1) + f~(x-2) : \mathbb{N})\\
+  ((&\mathtt{if}~(x \leq 0 : \mathbb{B})\\
+                 &\mathtt{then}~(0 : \mathbb{N})\\
+                 &\mathtt{else}~(f : \mathbb{N} \rightarrow \mathbb{N})~(x - 1 : \mathbb{N}) + (f : \mathbb{N} \rightarrow \mathbb{N})~(x-2 : \mathbb{N}) : \mathbb{N}) : \mathbb{N})\\
   (&(f : \mathbb{N} \rightarrow \mathbb{N})~(3 : \mathbb{N}) : \mathbb{N})
 \end{align*}
+Semi-simple
+\begin{align*}
+  &\mathtt{Let\_stm}~f \\
+  &\quad \mathtt{sFix} \\
+  &\quad \quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
+  &\quad \quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
+  &\quad \quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
+  &\quad \quad \quad \quad ~~\mathtt{then}~0\\
+  &\quad \quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2)))\\
+  &\quad (f~3)
+\end{align*}
 Simple form:
-\[\mathtt{Let\_rec~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,A)~}\]
-
+\begin{align*}
+  &\mathtt{sApp}~\mathtt{sFix} \\
+  &\quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
+  &\quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
+  &\quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
+  &\quad \quad \quad ~~\mathtt{then}~0\\
+  &\quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2))) \\
+  &\quad 3
+\end{align*}
 \end{document}
