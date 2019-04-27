@@ -75,7 +75,8 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
     Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
   \end{tabular}
 \end{center}
-The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms.
+The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
+\[Let\]
 
 \subsection{Example: Fib}
 Expression:
@@ -115,4 +116,45 @@ Simple form:
   &\quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2))) \\
   &\quad 3
 \end{align*}
+
+Example - Error: Stack Overflow.
+\begin{lstlisting}
+Fixpoint replace_all_variables_aux_type
+         A (x : Rml) (env : seq (nat * Type * Rml))
+         (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+         `{x_valid : @rml_valid_type A (map fst env) fl x} : @sRml A
+                                                                            
+with replace_all_variables_aux_type_const
+       A0 A a (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A0 (map fst env) fl (Const A a)} : @sRml A0
+with replace_all_variables_aux_type_let
+       A p x1 x2 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (Let_stm p x1 x2)} : @sRml A
+with replace_all_variables_aux_type_fun
+       A T p x (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (Fun_stm T p x)} : @sRml A
+with replace_all_variables_aux_type_if
+       A x1 x2 x3 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (If_stm x1 x2 x3)} : @sRml A
+with replace_all_variables_aux_type_app
+       A T x1 x2 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (App_stm T x1 x2)} : @sRml A
+with replace_all_variables_aux_type_let_rec A T T0 n n0 x1 x2 (env : seq (nat * Type * Rml))
+     (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+     `{x_valid : @rml_valid_type A (map fst env) fl (Let_rec T T0 n n0 x1 x2)} : @sRml A.
+Proof.
+  (** Structure **)
+  {
+    induction x ; intros ; refine (sVar (0,A)).
+  }
+  
+  all: refine (sVar (0,A)).  
+Defined.
+\end{lstlisting}
+
 \end{document}
