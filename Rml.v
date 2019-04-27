@@ -60,7 +60,7 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
 (* -------------------------------------------------------------------------------- *)
 
 Inductive sRml {A : Type} :=
-| sVar : (nat * Type) -> sRml
+| sVar : nat -> sRml
 | sConst : A -> sRml
 | sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
 | sIf : @sRml bool -> sRml -> sRml -> sRml
@@ -168,7 +168,7 @@ Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 
 Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   match x with
-  | sVar p => Var p
+  | sVar n => Var (n,A)
   | sConst c => Const A c
   | sFun C p _ x => Fun_stm C p (sRml_to_rml x)
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
@@ -181,7 +181,7 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
 Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :=
 | svalid_fun_var : forall x,
     List.In (x,A) fl ->
-    srml_valid_type A fl (sVar (x,A))
+    srml_valid_type A fl (sVar x)
                    
 | svalid_const : forall (c : A),
     srml_valid_type A fl (sConst c)
@@ -273,7 +273,6 @@ Lemma sRml_valid :
 Proof.
   induction x ; intros.
   - simpl.
-    destruct p.
     inversion x_valid.
     apply valid_fun_var.
     assumption.
@@ -442,7 +441,7 @@ Fixpoint rml_to_sRml_l {A : Type} (x : Rml) vl fl `{rml_simple : @rml_is_simple 
 Proof.
   (** Structure **)
   case x eqn : o_rml.
-  { exact (sVar p). }
+  { exact (sVar p.1). }
   
   (** Const **)
   {
@@ -532,10 +531,38 @@ Defined.
 
 (* -------------------------------------------------------------------------------- *)
 
+Theorem srml_to_rml_correctness :
+  forall A fl (srml : @sRml A) (valid : srml_valid_type A fl srml),
+    srml = @rml_to_sRml_l A (@sRml_to_rml A srml) nil fl (@sRml_simple A srml fl valid) (sRml_valid A srml nil fl valid).
+Proof.
+  induction srml ; intros.
+  - simpl.
+    reflexivity.
+  - inversion valid ; subst.
+    
+Admitted.
+
+Theorem rml_to_srml_correctness :
+  forall A rml vl fl simple valid,
+     rml = @sRml_to_rml A (@rml_to_sRml_l A rml vl fl simple valid).
+Proof.
+  induction rml ; intros.
+  - simpl.
+    destruct p.
+    inversion valid ; subst.
+    simpl.
+    reflexivity.
+    simpl.
+    reflexivity.
+  -
+Admitted.
+
+(* -------------------------------------------------------------------------------- *)
+
 Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) (fl : seq (nat * Type)) `{env_valid : valid_env env fl} `{_ : List.In p (map fst env) \/ List.In p fl} {struct env} : @sRml p.2.
   intros.
   induction env.
-  - refine (sVar p).
+  - refine (sVar p.1).
   - destruct (pselect (a.1 = p)).
     + intros.
       refine (rml_to_sRml_l a.2 (map fst env) fl) ; inversion env_valid ; subst.
@@ -552,7 +579,21 @@ Defined.
 
 Lemma valid_rml_makes_valid_srml :
   forall A x y vl fl, rml_valid_type A vl fl x -> srml_valid_type A fl y.
+Proof.
 Admitted.
+
+(* Lemma valid_rml_makes_valid_srml : *)
+(*   forall A x vl fl `{x_simple : @rml_is_simple fl x} (x_valid : rml_valid_type A vl fl x), srml_valid_type A fl (@rml_to_sRml_l A x vl fl x_simple x_valid). *)
+(* Proof. *)
+(*   intros. *)
+(*   induction x. *)
+(*   - destruct p. *)
+(*     assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst. *)
+(*     inversion x_simple ; subst. *)
+(*     constructor. *)
+(*     assumption. *)
+(*   -  *)
+(* Admitted. *)
 
 Lemma rml_simple_weakening :
   forall x l1 l2 l3, @rml_is_simple (l1 ++ l3) x -> @rml_is_simple (l1 ++ l2 ++ l3) x.
@@ -723,7 +764,7 @@ Proof.
     pose (@sFix T0 T n n0 s). (* To replace vars with in x2 *)
 
     assert ((T -> T0) = (T -> T0)) by reflexivity.
-    pose (@sFun (T -> T0) T0 (n0,T) H0 (s0 (sVar (n0,T)))).
+    pose (@sFun (T -> T0) T0 (n0,T) H0 (s0 (sVar n0))).
 
     assert (valid_env env ((n,T -> T0) :: fl)) by (apply extend_fl_still_valid ; assumption).
     assert (rml_valid_type A [seq i.1 | i <- env] ((n, T -> T0) :: fl) x2).

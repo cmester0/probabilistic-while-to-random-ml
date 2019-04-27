@@ -117,6 +117,21 @@ Simple form:
   &\quad 3
 \end{align*}
 
+\section{All translations (forward)}
+\begin{center}
+  \begin{tabular}{|c|c|c|}
+    \hline
+    Rml & @sRml A & typed $\lambda$-calculus \\ \hline
+    Var $(x,A)$ & sVar $x$ & $x : A$ \\
+    Const $A$ $c$ & & $c : A$ \\
+    Let $(x,A)$ $e_1$ $e_2$ & & $(\lambda x : A, e_2)~e_1$ \\
+    Fun $(x,A)$ $e$ & & $\lambda x : A, e$ \\
+    App $e_1$ $e_2$ & & $e_1~e_2$ \\
+    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
+  \end{tabular}
+\end{center}
+
+\section{Appendix}
 Example - Error: Stack Overflow.
 \begin{lstlisting}
 Fixpoint replace_all_variables_aux_type
