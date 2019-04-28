@@ -34,9 +34,34 @@
 
 \begin{document}
 
+% -------------------------------------------------------------
+
+\newcommand\rml{$\mathcal{R}$\texttt{ml} } % for a pretty version of "Rml"
+\newcommand\M{\texttt{M}} % for the M representing monads
+
+% -------------------------------------------------------------
+
 \maketitle
 
-\section{Rml}
+\tableofcontents
+\newpage
+
+% ------------------------------------------------------------- 
+
+\section{Introduction}
+% Goal: 1-2 pages
+% I've written an introduction already, but I don't know if it still fits. We should
+% probably write the rest of the report first before adding this section
+
+% here we should write something about the motivation of the project and give an
+% overview of what Coq/formal verification is, some very basic things about
+% cryptography, and how they relate.
+
+
+\section{Theory and existing frameworks}
+% Goal: 6-12 pages
+
+\subsection{\rml}
 We have two representations of Rml, continuations and distributions. Both build on a monad, for ease of use.
 \\ \\
 The data structure used to represent Rml terms is as follows:
@@ -62,7 +87,24 @@ We have defined a relation \wellformed, that checks that no variables are escapi
 \end{align*}
 That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\section{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
+\subsection{\texttt{pwhile}}
+% Here we should give a quick description of EasyCrypt an present pwhile
+
+
+\section{Our approach}
+% Goal: 6-12 pages
+
+% What we tried to do and the theory behind.
+
+% Describe the translation from while to functional (+recursion), to lambda-calculus,
+% to an interpretation in omega-cpos.
+
+% We planned on making an interpretation of Rml in Coq and then translating the xhl
+% implementation of pwhile to our abstract syntax. 
+
+
+
+\subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
@@ -78,7 +120,7 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
 The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
 \[Let\]
 
-\subsection{Example: Fib}
+\subsubsection{Example: Fib}
 Expression:
 \begin{align*}
 \mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
@@ -117,7 +159,7 @@ Simple form:
   &\quad 3
 \end{align*}
 
-\section{All translations (forward)}
+\subsection{All translations (forward)}
 \begin{center}
   \begin{tabular}{|c|c|c|}
     \hline
@@ -131,6 +173,31 @@ Simple form:
   \end{tabular}
 \end{center}
 
+
+\section{Our contribution}
+% Goal: 6-12 pages
+% What we actually did.
+
+% We implemented an abstract syntax for Rml in Coq
+
+% We tried to translate from pwhile to said Rml (syntax to syntax)
+
+% We were able to interpret Rml modulo general recursion, using a probability monad.
+
+% We tried implementing general recursion with the extra step of translating to the
+% typed lambda calculus and using a fixpoint combinator.
+
+\section{Comparisons and future work}
+% Goal: 2-4 pages
+% What the section header says
+
+
+\section{Conclusion}
+% Goal: 1-2 pages
+
+
+
+\newpage
 \section{Appendix}
 Example - Error: Stack Overflow.
 \begin{lstlisting}
