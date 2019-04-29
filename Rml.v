@@ -203,15 +203,37 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type B ((nf,B -> A) :: fl) x ->
     srml_valid_type A fl (sFix B nf nx f x).
 
+Require Import Coq.Logic.Eqdep_dec.
+Require Import Coq.Arith.Peano_dec.
+
+apply inj_pair2_eq_dec in H1.
+
+Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}). Admitted.
+
 Lemma helper :
   forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
-Admitted.
+  intros.
+  inversion H.
+  
+  apply inj_pair2_eq_dec in H1 ; subst.
+  - apply inj_pair2_eq_dec in H3 ; subst.
+    + split ; assumption.
+    + apply dec_eq.
+  - apply dec_eq.
+Qed.
 
 Lemma helper2 :
   forall A B nx nf x1 x2 fl,
     srml_valid_type A fl (sFix B nf nx x1 x2) ->
     srml_valid_type (B -> A) [:: (nx, B), (nf, B -> A) & fl] x1 /\ srml_valid_type B ((nf, B -> A) :: fl) x2.
-Admitted.
+  intros.
+  inversion H ; subst.
+  apply inj_pair2_eq_dec in H4 ; subst.
+  - apply inj_pair2_eq_dec in H5 ; subst.
+    + split ; assumption.
+    + apply dec_eq.
+  - apply dec_eq.
+Qed.
 
 Lemma srml_valid_weakening:
   forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
@@ -312,11 +334,6 @@ Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
     valid_env xs l ->
     valid_env (x :: xs) l.
 
-Lemma helper3 :
-  forall A B C D,
-    (A -> B) = (C -> D) -> A = C /\ B = D.
-Admitted.
-
 Lemma valid_weakening:
   forall (a : nat * Type * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
 Proof.
@@ -362,8 +379,6 @@ Proof.
         assert (rml_valid_type (p.2 -> T0) (l1 ++ l2 ++ l3) fl (Fun_stm T0 p x1)).
           by (apply IHr1 ; apply valid_fun ; try reflexivity ; assumption).
         inversion H0 ; subst.
-        apply helper3 in H5.
-        inversion H5 ; subst.
         assumption.
         eauto.        
     + inversion H ; subst.
@@ -673,7 +688,7 @@ Proof.
   }
       
   (** Let-stm **)
-  {
+  {    
     assert (x1_valid : rml_valid_type p.2 [seq i.1 | i <- env] fl x1) by (inversion x_valid ; subst ; assumption).
     
     pose (x1' := replace_all_variables_aux_type p.2 x1 env fl env_valid x1_valid).

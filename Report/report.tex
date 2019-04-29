@@ -1,4 +1,5 @@
 \documentclass[11pt, leqno]{article}
+\usepackage{graphicx}
 
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
@@ -13,11 +14,146 @@
 
 \usepackage{listings}
 
-\lstdefinelanguage{rml}{
-}
+\lstdefinelanguage{Coq}{ 
+%
+% Anything betweeen $ becomes LaTeX math mode
+mathescape=true,
+%
+% Comments may or not include Latex commands
+texcl=false, 
+%
+% Vernacular commands
+morekeywords=[1]{Section, Module, End, Require, Import, Export,
+  Variable, Variables, Parameter, Parameters, Axiom, Hypothesis,
+  Hypotheses, Notation, Local, Tactic, Reserved, Scope, Open, Close,
+  Bind, Delimit, Definition, Let, Ltac, Fixpoint, CoFixpoint, Add,
+  Morphism, Relation, Implicit, Arguments, Unset, Contextual,
+  Strict, Prenex, Implicits, Inductive, CoInductive, Record,
+  Structure, Canonical, Coercion, Context, Class, Global, Instance,
+  Program, Infix, Theorem, Lemma, Corollary, Proposition, Fact,
+  Remark, Example, Proof, Goal, Save, Qed, Defined, Hint, Resolve,
+  Rewrite, View, Search, Show, Print, Printing, All, Eval, Check,
+  Projections, inside, outside, Def},
+%
+% Gallina
+morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
+  match, with, end, as, in, return, let, if, is, then, else, for, of,
+  nosimpl, when},
+%
+% Sorts
+morekeywords=[3]{Type, Prop, Set, true, false, option},
+%
+% Various tactics, some are std Coq subsumed by ssr, for the manual purpose
+morekeywords=[4]{pose, set, move, case, elim, apply, clear, hnf,
+  intro, intros, generalize, rename, pattern, after, destruct,
+  induction, using, refine, inversion, injection, rewrite, congr,
+  unlock, compute, ring, field, fourier, replace, fold, unfold,
+  change, cutrewrite, simpl, have, suff, wlog, suffices, without,
+  loss, nat_norm, assert, cut, trivial, revert, bool_congr, nat_congr,
+  symmetry, transitivity, auto, split, left, right, autorewrite},
+%
+% Terminators
+morekeywords=[5]{by, done, exact, reflexivity, tauto, romega, omega,
+  assumption, solve, contradiction, discriminate},
+%
+% Control
+morekeywords=[6]{do, last, first, try, idtac, repeat},
+% % Custom
+morekeywords=[7]{Rml, sRml},
+morekeywords=[8]{Var, Const, Let_stm, Fun_stm, If_stm, App_stm, Let_rec},
+morekeywords=[9]{sVar, sConst, sFun, sIf, sApp, sFix},
+% Comments delimiters, we do turn this off for the manual
+morecomment=[s]{(*}{*)},
+%
+% Spaces are not displayed as a special character
+showstringspaces=false,
+%
+% String delimiters
+morestring=[b]",
+morestring=[d],
+%
+% Size of tabulations
+tabsize=3,
+%
+% Enables ASCII chars 128 to 255
+extendedchars=false,
+%
+% Case sensitivity
+sensitive=true,
+%
+% Automatic breaking of long lines
+breaklines=false,
+%
+% Default style fors listings
+basicstyle=\small,
+%
+% Position of captions is bottom
+captionpos=b,
+%
+% flexible columns
+columns=[l]flexible,
+%
+% Style for (listings') identifiers
+identifierstyle={\ttfamily\color{black}},
+% Style for declaration keywords
+keywordstyle=[1]{\ttfamily\color{violet}},
+% Style for gallina keywords
+keywordstyle=[2]{\ttfamily\color{green}},
+% Style for sorts keywords
+keywordstyle=[3]{\ttfamily\color{blue}},
+% Style for tactics keywords
+keywordstyle=[4]{\ttfamily\color{blue}},
+% Style for terminators keywords
+keywordstyle=[5]{\ttfamily\color{red}},
+%Style for iterators
+%keywordstyle=[6]{\ttfamily\color{dkpink}},
+keywordstyle=[7]{\ttfamily\color{orange}},
+keywordstyle=[8]{\ttfamily\color{red}},
+keywordstyle=[9]{\ttfamily\color{magenta}},
+% Style for strings
+stringstyle=\ttfamily,
+% Style for comments
+commentstyle={\ttfamily\color{purple}},
+%
+%moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
+literate=
+    {\\forall}{{\color{dkgreen}{$\forall\;$}}}1
+    {\\exists}{{$\exists\;$}}1
+    {<-}{{$\leftarrow\;$}}1
+    {=>}{{$\Rightarrow\;$}}1
+    {==}{{\code{==}\;}}1
+    {==>}{{\code{==>}\;}}1
+%    {:>}{{\code{:>}\;}}1
+    {->}{{$\rightarrow\;$}}1
+    {<->}{{$\leftrightarrow\;$}}1
+    {<==}{{$\leq\;$}}1
+    {\#}{{$^\star$}}1 
+    {\\o}{{$\circ\;$}}1 
+    {\@}{{$\cdot$}}1 
+    {\/\\}{{$\wedge\;$}}1
+    {\\\/}{{$\vee\;$}}1
+    {++}{{\code{++}}}1
+    {~}{{\ }}1
+    {nat}{{$\mathbb{N}$}}1
+    {forall}{{$\forall$}}1
+    {\@\@}{{$@$}}1
+    {\\mapsto}{{$\mapsto\;$}}1
+    {\\hline}{{\rule{\linewidth}{0.5pt}}}1
+%
+}[keywords,comments,strings]
 
-\lstdefinelanguage{pwhile}{
-}
+\lstnewenvironment{coq}{\lstset{language=Coq}}{}
+
+% pour inliner dans le texte
+\def\coqe{\lstinline[language=Coq, basicstyle=\small]}
+% pour inliner dans les tableaux / displaymath...
+\def\coqes{\lstinline[language=Coq, basicstyle=\scriptsize]}
+
+% \lstdefinelanguage{rml}{
+% }
+
+% \lstdefinelanguage{pwhile}{
+% }
 
 \author{Lasse Letager Hansen 201508114}
 \date{\today}
@@ -40,26 +176,36 @@
 We have two representations of Rml, continuations and distributions. Both build on a monad, for ease of use.
 \\ \\
 The data structure used to represent Rml terms is as follows:
-\begin{align*}
-  &\mathtt{Inductive}~\Rml : \Type := \\
-  &~~|~ \mathtt{Var} : (\mathbb{N} * \Type) \rightarrow \Rml \\
-  &~~|~ \mathtt{Const} : \forall~(A : \Type),~A \rightarrow \Rml \\
-  &~~|~ \mathtt{Let\_stm} : (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{If\_stm} : \Rml \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{App\_stm} : \Type \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{Let\_rec} : (\mathbb{N} * \Type) \rightarrow (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml.
-\end{align*}
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive Rml :=
+| Var : (nat * Type) -> Rml
+| Const : forall (A : Type), A -> Rml
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
+| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
+| If_stm : Rml -> Rml -> Rml -> Rml
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
 We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
 \\ \\
 We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
-\begin{align*}
-  &\mathtt{Inductive}~\sRml : \Type := \\
-  &~~|~ \mathtt{sVar} : (\mathbb{N} * \Type) \rightarrow \sRml \\
-  &~~|~ \mathtt{sConst} : \forall~(A : \Type),~A \rightarrow \sRml \\
-  &~~|~ \mathtt{sIf} : \sRml \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
-  &~~|~ \mathtt{sApp} : \Type \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
-  &~~|~ \mathtt{sFix} : \forall~(p~p0 : (\mathbb{N} * \Type)),~@\sRml~p.2 \rightarrow @\sRml~(p.2 \rightarrow A) \rightarrow \sRml.
-\end{align*}
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive sRml {A : Type} :=
+| sVar : nat -> sRml
+| sConst : A -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
 That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
 \section{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
@@ -119,21 +265,36 @@ Simple form:
 
 \section{All translations (forward)}
 \begin{center}
-  \begin{tabular}{|c|c|c|}
-    \hline
-    Rml & @sRml A & typed $\lambda$-calculus \\ \hline
-    Var $(x,A)$ & sVar $x$ & $x : A$ \\
-    Const $A$ $c$ & & $c : A$ \\
-    Let $(x,A)$ $e_1$ $e_2$ & & $(\lambda x : A, e_2)~e_1$ \\
-    Fun $(x,A)$ $e$ & & $\lambda x : A, e$ \\
-    App $e_1$ $e_2$ & & $e_1~e_2$ \\
-    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
-  \end{tabular}
+  \rotatebox{0}{
+    \resizebox{1.05\linewidth}{!}{
+      \begin{tabular}{|c|c|c|}
+        \hline
+        Rml & @sRml A & typed $\lambda$-calculus \\ \hline
+        Var $(x,A)$ & sVar $x$ & $x : A$ \\
+        Const $A$ $c$ & sConst c & $c : A$ \\
+        Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ & $(\lambda x : T, e_2 : A)~(e_1 : T) : A$ \\
+        Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ \\
+        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ \\ && \\
+        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ &
+                                              \begin{tabular}{l}
+                                                sApp $(T \rightarrow S)$ \\
+                                                \quad (sFun $A$ $(f,T \rightarrow S)$ $e_2'$) \\
+                                                \quad (sFun $S$ $(x,T)$\\
+                                                \quad \quad (sFix $T$ $f$ $x$ $e_1'$ (sVar $x$)))
+                                              \end{tabular}
+&
+                                                              \begin{tabular}{l}
+                                                                $(\lambda f : T \rightarrow S, e_2 : A)$\\
+                                                                \quad $(Y~(\lambda f : T \rightarrow S, \lambda x : T, e_1 : S) : T \rightarrow S) : A$
+                                                              \end{tabular}
+\\ \hline
+      \end{tabular}
+    }}
 \end{center}
 
 \section{Appendix}
 Example - Error: Stack Overflow.
-\begin{lstlisting}
+\begin{lstlisting}[language=coq]
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
          (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
