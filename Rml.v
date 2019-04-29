@@ -206,7 +206,7 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
 Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Arith.Peano_dec.
 
-apply inj_pair2_eq_dec in H1.
+(* apply inj_pair2_eq_dec in H1. *)
 
 Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}). Admitted.
 
