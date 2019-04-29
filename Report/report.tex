@@ -146,8 +146,28 @@ the name of said variable.
 \begin{align}
   \label{eq:transwhile}
   \texttt{skip}~;~s & ~\mapsto~ & \llbracket s \rrbracket\\
-  \texttt{skip} & ~\mapsto~ & x_r\\
-  x := e~;~s & ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket
+  \texttt{skip}     & ~\mapsto~ & x_r\\
+  x := e~;~s        & ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
+  x_r := e          & ~\mapsto~ & e \\
+  x := e            & ~\mapsto~ & x_r \\
+  (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
+                    & ~\mapsto~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket
+                                  \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \\
+  \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+                    & ~\mapsto~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+  (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
+                    & ~\mapsto~ & \texttt{let rec } f~x :=
+                                  \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+  \texttt{while } e \texttt{ do } s_1
+                    & ~\mapsto~ & \texttt{let rec } f~x :=
+                                  \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
+                                  \texttt{ else } x_r 
 \end{align}
 
 
