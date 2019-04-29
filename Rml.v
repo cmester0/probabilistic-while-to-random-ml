@@ -1,6 +1,7 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp.analysis Require Import boolp reals distr.
 Require Import Util.
+Require Import Coq.Logic.Eqdep_dec.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -203,23 +204,19 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type B ((nf,B -> A) :: fl) x ->
     srml_valid_type A fl (sFix B nf nx f x).
 
-Require Import Coq.Logic.Eqdep_dec.
-Require Import Coq.Arith.Peano_dec.
-
-(* apply inj_pair2_eq_dec in H1. *)
-
 Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}). Admitted.
+
 
 Lemma helper :
   forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
   intros.
   inversion H.
+
+  assert (e3 = x2) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] T e3 x2 H3).
+  assert (e0 = x1) by apply (inj_pair2_eq_dec Type dec_eq (fun T : Type => @sRml (forall _ : T, A)) T e0 x1 H1).
+  subst ; clear H1 ; clear H3.  
   
-  apply inj_pair2_eq_dec in H1 ; subst.
-  - apply inj_pair2_eq_dec in H3 ; subst.
-    + split ; assumption.
-    + apply dec_eq.
-  - apply dec_eq.
+  split ; assumption.
 Qed.
 
 Lemma helper2 :
@@ -227,12 +224,13 @@ Lemma helper2 :
     srml_valid_type A fl (sFix B nf nx x1 x2) ->
     srml_valid_type (B -> A) [:: (nx, B), (nf, B -> A) & fl] x1 /\ srml_valid_type B ((nf, B -> A) :: fl) x2.
   intros.
-  inversion H ; subst.
-  apply inj_pair2_eq_dec in H4 ; subst.
-  - apply inj_pair2_eq_dec in H5 ; subst.
-    + split ; assumption.
-    + apply dec_eq.
-  - apply dec_eq.
+  inversion H.
+
+  assert (x0 = x2) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] B x0 x2 H5).
+  assert (f0 = x1) by apply (inj_pair2_eq_dec Type dec_eq (fun T : Type => @sRml (forall _ : T, A)) B f0 x1 H4).
+  subst ; clear H4 ; clear H5.  
+  
+  split ; assumption.
 Qed.
 
 Lemma srml_valid_weakening:
