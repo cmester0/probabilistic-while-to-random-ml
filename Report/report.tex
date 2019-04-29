@@ -1,16 +1,16 @@
+% -------------------------------------------------------------
+% Document setup
+% -------------------------------------------------------------
 \documentclass[11pt, leqno]{article}
-
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage[english]{babel}
-
 \usepackage[left=20mm,right=20mm]{geometry}
-
-\usepackage[hidelinks]{hyperref}
-
-\usepackage{xcolor}
-
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+% -------------------------------------------------------------
+% Notation aids 
+% -------------------------------------------------------------
+\usepackage{amsmath} % American Mathematical Society math-notations
+\usepackage{amssymb} % American Mathematical Society math-symbols
+\usepackage{stmaryrd} % For interpretation bracket (and maybe other stuff)
 \usepackage{listings}
 
 \lstdefinelanguage{rml}{
@@ -18,8 +18,17 @@
 
 \lstdefinelanguage{pwhile}{
 }
+% -------------------------------------------------------------
+% Prettyfying
+% -------------------------------------------------------------
+\usepackage[hidelinks]{hyperref}
 
-\author{Lasse Letager Hansen 201508114}
+\usepackage{xcolor}
+% -------------------------------------------------------------
+
+\author{Lasse Letager Hansen %201508114
+  \\ Kira Kutscher %201509720
+}
 \date{\today}
 \title{Technical report}
 
@@ -103,6 +112,45 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
 % implementation of pwhile to our abstract syntax. 
 
 
+\subsection{Translating \texttt{while} to a functional language}
+In order to do the translations properly, let us first have a look at a translation
+from the simple, widely known \texttt{while} language to a simple functional language
+resembling \rml. The thought behind this is that once this translation is in place,
+all we have to do to translate \texttt{pwhile} to \rml is to add nondeterminism.
+
+\begin{align}
+  \label{eq:while}
+  exp~  ::=~~ & x \vert n \vert \texttt{true} \vert \texttt{false} \vert f~x \\
+  stm~  ::=~~ & \texttt{skip} \vert x := e
+               \vert \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+               \vert \texttt{while } e \texttt{ do } s \vert s_1;s_2
+\end{align}
+
+The syntax of our functional language is the same as \rml modulo the pre-defined
+randomised functions.
+
+The translation of expressions is completely straightforward: variables are mapped to
+variables, constants to constants, and function applications to function applications. 
+
+In order to translate statements we choose a set of SML-style matching rules; this
+choice is due to the translation of sequences being dependent on what the first
+statement is. We will in the following write the translation of a \texttt{while}
+statement $s$ to an expression in our functional language as 
+
+Furthermore we need to handle the fact that while the imperative \texttt{while} has a
+return memory that one could extract the wished results from, a functional language
+has no such thing. We therefore need to choose the memory positions we are interested
+in and encapsulate those in a variable. We will, in the following, choose $x_r$ to be
+the name of said variable. 
+
+\begin{align}
+  \label{eq:transwhile}
+  \texttt{skip}~;~s & ~\mapsto~ & \llbracket s \rrbracket\\
+  \texttt{skip} & ~\mapsto~ & x_r\\
+  x := e~;~s & ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket
+\end{align}
+
+
 
 \subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
 \begin{center}
@@ -111,10 +159,10 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
     Rml & typed $\lambda$-calculus \\ \hline
     Var $(x,A)$ & $x : A$ \\
     Const $A$ $c$ & $c : A$ \\
-    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A, e_2)~e_1$ \\
-    Fun $(x,A)$ $e$ & $\lambda x : A, e$ \\
+    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A. e_2)~e_1$ \\
+    Fun $(x,A)$ $e$ & $\lambda x : A. e$ \\
     App $e_1$ $e_2$ & $e_1~e_2$ \\
-    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
+    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B. e_2)~(Y~(\lambda f : A \rightarrow B. \lambda x : A. e_1))$ \\ \hline
   \end{tabular}
 \end{center}
 The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
