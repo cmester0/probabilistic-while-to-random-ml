@@ -247,6 +247,19 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
 \subsection{\texttt{pwhile}}
 % Here we should give a quick description of EasyCrypt an present pwhile
 
+\subsection{Complete partial orders}
+% Describe cpos, omega-cpos, and dcpos
+% partial order: a set with an ordering relation, but not every two elements have to
+% be comparable
+
+
+% Describe the fixpoint interpretation of recursive/iterative definitions
+
+
+% Describe how we use omega-cpos in order to express the probabilistic interpretation
+% of our programs in pwhile and rml.
+
+
 
 \section{Our approach}
 % Goal: 6-12 pages
@@ -310,14 +323,26 @@ the name of said variable.
                     & ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e
                                   \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
-                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+                                  \texttt{ else } \llbracket s_2 \rrbracket \label{eq:while1}
+                                  \texttt{ in } f~0\\
   \texttt{while } e \texttt{ do } s_1
                     & ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e
                                   \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
-                                  \texttt{ else } x_r 
+                                  \texttt{ else } x_r \label{eq:while2}
+                                  \texttt{ in } f~0
 \end{align}
 
+Note that in \ref{eq:while1} and \ref{eq:while2} we create recursive functions with a
+name and an argument, both of which are not present in the while construct we
+translate from. This means that we have to be careful about the translation: Both $f$
+and $x$ have to be chosen fresh; and even fresher than that, they can not occur in
+the body of the while loop we are translating either, because that would break the
+recursive call.
+
+Further notice that the recursive functions are always called with a dummy
+argument. This is because they act as procedures, but since our syntax requires an
+argument for recursive definitions, we give a dummy argument.
 
 
 \subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
@@ -403,6 +428,9 @@ Simple form:
       \end{tabular}
     }}
 \end{center}
+
+
+
 
 
 \section{Our contribution}
