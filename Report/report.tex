@@ -11,6 +11,7 @@
 % -------------------------------------------------------------
 \usepackage{amsmath} % American Mathematical Society math-notations
 \usepackage{amssymb} % American Mathematical Society math-symbols
+\usepackage{amsthm}  % For good looking definitions and theorems
 \usepackage{stmaryrd} % For interpretation bracket (and maybe other stuff)
 \usepackage{listings}
 
@@ -179,6 +180,10 @@ literate=
 \newcommand{\valid}{\texttt{rml\_valid\_type}}
 \newcommand{\bind}{\textcolor{magenta}{>\!\!>\!\!=}}
 
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}
+\newtheorem{defn}[thm]{Definition}
+
 \begin{document}
 
 % -------------------------------------------------------------
@@ -252,10 +257,34 @@ That is Rml where we remove expressions with variables, from \texttt{let\_stm} s
 % partial order: a set with an ordering relation, but not every two elements have to
 % be comparable
 
+A partially ordered set (poset) is a set with an associated binary ordering relation
+$\leq$ which is both reflexive and transitive. The order is partial when the ordering
+relation is not defined on every pair of elements in the set.
 
+There exist a number of different completeness properties that a poset can have. We
+will here look at directed-complete partial orders (also sometimes known as
+up-complete poset) %source: https://en.wikipedia.org/wiki/Complete_partial_order
+as well as $\omega$-complete partial orders; these are needed to interpret general
+recursion and randomised programs respectively.
+
+\begin{defn}
+  \textit{Directed-complete partial order (dcpo).}\\
+  A set X is a directed set if every pair of elements in X has an upper bound in X. A
+  set is a dcpo if all its directed sets have a supremum. (Wikipedia definition)
+
+  A set is a dcpo if every monotone sequence of elements of the set has an upper
+  bound. (Haskell-wiki definition)
+
+  A set X is called directed if every inhabited finite subset of it has a least upper
+  bound in X. A dcpo is now a poset with an operation that calculates the supremum for
+  every directed subset of A. (Definition in http://rwd.rdockins.name/pubs/domains.pdf)
+\end{defn}
+
+\subsubsection{Recursive definitions as fixed point iterations}
 % Describe the fixpoint interpretation of recursive/iterative definitions
 
 
+\subsubsection{Interpreting random definitions in $\omega$-cpos}
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
 % of our programs in pwhile and rml.
 
