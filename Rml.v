@@ -204,8 +204,12 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type B ((nf,B -> A) :: fl) x ->
     srml_valid_type A fl (sFix B nf nx f x).
 
-Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}). Admitted.
+Require Import Eqdep_dec.
 
+Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}).
+Proof.
+  (* decide equality. *)
+Admitted. 
 
 Lemma helper :
   forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
@@ -217,7 +221,7 @@ Lemma helper :
   subst ; clear H1 ; clear H3.  
   
   split ; assumption.
-Qed.
+Defined.
 
 Lemma helper2 :
   forall A B nx nf x1 x2 fl,
@@ -231,7 +235,7 @@ Lemma helper2 :
   subst ; clear H4 ; clear H5.  
   
   split ; assumption.
-Qed.
+Defined.
 
 Lemma srml_valid_weakening:
   forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
@@ -285,7 +289,7 @@ Proof.
       + apply IHx2.
         assumption.
   }
-Qed.
+Defined.
 
 Lemma sRml_valid :
   forall A (x : @sRml A) vl fl (x_valid : srml_valid_type A fl x),
@@ -319,7 +323,7 @@ Proof.
         reflexivity.
       * apply IHx2.
         assumption.
-Qed.
+Defined.
 
 (** Environment **)
 (* -------------------------------------------------------------------------------- *)
@@ -381,7 +385,7 @@ Proof.
         eauto.        
     + inversion H ; subst.
       constructor ; eauto.
-Qed.
+Defined.
 
 Corollary valid_weakening_nil :
   forall (a : nat * Type * Rml) l1 l2 fl, rml_valid_type a.1.2 (l1) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
@@ -393,7 +397,7 @@ Proof.
   apply r.
   rewrite cats0.
   assumption.
-Qed.
+Defined.
 
 Lemma valid_weakening_fl :
   forall (a : nat * Type * Rml) l1 l2 l3 vl, rml_valid_type a.1.2 vl (l1 ++ l3) a.2 -> rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
@@ -446,7 +450,7 @@ Proof.
       assumption.
     + apply (IHr2 [:: (n0,T -> T0) & l1]).
       assumption.
-Qed.
+Defined.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -509,8 +513,6 @@ Proof.
     assert (rml_valid_type (T -> T0) vl [:: (n0,T), (n,T -> T0) & fl] r1 /\ rml_valid_type A vl ((n,T -> T0) :: fl) r2) by (inversion rml_valid ; subst ; easy).
     
     inversion_clear H.
-
-    (* TODO WRITE THIS OUT ON PAPER *)
     
     pose (rml_to_sRml_l (T -> T0) r1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
     pose (rml_to_sRml_l A r2 vl ((n,T -> T0) :: fl) H1 H3).
@@ -535,8 +537,6 @@ Proof.
     (* Fun insert end *)
       
     (* pose (rml_to_sRml_l ((T -> T0) -> A) (Fun_stm A (n,T -> T0) r2) vl fl H H4). *)
-    
-    (* WORK TO DO HERE *)
     
     exact (@sFix A (T -> T0) n n0 s2 s).
   }
@@ -646,7 +646,7 @@ Proof.
       assumption.
     + apply (IHx2 ((n,T -> T0) :: l1) l2 l3).
       assumption.
-Qed.    
+Defined.    
 
 Lemma extend_fl_still_valid :
   forall p env fl, valid_env env fl -> valid_env env (p :: fl).
@@ -662,7 +662,7 @@ Proof.
       assumption.
     + apply IHenv.
       assumption.
-Qed.
+Defined.
 
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
@@ -842,6 +842,6 @@ Proof.
   }
 
   all: inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
-Qed.
+Defined.
 
 (* -------------------------------------------------------------------------------- *)

@@ -114,97 +114,72 @@ Admitted.
 (*     end *)
 (*   else dnull. *)
 
-Fixpoint ubn {R : realType} {A : Type} (f : (A -> distr R (Choice A)) -> A -> distr R (Choice A)) (n : nat) : A -> distr R (Choice A) := fun a =>
-  if n is n.+1 return distr R (Choice A) then
-    match n return distr R (Choice A) with
-    | 0 => @dunit R (Choice A) a
-    | S n' => f (ubn f n') a
-    end
-  else dnull.
+(* Compute @dlim R (Choice nat) (fun n => @dunit R (Choice nat) 2). *)
+(* Compute @dlim R (Choice nat) (fun n => @dunit R (Choice nat) (@ubn R nat F 0 n)). *)
 
-Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) : {distr (Choice T) / R}.
-  destruct x.
-  - refine dnull. (* TODO *)
-  - refine (@dunit R (Choice T) t).
-  - refine (@dlet R (Choice T) (Choice T) (fun t => (* p.2 *)
-            @dunit R (Choice T) t) (ssem_aux R T x)).
-  - refine (let b'' := choice_of_type_to_choice_type (ssem_aux R bool x1) in
-            \dlet_(b' <- b'') (if b' then ssem_aux R T x2 else ssem_aux R T x3)).
-  - refine (@dlet R (Choice (T0 -> T)) (Choice T) (fun t =>
-            @dlet R (Choice T0) (Choice T) (fun u =>
-            @dunit R (Choice T) (t u)) (@ssem_aux R T0 x2)) (@ssem_aux R (T0 -> T) x1)).
-  - destruct p as [x A].
-    destruct p0 as [f B].
-    
-    intros.
-    
-    pose (@ssem_aux R A x1).
-    pose (@ssem_aux R (A -> T) x2).
+(* Fixpoint ubn {R : realType} {A : Type} (f : distr R (Choice A) -> A -> distr R (Choice A)) (a : A) (n : nat) : distr R (Choice A) := *)
+(*   if n is n.+1 return distr R (Choice A) then *)
+(*     match n return distr R (Choice A) with *)
+(*     | 0 => @dunit R (Choice A) a  *)
+(*     | S n' => f (ubn f a n') a (* f (ubn f  n') *) *)
+(*     end *)
+(*   else dnull. *)
 
-    pose (@dlet R (Choice A) (Choice A) (fun x => d)).
-    pose (ubn (fun x => @dlet (y x) d)).
-
-    pose (
-        @dlet R (Choice (A -> T)) (Choice T) (fun g =>
-        @dlet R (Choice A) (Choice T) (fun y =>
-        @dunit R (Choice T) ((@ubn R A (fun y => dunit (g y))) y)) (ssem_aux R A x1)) (ssem_aux R (A -> T) x2)).
-    
-    pose (@ssem_aux R A x1).
-    pose (@ssem_aux R (A -> T) x2).
-    pose (fun a => @dlet R (Choice A) (Choice A) (fun g => dlim (fun n => @ubn R A (fun b => @dunit R (Choice A) b) n a)) d).
-    pose (@dlet R (Choice (A -> T)) (Choice T) (fun g => @dunit R (Choice T) (g d1)) d0).
-    pose (@ubn R A d1).
-
-    pose (
-        @dlet R (Choice (A -> T)) (Choice T) (fun g =>
-        @dlet R (Choice A) (Choice T) (fun y =>
-        @dunit R (Choice T) ((@ubn R A (fun y => dunit (g y))) y)) (ssem_aux R A x1)) (ssem_aux R (A -> T) x2)).
-
-    pose (fun x : Choice T => d).
-    
-    pose (@ubn R (Choice T) d0).
-    
-    apply ubn.
-    + intros.
-      refine (@dlet R (Choice (A -> T)) (Choice T) (fun g =>
-              @dlet R (Choice A) (Choice T) (fun y =>
-              @dunit R (Choice T) (g y)) (ssem_aux R A x1)) (ssem_aux R (A -> T) x2)).
-    + intros.
-      refine (x0). (* Should be the fixed point *)
-    + refine H. (* Should be the "index" of fixed point *)
-      
-      
-
-    
-    
-  :=
-  match x with
-  | sVar v => dnull
-  | sConst c => @dunit R (Choice T) c
-
-  | sFun p y =>
-    @dlet R (Choice T) (Choice T) (fun t => (* p.2 *)
-    @dunit R (Choice T) t) (ssem_aux y)
-    
-  | sIf b m1 m2 =>
-    let b'' := choice_of_type_to_choice_type (ssem_aux b) in
-    \dlet_(b' <- b'') (if b' then ssem_aux m1 else ssem_aux m2)
-
-  | sApp A e1 e2 =>
-    @dlet R (Choice (A -> T)) (Choice T) (fun t =>
-    @dlet R (Choice A) (Choice T) (fun u =>
-    @dunit R (Choice T) (t u)) (@ssem_aux R A e2)) (ssem_aux e1)
-
-  | sFix p p0 f x =>
-    dlim (fun n => ubn (fun a => ssem_aux x) (@ssem_aux R p0.2 x) n)
-
-    
-    (* @dlet R (Choice (((A -> B) -> A -> B) -> T)) (Choice T) (fun t => *)
-    (* @dlet R (Choice ((A -> B) -> A -> B)) (Choice T) (fun u => *)
-    (* @dunit R (Choice T) (t u)) (ssem_aux f)) (ssem_aux k) *)
-    (* TODO Use @dlim instead *)          
+Fixpoint ubn' {R : realType} {A B : Type} (F : (A -> B) -> A -> B) (a : A) (n : nat) : distr R (Choice B) :=
+  match n return distr R (Choice B) with
+  | 0 => dnull
+  | S n' => @dlet R (Choice A) (Choice B) (fun a => @ubn' R A B F a n') (@dunit R (Choice A) a)
   end.
 
-Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil x} : {distr (Choice T) / R} :=
+Compute (fun R => @dunit R (Choice nat) 0 0).  
+
+Lemma rewrite_type :
+  forall T A C R (x : distr R (Choice (A -> C))), T = (A -> C) -> distr R (Choice T).
+Proof.
+  intros.
+  subst.
+  assumption.
+Qed.
+
+Lemma type_equality_reflexive :
+  forall A : Type, A = A.
+Proof. reflexivity. Qed.
+
+Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) {struct x} : {distr (Choice T) / R}.
+  refine (
+  match x with
+  | sVar _ => dnull (* TODO *)
+  | sConst t => (@dunit R (Choice T) t)
+  | sFun C p H s =>
+    rewrite_type T p.2 C R (
+    @dlet R (Choice C) (Choice (p.2 -> C)) (fun c =>
+    @dunit R (Choice (p.2 -> C)) (fun x =>
+    c)) (ssem_aux _ _ s)) H
+  | sIf s1 s2 s3 =>
+    let b'' := choice_of_type_to_choice_type (ssem_aux _ _ s1) in
+    \dlet_(b' <- b'') (if b' then ssem_aux _ _ s2 else ssem_aux _ _ s3)
+  | sApp T0 s1 s2 =>
+    @dlet R (Choice (T0 -> T)) (Choice T) (fun t =>
+    @dlet R (Choice T0) (Choice T) (fun u =>
+    @dunit R (Choice T) (t u)) (@ssem_aux R T0 s2)) (@ssem_aux R (T0 -> T) s1)
+  | sFix B nx nf s1 s2 =>
+    let s := sApp B s1 s2 in
+    let s0 := sFun T (nx,B) (type_equality_reflexive (B -> T)) s in
+    let s1 := sFun (B -> T) (nx,B -> T) (type_equality_reflexive ((B -> T) -> B -> T)) s0 in
+    let d := @dlet R (Choice T) (Choice (B -> T)) (fun c =>
+             @dunit R (Choice (B -> T)) (fun x =>
+             c)) (ssem_aux _ _ s) in
+    let d0 := @dlet R (Choice (B -> T)) (Choice ((B -> T) -> B -> T)) (fun c =>
+              @dunit R (Choice ((B -> T) -> B -> T)) (fun x =>
+              c)) d in
+    let d1 := ssem_aux _ _ s2 in
+    let d2 := @dlet R (Choice B) (Choice T) (fun x =>
+              @dlet R (Choice ((B -> T) -> B -> T)) (Choice T) (fun f =>
+              @dlim R (Choice T) (@ubn' R B T f x)) d0) d1 in
+    d2
+  end).
+Admitted. (* Takes very long to define *)
+
+Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
   let y := @replace_all_variables_type T x x_valid in
   @ssem_aux R T y.
