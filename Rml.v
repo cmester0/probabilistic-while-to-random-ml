@@ -192,7 +192,11 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     srml_valid_type A fl m1 ->
     srml_valid_type A fl m2 ->
     srml_valid_type A fl (sIf b m1 m2)
-                   
+
+| svalid_fun : forall C p e x,
+    @srml_valid_type C (p :: fl) x ->
+    @srml_valid_type A fl (sFun C p e x)
+                    
 | svalid_app : forall (B : Type) e1 e2,
     @srml_valid_type (B -> A) fl e1 ->
     @srml_valid_type B fl e2 ->
@@ -237,6 +241,16 @@ Lemma helper2 :
   split ; assumption.
 Defined.
 
+Lemma helper3 :
+  forall A l C p x e, srml_valid_type A l (sFun C p e x) -> srml_valid_type C (p :: l) x.
+  intros.
+  inversion H.
+
+  assert (x1 = x) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] C x1 x H3).
+  subst.
+  assumption.
+Defined.
+
 Lemma srml_valid_weakening:
   forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
 Proof.
@@ -258,7 +272,14 @@ Proof.
   { constructor. }
 
   (* sFun *)
-  { inversion x_valid. }
+  {
+    inversion x_valid ; subst.
+    simpl.
+    constructor.
+    apply IHx.
+    apply helper3 in x_valid.
+    assumption.
+  }
 
   (* sIf *)
   {
@@ -301,7 +322,12 @@ Proof.
     apply valid_fun_var.
     assumption.
   - constructor.
-  - inversion x_valid.
+  - apply helper3 in x_valid.
+    simpl.
+    constructor.
+    assumption.
+    apply IHx.
+    assumption.
   - simpl.
     inversion x_valid.
     constructor ; eauto.
