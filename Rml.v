@@ -66,7 +66,7 @@ Inductive sRml {A : Type} :=
 | sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
 | sIf : @sRml bool -> sRml -> sRml -> sRml
 | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+| sFix : forall B C (nf nx : nat), @sRml (B -> C) -> sRml -> sRml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -114,7 +114,7 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
 (*     @rml_valid_type A ((f,B -> C) :: vl) fl b -> *)
 (*     rml_valid_type A vl fl (Let_rec (f,B -> C) (x,B) a b) *)
 
-| valid_fun_app : forall p x1 x2,
+| valid_fun_app : forall (p : nat * Type) x1 x2,
     rml_valid_type A vl (p :: fl) x1 ->
     rml_valid_type p.2 vl fl x2 ->
     rml_valid_type A vl fl (App_stm p.2 (Fun_stm A p x1) x2).
@@ -157,13 +157,36 @@ Definition ob :=
 (* -------------------------------------------------------------------------------- *)
 
 Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
-| is_fun_var : forall (p : nat * Type), List.In p l -> rml_is_simple (Var p)
-| is_const : forall (A : Type) c, rml_is_simple (@Const A c)
-| is_if : forall b m1 m2, rml_is_simple b -> rml_is_simple m1 -> rml_is_simple m2 -> rml_is_simple (@If_stm b m1 m2)
-| is_app : forall (B : Type) e1 e2, rml_is_simple e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm B e1 e2)
-| is_fun_app : forall nx (B C : Type) e1 e2, @rml_is_simple ((nx,B) :: l) e1 -> rml_is_simple e2 -> rml_is_simple (@App_stm B (@Fun_stm C (nx,B) e1) e2)
-| is_fun : forall C p x, @rml_is_simple (p :: l) x -> rml_is_simple (@Fun_stm C p x)
-| is_fix : forall B C nf nx e1 e2, @rml_is_simple [:: (nx,B), (nf,B -> C) & l] e1 -> @rml_is_simple ((nf,B -> C) :: l) e2 -> rml_is_simple (@Let_rec B C nf nx e1 e2).
+| is_fun_var : forall (p : nat * Type),
+    List.In p l -> rml_is_simple (Var p)
+                                                             
+| is_const : forall (A : Type) c,
+    rml_is_simple (@Const A c)
+                                           
+| is_if : forall b m1 m2,
+    rml_is_simple b ->
+    rml_is_simple m1 ->
+    rml_is_simple m2 ->
+    rml_is_simple (@If_stm b m1 m2)
+                  
+| is_app : forall (B : Type) e1 e2,
+    rml_is_simple e1 ->
+    rml_is_simple e2 ->
+    rml_is_simple (@App_stm B e1 e2)
+                                                                                   
+| is_fun_app : forall nx (B C : Type) e1 e2,
+    @rml_is_simple ((nx,B) :: l) e1 ->
+    rml_is_simple e2 ->
+    rml_is_simple (@App_stm B (@Fun_stm C (nx,B) e1) e2)
+                  
+| is_fun : forall C p x,
+    @rml_is_simple (p :: l) x ->
+    rml_is_simple (@Fun_stm C p x)
+                  
+| is_fix : forall B C nf nx e1 e2,
+    @rml_is_simple [:: (nx,B), (nf,B -> C) & l] e1 ->
+    @rml_is_simple ((nf,B -> C) :: l) e2 ->
+    rml_is_simple (@Let_rec B C nf nx e1 e2).
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -174,8 +197,11 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   | sFun C p _ x => Fun_stm C p (sRml_to_rml x)
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
   | sApp T e1 e2 => App_stm T (sRml_to_rml e1) (sRml_to_rml e2)
-  | sFix B nf nx f x =>
-    (Let_rec B A nf nx (sRml_to_rml f) (App_stm B (Var (nf,B -> A)) (sRml_to_rml x)))
+  | sFix B C nf nx f x =>
+    Let_rec B C nf nx
+            (sRml_to_rml f)
+            (sRml_to_rml x)
+    (* (Let_rec B A nf nx (sRml_to_rml f) (App_stm B (Var (nf,B -> A)) (sRml_to_rml x))) *)
                            (* TODO *)
   end.
 
@@ -202,11 +228,10 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type B fl e2 ->
     @srml_valid_type A fl (sApp B e1 e2)
                      
-| svalid_fix : forall B nf nx f x,
-    @srml_valid_type (B -> A) ((nx,B) :: (nf,B -> A) :: fl) f ->
-    (* ^ Should be ((B -> C) -> B -> C) *)
-    @srml_valid_type B ((nf,B -> A) :: fl) x ->
-    srml_valid_type A fl (sFix B nf nx f x).
+| svalid_fix : forall B C nf nx f x,
+    @srml_valid_type (B -> C) ((nx,B) :: (nf,B -> C) :: fl) f ->
+    @srml_valid_type A ((nf,B -> C) :: fl) x ->
+    srml_valid_type A fl (sFix B C nf nx f x).
 
 Require Import Eqdep_dec.
 
@@ -228,15 +253,17 @@ Lemma helper :
 Defined.
 
 Lemma helper2 :
-  forall A B nx nf x1 x2 fl,
-    srml_valid_type A fl (sFix B nf nx x1 x2) ->
-    srml_valid_type (B -> A) [:: (nx, B), (nf, B -> A) & fl] x1 /\ srml_valid_type B ((nf, B -> A) :: fl) x2.
+  forall A B C nx nf x1 x2 fl,
+    srml_valid_type A fl (sFix B C nf nx x1 x2) ->
+    srml_valid_type (B -> C) [:: (nx, B), (nf, B -> C) & fl] x1 /\
+    srml_valid_type A ((nf, B -> C) :: fl) x2.
   intros.
   inversion H.
+  subst.
 
-  assert (x0 = x2) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] B x0 x2 H5).
-  assert (f0 = x1) by apply (inj_pair2_eq_dec Type dec_eq (fun T : Type => @sRml (forall _ : T, A)) B f0 x1 H4).
-  subst ; clear H4 ; clear H5.  
+  assert (f0 = x1) by (do 2 apply (inj_pair2_eq_dec Type dec_eq) in H5 ; assumption).
+  
+  subst ; clear H5.  
   
   split ; assumption.
 Defined.
@@ -296,19 +323,14 @@ Proof.
 
   (* sFix *)
   {
-    inversion x_valid ; subst.
     apply helper2 in x_valid.
-    inversion x_valid ; subst.
+    inversion_clear x_valid.
     simpl.
     constructor.
     - apply IHx1.
       assumption.
-    - constructor.
-      + constructor.
-        left.
-        reflexivity.
-      + apply IHx2.
-        assumption.
+    - apply IHx2.
+      assumption.
   }
 Defined.
 
@@ -317,38 +339,53 @@ Lemma sRml_valid :
     rml_valid_type A vl fl (@sRml_to_rml A x).
 Proof.
   induction x ; intros.
-  - simpl.
+  (* sVar *)
+  {
+    simpl.
     inversion x_valid.
     apply valid_fun_var.
     assumption.
-  - constructor.
-  - apply helper3 in x_valid.
+  }
+
+  (* sConst *)
+  { constructor. }
+
+  (* sFun *)
+  {
+    apply helper3 in x_valid.
     simpl.
     constructor.
     assumption.
     apply IHx.
     assumption.
-  - simpl.
+  }
+
+  (* sIf *)
+  {
+    simpl.
     inversion x_valid.
     constructor ; eauto.
-  - simpl.
+  }
+
+  (* sApp *)
+  {
+    simpl.
     apply helper in x_valid.
     inversion x_valid.
     constructor ; eauto.
-  - simpl.    
+  }
+
+  (* sFix *)
+  {
     apply helper2 in x_valid.
+    inversion_clear x_valid.
+
+    apply IHx1 with (vl := vl) in H.
+    apply IHx2 with (vl := vl) in H0.
     
-    inversion x_valid ; subst.
     simpl.
-    constructor.
-    + apply IHx1.
-      assumption.
-    + constructor.
-      * apply valid_fun_var.
-        left.
-        reflexivity.
-      * apply IHx2.
-        assumption.
+    constructor ; assumption.
+  }
 Defined.
 
 (** Environment **)
@@ -403,12 +440,13 @@ Proof.
       constructor ; eauto.
     + inversion H ; subst.
       * constructor ; eauto.
-      * apply valid_fun_app.
-        assert (rml_valid_type (p.2 -> T0) (l1 ++ l2 ++ l3) fl (Fun_stm T0 p x1)).
-          by (apply IHr1 ; apply valid_fun ; try reflexivity ; assumption).
-        inversion H0 ; subst.
-        assumption.
-        eauto.        
+      * constructor.
+        -- apply IHr1.
+           constructor.
+           reflexivity.
+           assumption.
+        -- apply IHr2.
+           assumption.
     + inversion H ; subst.
       constructor ; eauto.
 Defined.
@@ -468,6 +506,7 @@ Proof.
     + constructor ; eauto.
     + constructor.
       * apply IHr1.
+        
         apply valid_fun ; easy.
       * eauto.      
   - inversion H ; subst.
@@ -564,7 +603,7 @@ Proof.
       
     (* pose (rml_to_sRml_l ((T -> T0) -> A) (Fun_stm A (n,T -> T0) r2) vl fl H H4). *)
     
-    exact (@sFix A (T -> T0) n n0 s2 s).
+    exact (@sFix A (T -> T0) A n n0 s2 s1).
   }
 Defined.
 
@@ -800,7 +839,7 @@ Proof.
     
     pose (replace_all_variables_aux_type (T -> T0) x1 env [:: (n0,T), (n,T -> T0) & fl] env_valid_x1 H).
       
-    pose (@sFix T0 T n n0 s). (* To replace vars with in x2 *)
+    pose (@sFix T0 T _ n n0 s). (* To replace vars with in x2 *)
 
     assert ((T -> T0) = (T -> T0)) by reflexivity.
     pose (@sFun (T -> T0) T0 (n0,T) H0 (s0 (sVar n0))).

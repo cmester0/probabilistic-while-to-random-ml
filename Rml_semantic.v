@@ -36,11 +36,27 @@ Proof.
       assumption.
 Qed.
 
-Fixpoint ubn {R : realType} {A B : Type} (F : (A -> B) -> A -> B) (a : A) (n : nat) : distr R (Choice B) :=
-  match n return distr R (Choice B) with
-  | 0 => dnull
-  | S n' => @dlet R (Choice A) (Choice B) (fun a => @ubn R A B F a n') (@dunit R (Choice A) a)
+(* Fixpoint ubn {R : realType} {A B : Type} (F : (A -> B) -> A -> B) (a : A) (n : nat) : distr R (Choice B) := *)
+(*   match n return distr R (Choice B) with *)
+(*   | 0 => dnull *)
+(*   | S n' => @dlet R (Choice A) (Choice B) (fun a => @ubn R A B F a n') (@dunit R (Choice A) a) *)
+(*   end. *)
+
+(* Fixpoint ubn {R : realType} {A B : Type} (F : (A -> distr R (Choice B)) -> A -> distr R (Choice B)) (a : A) (n : nat) : distr R (Choice B) := *)
+(*   match n return distr R (Choice B) with *)
+(*   | 0 => dnull *)
+(*   | S n' => F (fun a => ubn F a n') a *)
+(*   end. *)
+
+Fixpoint ubn {A : Type} (F : (A -> A) -> A -> A) (n : nat) : A -> A :=
+  fun a =>
+  match n return A with
+  | 0 => a
+  | S n' => F (ubn F n') a
   end.
+
+Definition lim A (F : nat -> A) : A :=
+  F 0.
 
 Lemma rewrite_type :
   forall T A C R (x : distr R (Choice (A -> C))), T = (A -> C) -> distr R (Choice T).
@@ -87,36 +103,51 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
             \dlet_(b' <- b'') (if b' then ssem_aux _ _ x2 env H0 else ssem_aux _ _ x3 env H1)).
   - apply helper in x_valid.
     inversion x_valid.    
-
     refine (@dlet R (Choice (T0 -> T)) (Choice T) (fun t =>
     @dlet R (Choice T0) (Choice T) (fun u =>
     @dunit R (Choice T) (t u)) (@ssem_aux R T0 x2 env H0)) (@ssem_aux R (T0 -> T) x1 env H)).
-  - pose (x1' := sFun T (nx,B) (type_equality_reflexive (B -> T)) (sApp _ x1 (sVar nx))).
-    pose (x1'' := sFun (B -> T) (nf,B -> T) (type_equality_reflexive ((B -> T) -> B -> T)) x1').
+  - apply helper2 in x_valid.
+    inversion_clear x_valid.
 
-    assert (srml_valid_type ((B -> T) -> B -> T) [seq i.1 | i <- env] x1'') by (apply helper2 in x_valid ; inversion x_valid ; repeat constructor ; try left ; easy).
+    pose (x2' := sFun T (nf,B -> C) (type_equality_reflexive _) x2).
     
-    pose (sf := ssem_aux R _ x1'' env H).
+    assert (srml_valid_type ((B -> C) -> T) [seq i.1 | i <- env] x2') by (constructor ; assumption).
 
-    pose (x2' := sFun B (nf,B -> T) (type_equality_reflexive ((B -> T) -> B)) x2).
-    assert (srml_valid_type ((B -> T) -> B) [seq i.1 | i <- env] x2').
+    pose (x := ssem_aux R ((B -> C) -> T) x2' env H1).
+
+    pose (x1' := sFun C (nx,B) (type_equality_reflexive _) (sApp _ x1 (sVar nx))).
+    pose (x1'' := sFun (B -> C) (nf,B -> C) (type_equality_reflexive _) x1').
+
+    assert (srml_valid_type ((B -> C) -> B -> C) [seq i.1 | i <- env] x1'').
     constructor.
-    apply helper2 in x_valid.
-    inversion x_valid.
+    constructor.
+    constructor.
     assumption.
+    constructor.
+    left.
+    reflexivity.
     
-    pose (sx := ssem_aux R _ x2' env H0).
+    pose (f := ssem_aux R ((B -> C) -> B -> C) x1'' env H2).
 
-    assert (srml_valid_type B ((nx,B) :: [seq i.1 | i <- env]) (sVar nx)).
-    constructor. left. reflexivity.
-    
-    pose (ssem_aux R _ (sVar nx) ((nx,B,fun A => @dnull R (Choice A)) :: env) H1).
-    pose (fun b => @dlet R (Choice ((B -> T) -> B -> T)) (Choice T) (fun x => dlim (ubn x b)) sf).
+    (* ************************* *)
 
-    pose (@dlet R (Choice B) (Choice T) (fun k => d0 k) d).
-    refine d1.
-Qed.
+    cut (B = C).
+    intros.
+    subst.
+
+    pose (
+        @dlet R (Choice ((C -> C) -> C -> C)) (Choice (C -> C)) (fun f' =>
+        @dunit R (Choice (C -> C)) (lim _ (ubn f'))) f).
+
+    pose (
+        @dlet R (Choice ((C -> C) -> T)) (Choice T) (fun g =>
+        @dlet R (Choice (C -> C)) (Choice T) (fun f =>
+        @dunit R (Choice T) (g f)) d) x).
+
+    apply d0.
+
+Admitted.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
   let y := @replace_all_variables_type T x x_valid in
-  @ssem_aux R T y nil.
+  @ssem_aux R T y nil (valid_rml_makes_valid_srml T x y nil nil x_valid).
