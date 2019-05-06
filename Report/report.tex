@@ -1,25 +1,173 @@
+% -------------------------------------------------------------
+% Document setup
+% -------------------------------------------------------------
 \documentclass[11pt, leqno]{article}
-
+\usepackage{graphicx}
+\usepackage[left=30mm,right=30mm]{geometry}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amssymb}
 \usepackage[english]{babel}
+% -------------------------------------------------------------
+% Notation aids 
+% -------------------------------------------------------------
+\usepackage{amsmath} % American Mathematical Society math-notations
+\usepackage{amssymb} % American Mathematical Society math-symbols
+\usepackage{amsthm}  % For good looking definitions and theorems
+\usepackage{stmaryrd} % For interpretation bracket (and maybe other stuff)
+\usepackage{listings}
 
-\usepackage[left=20mm,right=20mm]{geometry}
+\lstdefinelanguage{Coq}{ 
+%
+% Anything betweeen $ becomes LaTeX math mode
+mathescape=true,
+%
+% Comments may or not include Latex commands
+texcl=false, 
+%
+% Vernacular commands
+morekeywords=[1]{Section, Module, End, Require, Import, Export,
+  Variable, Variables, Parameter, Parameters, Axiom, Hypothesis,
+  Hypotheses, Notation, Local, Tactic, Reserved, Scope, Open, Close,
+  Bind, Delimit, Definition, Let, Ltac, Fixpoint, CoFixpoint, Add,
+  Morphism, Relation, Implicit, Arguments, Unset, Contextual,
+  Strict, Prenex, Implicits, Inductive, CoInductive, Record,
+  Structure, Canonical, Coercion, Context, Class, Global, Instance,
+  Program, Infix, Theorem, Lemma, Corollary, Proposition, Fact,
+  Remark, Example, Proof, Goal, Save, Qed, Defined, Hint, Resolve,
+  Rewrite, View, Search, Show, Print, Printing, All, Eval, Check,
+  Projections, inside, outside, Def},
+%
+% Gallina
+morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
+  match, with, end, as, in, return, let, if, is, then, else, for, of,
+  nosimpl, when},
+%
+% Sorts
+morekeywords=[3]{Type, Prop, Set, true, false, option},
+%
+% Various tactics, some are std Coq subsumed by ssr, for the manual purpose
+morekeywords=[4]{pose, set, move, case, elim, apply, clear, hnf,
+  intro, intros, generalize, rename, pattern, after, destruct,
+  induction, using, refine, inversion, injection, rewrite, congr,
+  unlock, compute, ring, field, fourier, replace, fold, unfold,
+  change, cutrewrite, simpl, have, suff, wlog, suffices, without,
+  loss, nat_norm, assert, cut, trivial, revert, bool_congr, nat_congr,
+  symmetry, transitivity, auto, split, left, right, autorewrite},
+%
+% Terminators
+morekeywords=[5]{by, done, exact, reflexivity, tauto, romega, omega,
+  assumption, solve, contradiction, discriminate},
+%
+% Control
+morekeywords=[6]{do, last, first, try, idtac, repeat},
+% % Custom
+morekeywords=[7]{Rml, sRml},
+morekeywords=[8]{Var, Const, Let_stm, Fun_stm, If_stm, App_stm, Let_rec},
+morekeywords=[9]{sVar, sConst, sFun, sIf, sApp, sFix},
+% Comments delimiters, we do turn this off for the manual
+morecomment=[s]{(*}{*)},
+%
+% Spaces are not displayed as a special character
+showstringspaces=false,
+%
+% String delimiters
+morestring=[b]",
+morestring=[d],
+%
+% Size of tabulations
+tabsize=3,
+%
+% Enables ASCII chars 128 to 255
+extendedchars=false,
+%
+% Case sensitivity
+sensitive=true,
+%
+% Automatic breaking of long lines
+breaklines=false,
+%
+% Default style fors listings
+basicstyle=\small,
+%
+% Position of captions is bottom
+captionpos=b,
+%
+% flexible columns
+columns=[l]flexible,
+%
+% Style for (listings') identifiers
+identifierstyle={\ttfamily\color{black}},
+% Style for declaration keywords
+keywordstyle=[1]{\ttfamily\color{violet}},
+% Style for gallina keywords
+keywordstyle=[2]{\ttfamily\color{green}},
+% Style for sorts keywords
+keywordstyle=[3]{\ttfamily\color{blue}},
+% Style for tactics keywords
+keywordstyle=[4]{\ttfamily\color{blue}},
+% Style for terminators keywords
+keywordstyle=[5]{\ttfamily\color{red}},
+%Style for iterators
+%keywordstyle=[6]{\ttfamily\color{dkpink}},
+keywordstyle=[7]{\ttfamily\color{orange}},
+keywordstyle=[8]{\ttfamily\color{red}},
+keywordstyle=[9]{\ttfamily\color{magenta}},
+% Style for strings
+stringstyle=\ttfamily,
+% Style for comments
+commentstyle={\ttfamily\color{purple}},
+%
+%moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
+literate=
+    {\\forall}{{\color{dkgreen}{$\forall\;$}}}1
+    {\\exists}{{$\exists\;$}}1
+    {<-}{{$\leftarrow\;$}}1
+    {=>}{{$\Rightarrow\;$}}1
+    {==}{{\code{==}\;}}1
+    {==>}{{\code{==>}\;}}1
+%    {:>}{{\code{:>}\;}}1
+    {->}{{$\rightarrow\;$}}1
+    {<->}{{$\leftrightarrow\;$}}1
+    {<==}{{$\leq\;$}}1
+    {\#}{{$^\star$}}1 
+    {\\o}{{$\circ\;$}}1 
+    {\@}{{$\cdot$}}1 
+    {\/\\}{{$\wedge\;$}}1
+    {\\\/}{{$\vee\;$}}1
+    {++}{{\code{++}}}1
+    {~}{{\ }}1
+    {nat}{{$\mathbb{N}$}}1
+    {forall}{{$\forall$}}1
+    {\@\@}{{$@$}}1
+    {\\mapsto}{{$\mapsto\;$}}1
+    {\\hline}{{\rule{\linewidth}{0.5pt}}}1
+%
+}[keywords,comments,strings]
 
+\lstnewenvironment{coq}{\lstset{language=Coq}}{}
+
+% pour inliner dans le texte
+\def\coqe{\lstinline[language=Coq, basicstyle=\small]}
+% pour inliner dans les tableaux / displaymath...
+\def\coqes{\lstinline[language=Coq, basicstyle=\scriptsize]}
+
+% \lstdefinelanguage{rml}{
+% }
+
+% \lstdefinelanguage{pwhile}{
+% }
+\lstdefinelanguage{pwhile}{
+}
+% -------------------------------------------------------------
+% Prettyfying
+% -------------------------------------------------------------
 \usepackage[hidelinks]{hyperref}
 
 \usepackage{xcolor}
+% -------------------------------------------------------------
 
-\usepackage{listings}
-
-\lstdefinelanguage{rml}{
+\author{Lasse Letager Hansen %201508114
+  \\ Kira Kutscher %201509720
 }
-
-\lstdefinelanguage{pwhile}{
-}
-
-\author{Lasse Letager Hansen 201508114}
 \date{\today}
 \title{Technical report}
 
@@ -32,77 +180,371 @@
 \newcommand{\valid}{\texttt{rml\_valid\_type}}
 \newcommand{\bind}{\textcolor{magenta}{>\!\!>\!\!=}}
 
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}
+\newtheorem{defn}[thm]{Definition}
+
 \begin{document}
+
+% -------------------------------------------------------------
+
+\newcommand\rml{$\mathcal{R}$\texttt{ml} } % for a pretty version of "Rml"
+\newcommand\M{\texttt{M}} % for the M representing monads
+
+% -------------------------------------------------------------
 
 \maketitle
 
-\section{Rml}
+\tableofcontents
+\newpage
+
+% ------------------------------------------------------------- 
+
+\section{Introduction}
+% Goal: 1-2 pages
+% I've written an introduction already, but I don't know if it still fits. We should
+% probably write the rest of the report first before adding this section
+
+% here we should write something about the motivation of the project and give an
+% overview of what Coq/formal verification is, some very basic things about
+% cryptography, and how they relate.
+
+
+\section{Theory and existing frameworks}
+% Goal: 6-12 pages
+
+\subsection{\rml}
 We have two representations of Rml, continuations and distributions. Both build on a monad, for ease of use.
 \\ \\
 The data structure used to represent Rml terms is as follows:
-\begin{align*}
-  &\mathtt{Inductive}~\Rml : \Type := \\
-  &~~|~ \mathtt{Var} : (\mathbb{N} * \Type) \rightarrow \Rml \\
-  &~~|~ \mathtt{Const} : \forall~(A : \Type),~A \rightarrow \Rml \\
-  &~~|~ \mathtt{Let\_stm} : (\mathbb{N} * \Type) \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{If\_stm} : \Rml \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml \\
-  &~~|~ \mathtt{App\_stm} : \Type \rightarrow \Rml \rightarrow \Rml \rightarrow \Rml.
-\end{align*}
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive Rml :=
+| Var : (nat * Type) -> Rml
+| Const : forall (A : Type), A -> Rml
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
+| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
+| If_stm : Rml -> Rml -> Rml -> Rml
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
 We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
 \\ \\
 We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
-\begin{align*}
-  &\mathtt{Inductive}~\sRml : \Type := \\
-  &~~|~ \mathtt{sConst} : \forall~(A : \Type),~A \rightarrow \sRml \\
-  &~~|~ \mathtt{sIf\_stm} : \sRml \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml \\
-  &~~|~ \mathtt{sApp\_stm} : \Type \rightarrow \sRml \rightarrow \sRml \rightarrow \sRml.
-\end{align*}
-That is Rml where we remove expressions with variables. We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations):
-\begin{align*}  
-  &\mathtt{Fixpoint}~\mathtt{interp\_srml}~\set{A}~\set{R}~(x : @\sRml~A) : \mathtt{continuation\_monad\_type}~R~A := \\
-  &~~\mathtt{match}~x~\mathtt{with} \\
-  &~~~~|~ \mathtt{sConst}~c \Rightarrow \mathtt{unit}~c \\
-  &~~~~|~ \mathtt{sIf\_stm}~b~m_1~m_2 \Rightarrow \\
-  & \qquad \quad (\mathtt{interp\_srml}~b)~\bind~(\lambda~(t : \mathbb{B}) \Rightarrow \mathtt{if}~t~\mathtt{then}~(\mathtt{interp\_srml}~m_1)~\mathtt{else}~(\mathtt{interp\_srml}~m_2)) \\
-  &~~~~|~ \mathtt{sApp\_stm}~C~e_1~e_2 \Rightarrow \\
-  & \qquad \quad (\mathtt{interp\_srml}~e_1)~\bind~(\lambda~(g : C \rightarrow A) \Rightarrow (\mathtt{interp\_srml}~e_2)~\bind~(\lambda~k \Rightarrow \mathtt{unit}~(g~k)))\\
-  &~~\mathtt{end}.
-\end{align*}
-We have a similar function for Rml, using the posibility distributions as interpretations:
-\begin{align*}
-  &\mathtt{Fixpoint}~\mathtt{ssem\_aux}~\set{R : \mathtt{realType}}~\set{T : \Type}~(x : @\sRml~T) : \mathtt{distr}~R~(\mathtt{Choice}~T)~:=\\
-  &~~\mathtt{match}~x~\mathtt{with}\\
-  &~~~~|~\mathtt{sConst}~c~\Rightarrow~@\mathtt{dunit}~R~(\mathtt{Choice}~T)~c\\
-  &~~~~|~\mathtt{sIf\_stm}~b~m_1~m_2~\Rightarrow\\
-  & \qquad \quad \mathtt{let}~b'':= \mathtt{ssem\_aux}~b~\mathtt{in}\\
-  & \qquad \quad \backslash\mathtt{dlet}\_(b'~\leftarrow~b'')~~(\mathtt{if}~b'~\mathtt{then}~\mathtt{ssem\_aux}~m_1~\mathtt{else}~\mathtt{ssem\_aux}~m_2)\\
-  &~~~~|~\mathtt{sApp\_stm}~A~e_1~e_2~\Rightarrow\\
-  & \qquad \quad @\mathtt{dlet}~R~(\mathtt{Choice}~(A~\rightarrow~T))~(\mathtt{Choice}~T)~\\
-  &~\qquad~\quad~(\lambda~t \Rightarrow @\mathtt{dlet}~R~(\mathtt{Choice}~A)~(\mathtt{Choice}~T)~(\lambda~u~\Rightarrow @\mathtt{dunit}~R~(\mathtt{Choice}~T)~(t~u))~(@\mathtt{ssem\_aux}~R~A~e_2))\\
-  &~\qquad~\quad~(\mathtt{ssem\_aux}~e_1)\\
-  &~~\mathtt{end}.
-\end{align*}
-We see similar patterns arising, since both interpretations are monadic.
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive sRml {A : Type} :=
+| sVar : nat -> sRml
+| sConst : A -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\section{Translation from Rml to $\mathbf{\lambda}$-calculus}
+\subsection{\texttt{pwhile}}
+% Here we should give a quick description of EasyCrypt an present pwhile
+
+\subsection{Complete partial orders}
+% Describe cpos, omega-cpos, and dcpos
+% partial order: a set with an ordering relation, but not every two elements have to
+% be comparable
+
+A partially ordered set (poset) is a set with an associated binary ordering relation
+$\leq$ which is both reflexive and transitive. The order is partial when the ordering
+relation is not defined on every pair of elements in the set.
+
+There exist a number of different completeness properties that a poset can have.
+We will here have a look at $\omega$-complete partial orders, which we will use in
+order to interpret general recursion and randomised programs. 
+
+\begin{defn}
+  \textit{$\omega$-complete partial order ($\omega$-cpo)}\\
+  An $\omega$-cpo is a partially ordered set that, additionally, has a distinct least
+  element and where there exist least upper bounds on all monotonic sequences. 
+\end{defn}
+
+
+\subsubsection{Recursive definitions as fixed point iterations}
+% Describe the fixpoint interpretation of recursive/iterative definitions
+
+Before using $\omega$-cpos to interpret recursion, let us first have a look at some
+interesting things that our definition entails.
+
+A monotonic sequence on an $\omega$-cpo $X$ can be viewed as a monotonic function
+$f~:~\mathbb{N} \xrightarrow{m} X$ where $f(n)$ is the $n$th element of the sequence (or the
+least upper bound of the sequence, if $n$ is larger than the length of the
+sequence).\\
+\\
+% Standard definition of fixed points
+There is a standard way of defining fixed point iterations on an $\omega$-cpo: % \cite{alea}
+
+Consider an operator $F~:~X \xrightarrow{m} X$ on some $\omega$-cpo $X$; with this we
+define the monotonic sequence $F_n \mapsto \underbrace{ F(F(\dots F}_{n \text{
+    times}} (0_X) \dots))$ of repeated application of $F$ to the least element of $X$.
+By our choice of $F$ and the definition of $\omega$-cpos, it is clear that there has
+to exist a least upper bound on $F_n$. This least upper bound is the fixed point of
+$F$ and it will hold that $\texttt{fix } F = F(\texttt{fix }F)$ if $F$ is
+continuous. 
+% Where do we need non-continuous functions?
+
+% How it extends to function spaces
+
+
+% How this can be used to interpret recursion
+% We have an w-cpo over functions to [0,1]. These functions do not have to be
+% monotonic. So any recursive definition will do.
+% Next we take the fix point of our functional, which is a monotonic operation on the
+% w-cpo that is our function space. And we've arrived :-)
+
+\subsubsection{Interpreting random definitions}
+% Describe how we use omega-cpos in order to express the probabilistic interpretation
+% of our programs in pwhile and rml.
+
+
+
+\section{Our approach}
+% Goal: 6-12 pages
+
+% What we tried to do and the theory behind.
+
+% Describe the translation from while to functional (+recursion), to lambda-calculus,
+% to an interpretation in omega-cpos.
+
+% We planned on making an interpretation of Rml in Coq and then translating the xhl
+% implementation of pwhile to our abstract syntax. 
+
+
+\subsection{Translating \texttt{while} to a functional language}
+In order to do the translations properly, let us first have a look at a translation
+from the simple, widely known \texttt{while} language to a simple functional language
+resembling \rml. The thought behind this is that once this translation is in place,
+all we have to do to translate \texttt{pwhile} to \rml is to add nondeterminism.
+
+\begin{align}
+  \label{eq:while}
+  exp~  ::=~~ & x \vert n \vert \texttt{true} \vert \texttt{false} \vert f~x \\
+  stm~  ::=~~ & \texttt{skip} \vert x := e
+               \vert \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+               \vert \texttt{while } e \texttt{ do } s \vert s_1;s_2
+\end{align}
+
+The syntax of our functional language is the same as \rml modulo the pre-defined
+randomised functions.
+
+The translation of expressions is completely straightforward: variables are mapped to
+variables, constants to constants, and function applications to function applications. 
+
+In order to translate statements we choose a set of SML-style matching rules; this
+choice is due to the translation of sequences being dependent on what the first
+statement is. We will in the following write the translation of a \texttt{while}
+statement $s$ to an expression in our functional language as 
+
+Furthermore we need to handle the fact that while the imperative \texttt{while} has a
+return memory that one could extract the wished results from, a functional language
+has no such thing. We therefore need to choose the memory positions we are interested
+in and encapsulate those in a variable. We will, in the following, choose $x_r$ to be
+the name of said variable. 
+
+\begin{align}
+  \label{eq:transwhile}
+  \texttt{skip}~;~s & ~\mapsto~ & \llbracket s \rrbracket\\
+  \texttt{skip}     & ~\mapsto~ & x_r\\
+  x := e~;~s        & ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
+  x_r := e          & ~\mapsto~ & e \\
+  x := e            & ~\mapsto~ & x_r \\
+  (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
+                    & ~\mapsto~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket
+                                  \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \\
+  \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+                    & ~\mapsto~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+  (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
+                    & ~\mapsto~ & \texttt{let rec } f~x :=
+                                  \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \label{eq:while1}
+                                  \texttt{ in } f~0\\
+  \texttt{while } e \texttt{ do } s_1
+                    & ~\mapsto~ & \texttt{let rec } f~x :=
+                                  \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
+                                  \texttt{ else } x_r \label{eq:while2}
+                                  \texttt{ in } f~0
+\end{align}
+
+Note that in \ref{eq:while1} and \ref{eq:while2} we create recursive functions with a
+name and an argument, both of which are not present in the while construct we
+translate from. This means that we have to be careful about the translation: Both $f$
+and $x$ have to be chosen fresh; and even fresher than that, they can not occur in
+the body of the while loop we are translating either, because that would break the
+recursive call.
+
+Further notice that the recursive functions are always called with a dummy
+argument. This is because they act as procedures, but since our syntax requires an
+argument for recursive definitions, we give a dummy argument.
+
+
+\subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
-    Rml & $\lambda$-calculus \\ \hline
+    Rml & typed $\lambda$-calculus \\ \hline
     Var $(x,A)$ & $x : A$ \\
     Const $A$ $c$ & $c : A$ \\
-    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A, e_2)~e_1$ \\
-    Fun $(x,A)$ $e$ & $\lambda x : A, e$ \\
+    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A. e_2)~e_1$ \\
+    Fun $(x,A)$ $e$ & $\lambda x : A. e$ \\
     App $e_1$ $e_2$ & $e_1~e_2$ \\
-    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B, e_2)~(Y~(\lambda f : A \rightarrow B, \lambda x : A, e_1))$ \\ \hline
+    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B. e_2)~(Y~(\lambda f : A \rightarrow B. \lambda x : A. e_1))$ \\ \hline
   \end{tabular}
 \end{center}
-The $Y$ combinator in Rml:
+The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
+\[Let\]
+
+\subsubsection{Example: Fib}
+Expression:
 \begin{align*}
-  Y &= \lambda f, (\lambda x, f~(x~x))~(\lambda x, f~(x~x))\\
-    &= \mathtt{Fun}~(f,A)~(\mathtt{App} \\
-    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B)))))\\
-    & \qquad (\mathtt{Fun}~(x,B)~(\mathtt{App}~(\mathtt{Var}~(f,A))~(\mathtt{App}~(\mathtt{Var}~(x,B))~(\mathtt{Var}~(x,B))))))
+\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
+  (&\mathtt{if}~x \leq 0\\
+                 &\mathtt{then}~0\\
+                 &\mathtt{else}~f~(x - 1) + f~(x-2))\\
+  (&f~3)
 \end{align*}
+Typing:
+\begin{align*}
+\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
+  ((&\mathtt{if}~(x \leq 0 : \mathbb{B})\\
+                 &\mathtt{then}~(0 : \mathbb{N})\\
+                 &\mathtt{else}~(f : \mathbb{N} \rightarrow \mathbb{N})~(x - 1 : \mathbb{N}) + (f : \mathbb{N} \rightarrow \mathbb{N})~(x-2 : \mathbb{N}) : \mathbb{N}) : \mathbb{N})\\
+  (&(f : \mathbb{N} \rightarrow \mathbb{N})~(3 : \mathbb{N}) : \mathbb{N})
+\end{align*}
+Semi-simple
+\begin{align*}
+  &\mathtt{Let\_stm}~f \\
+  &\quad \mathtt{sFix} \\
+  &\quad \quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
+  &\quad \quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
+  &\quad \quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
+  &\quad \quad \quad \quad ~~\mathtt{then}~0\\
+  &\quad \quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2)))\\
+  &\quad (f~3)
+\end{align*}
+Simple form:
+\begin{align*}
+  &\mathtt{sApp}~\mathtt{sFix} \\
+  &\quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
+  &\quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
+  &\quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
+  &\quad \quad \quad ~~\mathtt{then}~0\\
+  &\quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2))) \\
+  &\quad 3
+\end{align*}
+
+\subsection{All translations (forward)}
+\begin{center}
+  \rotatebox{0}{
+    \resizebox{1.05\linewidth}{!}{
+      \begin{tabular}{|c|c|c|}
+        \hline
+        Rml & @sRml A & typed $\lambda$-calculus \\ \hline
+        Var $(x,A)$ & sVar $x$ & $x : A$ \\
+        Const $A$ $c$ & sConst c & $c : A$ \\
+        Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ & $(\lambda x : T, e_2 : A)~(e_1 : T) : A$ \\
+        Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ \\
+        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ \\ && \\
+        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ &
+                                              \begin{tabular}{l}
+                                                sApp $(T \rightarrow S)$ \\
+                                                \quad (sFun $A$ $(f,T \rightarrow S)$ $e_2'$) \\
+                                                \quad (sFun $S$ $(x,T)$\\
+                                                \quad \quad (sFix $T$ $f$ $x$ $e_1'$ (sVar $x$)))
+                                              \end{tabular}
+&
+                                                              \begin{tabular}{l}
+                                                                $(\lambda f : T \rightarrow S, e_2 : A)$\\
+                                                                \quad $(Y~(\lambda f : T \rightarrow S, \lambda x : T, e_1 : S) : T \rightarrow S) : A$
+                                                              \end{tabular}
+\\ \hline
+      \end{tabular}
+    }}
+\end{center}
+
+
+
+
+
+\section{Our contribution}
+% Goal: 6-12 pages
+% What we actually did.
+
+% We implemented an abstract syntax for Rml in Coq
+
+% We tried to translate from pwhile to said Rml (syntax to syntax)
+
+% We were able to interpret Rml modulo general recursion, using a probability monad.
+
+% We tried implementing general recursion with the extra step of translating to the
+% typed lambda calculus and using a fixpoint combinator.
+
+\section{Comparisons and future work}
+% Goal: 2-4 pages
+% What the section header says
+
+
+\section{Conclusion}
+% Goal: 1-2 pages
+
+
+
+\newpage
+\section{Appendix}
+Example - Error: Stack Overflow.
+\begin{lstlisting}[language=coq]
+Fixpoint replace_all_variables_aux_type
+         A (x : Rml) (env : seq (nat * Type * Rml))
+         (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+         `{x_valid : @rml_valid_type A (map fst env) fl x} : @sRml A
+                                                                            
+with replace_all_variables_aux_type_const
+       A0 A a (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A0 (map fst env) fl (Const A a)} : @sRml A0
+with replace_all_variables_aux_type_let
+       A p x1 x2 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (Let_stm p x1 x2)} : @sRml A
+with replace_all_variables_aux_type_fun
+       A T p x (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (Fun_stm T p x)} : @sRml A
+with replace_all_variables_aux_type_if
+       A x1 x2 x3 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (If_stm x1 x2 x3)} : @sRml A
+with replace_all_variables_aux_type_app
+       A T x1 x2 (env : seq (nat * Type * Rml))
+       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+       `{x_valid : @rml_valid_type A (map fst env) fl (App_stm T x1 x2)} : @sRml A
+with replace_all_variables_aux_type_let_rec A T T0 n n0 x1 x2 (env : seq (nat * Type * Rml))
+     (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+     `{x_valid : @rml_valid_type A (map fst env) fl (Let_rec T T0 n n0 x1 x2)} : @sRml A.
+Proof.
+  (** Structure **)
+  {
+    induction x ; intros ; refine (sVar (0,A)).
+  }
+  
+  all: refine (sVar (0,A)).  
+Defined.
+\end{lstlisting}
 
 \end{document}
