@@ -653,17 +653,28 @@ argument for recursive definitions, we give a dummy argument.
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
-    Rml & typed $\lambda$-calculus \\ \hline
-    Var $(x,A)$ & $x : A$ \\
-    Const $A$ $c$ & $c : A$ \\
-    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A. e_2)~e_1$ \\
-    Fun $(x,A)$ $e$ & $\lambda x : A. e$ \\
-    App $e_1$ $e_2$ & $e_1~e_2$ \\
-    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B. e_2)~(Y~(\lambda f : A \rightarrow B. \lambda x : A. e_1))$ \\ \hline
+    Rml & @sRml A \\ \hline
+    Var $(x,A)$ & sVar $x$ \\
+    Const $A$ $c$ & sConst c \\
+    Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
+    If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
+    Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
+    App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
+    Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
   \end{tabular}
 \end{center}
-The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
-\[Let\]
+
+\begin{center}
+  \begin{tabular}{|c|c|c|}
+    \hline
+    @sRml A & typed $\lambda$-calculus & distr \\ \hline
+    sVar $x$ & $x : A$ & dunit (lookup x) \\
+    sConst c & $c : A$ & dunit c \\
+    sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ & $\backslash x \rightarrow \text{dunit}~e$  \\
+    sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{dunit}~(e_1''~e_2'')$ \\
+    sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(\lambda f : T \rightarrow S, e_2)~(Y~(\lambda f : T \rightarrow S, (\lambda x : T, e_1~x))) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \text{dlim}~(\text{ubn}~e_1~x))$ \\ \hline
+  \end{tabular}
+\end{center}
 
 \subsection{Example: Fact}
 Expression:

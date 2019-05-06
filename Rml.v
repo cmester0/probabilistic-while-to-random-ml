@@ -145,7 +145,7 @@ Proof.
     apply IHl.
     simpl in H.
     assumption.
-Defined.
+Qed.
 
 Definition ob :=
   fun {A B} (x : option A) (f : A -> option B) =>
@@ -250,7 +250,7 @@ Lemma helper :
   subst ; clear H1 ; clear H3.  
   
   split ; assumption.
-Defined.
+Qed.
 
 Lemma helper2 :
   forall A B C nx nf x1 x2 fl,
@@ -266,7 +266,7 @@ Lemma helper2 :
   subst ; clear H5.  
   
   split ; assumption.
-Defined.
+Qed.
 
 Lemma helper3 :
   forall A l C p x e, srml_valid_type A l (sFun C p e x) -> srml_valid_type C (p :: l) x.
@@ -276,7 +276,7 @@ Lemma helper3 :
   assert (x1 = x) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] C x1 x H3).
   subst.
   assumption.
-Defined.
+Qed.
 
 Lemma srml_valid_weakening:
   forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
@@ -332,7 +332,7 @@ Proof.
     - apply IHx2.
       assumption.
   }
-Defined.
+Qed.
 
 Lemma sRml_valid :
   forall A (x : @sRml A) vl fl (x_valid : srml_valid_type A fl x),
@@ -386,7 +386,7 @@ Proof.
     simpl.
     constructor ; assumption.
   }
-Defined.
+Qed.
 
 (** Environment **)
 (* -------------------------------------------------------------------------------- *)
@@ -449,7 +449,7 @@ Proof.
            assumption.
     + inversion H ; subst.
       constructor ; eauto.
-Defined.
+Qed.
 
 Corollary valid_weakening_nil :
   forall (a : nat * Type * Rml) l1 l2 fl, rml_valid_type a.1.2 (l1) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
@@ -461,7 +461,7 @@ Proof.
   apply r.
   rewrite cats0.
   assumption.
-Defined.
+Qed.
 
 Lemma valid_weakening_fl :
   forall (a : nat * Type * Rml) l1 l2 l3 vl, rml_valid_type a.1.2 vl (l1 ++ l3) a.2 -> rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
@@ -515,7 +515,7 @@ Proof.
       assumption.
     + apply (IHr2 [:: (n0,T -> T0) & l1]).
       assumption.
-Defined.
+Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -711,7 +711,7 @@ Proof.
       assumption.
     + apply (IHx2 ((n,T -> T0) :: l1) l2 l3).
       assumption.
-Defined.    
+Qed.    
 
 Lemma extend_fl_still_valid :
   forall p env fl, valid_env env fl -> valid_env env (p :: fl).
@@ -727,7 +727,7 @@ Proof.
       assumption.
     + apply IHenv.
       assumption.
-Defined.
+Qed.
 
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
@@ -907,6 +907,6 @@ Proof.
   }
 
   all: inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
-Defined.
+Qed.
 
-(* -------------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------------- *) 
