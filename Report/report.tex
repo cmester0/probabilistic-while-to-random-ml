@@ -705,14 +705,8 @@ Distribution:
         Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
         If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
         Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
-        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\ & \\
-        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ &
-                                              \begin{tabular}{l}
-                                                sApp $(T \rightarrow S)$ \\
-                                                \quad (sFun $A$ $(f,T \rightarrow S)$ $e_2'$) \\
-                                                \quad (sFun $S$ $(x,T)$\\
-                                                \quad \quad (sFix $T$ $f$ $x$ $e_1'$ (sVar $x$)))
-                                              \end{tabular} \\ \hline
+        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
+        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
       \end{tabular}
     }
 \end{center}
@@ -726,7 +720,7 @@ Distribution:
       sConst c & $c : A$ & dunit c \\
       sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ &  \\
       sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{ret}~(e_1'~e_2')$ \\
-      sFix $T$ $f$ $x$ $e_1'$ $e_2'$ & $(Y~(\lambda f : T \rightarrow S, \lambda x : T, e_1 : S) : T \rightarrow S)~(e_2 : T) : S$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \mathtt{dlim}~(\mathtt{ubn}~e_1~x))$ \\ \hline
+      sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(e_2 : (T \rightarrow S) \rightarrow A)~(Y~(e_1 : (T \rightarrow S) \rightarrow T \rightarrow S) : T \rightarrow S) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \mathtt{dlim}~(\mathtt{ubn}~e_1~x))$ \\ \hline
     \end{tabular}
   }
 \end{center}

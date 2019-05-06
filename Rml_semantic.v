@@ -48,11 +48,20 @@ Qed.
 (*   | S n' => F (fun a => ubn F a n') a *)
 (*   end. *)
 
-Fixpoint ubn {A : Type} (F : (A -> A) -> A -> A) (n : nat) : A -> A :=
-  fun a =>
-  match n return A with
-  | 0 => a
-  | S n' => F (ubn F n') a
+(* Fixpoint ubn {R : realType} {A B : Type} (F : (A -> distr R (Choice B)) -> A -> distr R (Choice B)) (n : nat) : A -> distr R (Choice B) := *)
+(*   fun a => *)
+(*   match n return distr R (Choice B) with *)
+(*   | 0 => dnull *)
+(*   | S n' => F (ubn F n') a *)
+(*   end. *)
+
+Fixpoint ubn {R : realType} {A B : Type} (F : distr R (Choice ((A -> B) -> A -> B))) (n : nat) : distr R (Choice (A -> B)) :=
+  match n return distr R (Choice (A -> B)) with
+  | 0 => dnull
+  | S n' =>
+    @dlet R (Choice (A -> B)) (Choice (A -> B)) (fun G =>
+    @dlet R (Choice ((A -> B) -> A -> B)) (Choice (A -> B)) (fun H =>
+    @dunit R (Choice (A -> B)) (H G)) F) (ubn F n')
   end.
 
 Definition lim A (F : nat -> A) : A :=
@@ -131,22 +140,15 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
 
     (* ************************* *)
 
-    cut (B = C).
     intros.
     subst.
 
-    pose (
-        @dlet R (Choice ((C -> C) -> C -> C)) (Choice (C -> C)) (fun f' =>
-        @dunit R (Choice (C -> C)) (lim _ (ubn f'))) f).
+    pose (@dlet R (Choice (B -> C)) (Choice T) (fun f' =>
+          @dlet R (Choice ((B -> C) -> T)) (Choice T) (fun x' : (B -> C) -> T =>
+          @dunit R (Choice T) (x' f')) x) (dlim (ubn f))).
 
-    pose (
-        @dlet R (Choice ((C -> C) -> T)) (Choice T) (fun g =>
-        @dlet R (Choice (C -> C)) (Choice T) (fun f =>
-        @dunit R (Choice T) (g f)) d) x).
-
-    apply d0.
-
-Admitted.
+    refine d.
+Qed.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
   let y := @replace_all_variables_type T x x_valid in
