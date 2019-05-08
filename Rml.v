@@ -60,16 +60,6 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive sRml {A : Type} :=
-| sVar : nat -> sRml
-| sConst : A -> sRml
-| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
-| sIf : @sRml bool -> sRml -> sRml -> sRml
-| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B C (nf nx : nat), @sRml (B -> C) -> sRml -> sRml.
-
-(* -------------------------------------------------------------------------------- *)
-
 Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> Prop :=
 | valid_var : forall x,
     List.In (x,A) vl ->
@@ -154,6 +144,17 @@ Definition ob :=
     | None => None
     end.
 
+(** * Simple Rml *) 
+(* -------------------------------------------------------------------------------- *)
+
+Inductive sRml {A : Type} :=
+| sVar : nat -> sRml
+| sConst : A -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+| sFix : forall B C (nf nx : nat), @sRml (B -> C) -> sRml -> sRml.
+
 (* -------------------------------------------------------------------------------- *)
 
 Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
@@ -233,6 +234,10 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type A ((nf,B -> C) :: fl) x ->
     srml_valid_type A fl (sFix B C nf nx f x).
 
+(** * Properties of sRml expressions *)
+
+(* -------------------------------------------------------------------------------- *)
+
 Require Import Eqdep_dec.
 
 Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}).
@@ -281,7 +286,49 @@ Qed.
 Lemma srml_valid_weakening:
   forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
 Proof.
-Admitted.
+  intros.
+  generalize dependent l1.
+  induction x ; intros.
+  - inversion H.
+    constructor.
+    apply List.in_app_or in H1.
+    inversion H1.
+    + apply List.in_or_app.
+      left.
+      assumption.
+    + apply List.in_or_app.
+      right.
+      apply List.in_or_app.
+      right.
+      assumption.
+  - constructor.
+  - constructor.
+    apply (IHx (p0 :: l1)).
+    apply helper3 in H.
+    assumption.
+  - inversion H ; subst.
+    constructor.
+    + apply IHx1.
+      assumption.
+    + apply IHx2.
+      assumption.
+    + apply IHx3.
+      assumption.
+  - apply helper in H.
+    inversion_clear H.
+    + constructor.
+      apply IHx1.
+      assumption.
+    + apply IHx2.
+      assumption.
+  - apply helper2 in H.
+    inversion_clear H.
+    constructor.
+    + apply (IHx1 ([:: (nx, B), (nf, B -> C) & l1])).
+      assumption.
+    + apply (IHx2 [:: (nf, B -> C) & l1]).
+      assumption.
+Qed.
 
 Lemma sRml_simple :
   forall A (x : @sRml A) l (x_valid : srml_valid_type A l x),
@@ -388,7 +435,7 @@ Proof.
   }
 Qed.
 
-(** Environment **)
+(** * Environment **)
 (* -------------------------------------------------------------------------------- *)
 
 Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
@@ -658,20 +705,8 @@ Defined.
 Lemma valid_rml_makes_valid_srml :
   forall A x y vl fl, rml_valid_type A vl fl x -> srml_valid_type A fl y.
 Proof.
+  intros.
 Admitted.
-
-(* Lemma valid_rml_makes_valid_srml : *)
-(*   forall A x vl fl `{x_simple : @rml_is_simple fl x} (x_valid : rml_valid_type A vl fl x), srml_valid_type A fl (@rml_to_sRml_l A x vl fl x_simple x_valid). *)
-(* Proof. *)
-(*   intros. *)
-(*   induction x. *)
-(*   - destruct p. *)
-(*     assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst. *)
-(*     inversion x_simple ; subst. *)
-(*     constructor. *)
-(*     assumption. *)
-(*   -  *)
-(* Admitted. *)
 
 Lemma rml_simple_weakening :
   forall x l1 l2 l3, @rml_is_simple (l1 ++ l3) x -> @rml_is_simple (l1 ++ l2 ++ l3) x.

@@ -98,7 +98,7 @@ Proof.
   apply a.
   apply X.
 Qed.
-  
+
 Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type * (@mem_type R))) (x_valid : srml_valid_type T (map fst env) x) {struct x} : {distr (Choice T) / R}.
   destruct x.
   (* sVar *)
@@ -202,7 +202,7 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
 
     intros.
     subst.
-
+    
     refine (@dlet R (Choice (B -> C)) (Choice T) (fun f' =>
           @dlet R (Choice ((B -> C) -> T)) (Choice T) (fun x' : (B -> C) -> T =>
           @dunit R (Choice T) (x' f')) x) (dlim (ubn f))).
