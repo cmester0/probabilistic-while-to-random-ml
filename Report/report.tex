@@ -293,21 +293,48 @@ By our choice of $F$ and the definition of $\omega$-cpos, it is clear that there
 to exist a least upper bound on $F_n$. This least upper bound is the fixed point of
 $F$ and it will hold that $\texttt{fix } F = F(\texttt{fix }F)$ if $F$ is
 continuous. 
-% Where do we need non-continuous functions?
+% @Bas: Where do we need non-continuous functions?
 
 % How it extends to function spaces
+For an $\omega$-cpo with underlying set $B$ we can also define an $\omega$-cpo on
+functions from any set $A$ whose co-domain is $B$.
+
+To reiterate the definition, let us think of what we need for an $\omega$-cpo. We
+need an ordering relation, a least element, and a least upper bound operation. Those
+can be defined as follows:
+\begin{align*}
+  f\leq_{A \to B} g \Leftrightarrow \forall x: f(x) \leq_B g(x) & ~~~\textit{(pointwise order)}\\
+  0_{A\to B} := f(x) = 0_B & ~~~\textit{(least element)}\\
+  \texttt{lub}_{A\to B} f_n := g(x) = \texttt{lub}_B(f_n(x)) & ~~~\textit{(least upper
+                                                               bound operation)}
+\end{align*}
 
 
 % How this can be used to interpret recursion
+The result of an interpretation of programs in the language of discourse will be in
+an $\omega$-cpo, so according to the above discussion functions will have an
+$\omega$-cpo structure as well.
+
+We can use this structure together with the above definition of fixed points in order
+to interpret general recursive definitions. 
+
+% Describe the functional. Probably using an example, similar to the haskell wiki page
+% on this topic.
+
+
 % We have an w-cpo over functions to [0,1]. These functions do not have to be
 % monotonic. So any recursive definition will do.
 % Next we take the fix point of our functional, which is a monotonic operation on the
 % w-cpo that is our function space. And we've arrived :-)
 
-\subsubsection{Interpreting random definitions}
+\subsubsection{Interpreting random definitions}\label{sec:random-interp}
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
 % of our programs in pwhile and rml.
 
+% The w-cpo structure on [0,1]; why is it an w-cpo?
+% Packages: Todo, comment
+% mention: EC has not only pwhile, but also a module system that includes
+% procedures. 
 
 
 \section{Our approach}
@@ -323,10 +350,11 @@ continuous.
 
 
 \subsection{Translating \texttt{while} to a functional language}
+% Make the meaning of the translation and use of x_r more explicit.
 In order to do the translations properly, let us first have a look at a translation
 from the simple, widely known \texttt{while} language to a simple functional language
 resembling \rml. The thought behind this is that once this translation is in place,
-all we have to do to translate \texttt{pwhile} to \rml is to add nondeterminism.
+all we have to do to translate \texttt{pwhile} to \rml is to add probability.
 
 \begin{align}
   \label{eq:while}
