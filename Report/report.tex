@@ -287,10 +287,10 @@ sequence).\\
 There is a standard way of defining fixed point iterations on an $\omega$-cpo: % \cite{alea}
 
 Consider an operator $F~:~X \xrightarrow{m} X$ on some $\omega$-cpo $X$; with this we
-define the monotonic sequence $F_n \mapsto \underbrace{ F(F(\dots F}_{n \text{
+define the monotonic sequence $F_i \mapsto \underbrace{ F(F(\dots F}_{i \text{
     times}} (0_X) \dots))$ of repeated application of $F$ to the least element of $X$.
 By our choice of $F$ and the definition of $\omega$-cpos, it is clear that there has
-to exist a least upper bound on $F_n$. This least upper bound is the fixed point of
+to exist a least upper bound on $F_i$. This least upper bound is the fixed point of
 $F$ and it will hold that $\texttt{fix } F = F(\texttt{fix }F)$ if $F$ is
 continuous. 
 % @Bas: Where do we need non-continuous functions?
@@ -313,19 +313,48 @@ can be defined as follows:
 % How this can be used to interpret recursion
 The result of an interpretation of programs in the language of discourse will be in
 an $\omega$-cpo, so according to the above discussion functions will have an
-$\omega$-cpo structure as well.
+$\omega$-cpo structure as well. Together with the above definition of fixed points we
+can use this structure to interpret general recursive definitions. 
 
-We can use this structure together with the above definition of fixed points in order
-to interpret general recursive definitions. 
+We define a functional, $F$, taking as input a function and ``adding a step to it''.
+Let us look at the example of the factorial function $f(n) = n!$. %\cite{haskell}
+The recursive definition is well known:
+$$fac(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot fac(n-1)$$
 
-% Describe the functional. Probably using an example, similar to the haskell wiki page
-% on this topic.
+For the interpretation of this definition, we want to define $F~:~(\mathbb{N} \to
+\mathbb{N}) \to (\mathbb{N} \to \mathbb{N})$ in such a way that its fixed point is
+the same as the above recursive definition. We choose
+$$F(F_i(n)):=\texttt{ if }n=0\texttt{ then }1\texttt{ else }n\cdot F_i(n-1)$$
+Where $F_0(n)$ is $0_{\mathbb{N} \to \mathbb{N}}$ (the function that takes a natural
+number and returns 0), by the above definition of the least element in the
+$\omega$-cpo defined on a function space. By repeated application of $F$ the function
+will slowly approach the real factorial function, which is the fixed point of $F$.
+The beginning of the iteration will be
 
+\begin{align*}
+  F_1(n) = F(F_0(n)) & = \begin{cases}
+                           1~~~\text{if }n\text{ is 0}\\
+                           0~~~\text{otherwise}
+                         \end{cases}
+  \\
+  F_2(n) = F(F(F_0(n))) & = \begin{cases}
+                             1~~~\text{if }n\text{ is 0}\\
+                             1~~~\text{if }n\text{ is 1}\\
+                             0~~~\text{otherwise}
+                           \end{cases}
+  \\
+  F_3(n) = F(F(F(F_0(n)))) & = \begin{cases}
+                                1~~~\text{if }n\text{ is 0}\\
+                                1~~~\text{if }n\text{ is 1}\\
+                                2~~~\text{if }n\text{ is 2}\\
+                                0~~~\text{otherwise}
+                              \end{cases}
+\end{align*}
 
-% We have an w-cpo over functions to [0,1]. These functions do not have to be
-% monotonic. So any recursive definition will do.
-% Next we take the fix point of our functional, which is a monotonic operation on the
-% w-cpo that is our function space. And we've arrived :-)
+In this case it is easy to see that $F_0 \leq F_1 \leq F_2 \leq F_3 \leq \dots$. In
+the general case this follows from the fact that $F$ has to be monotone and $F_0$ is
+always the least element of the function space $F$ operates on. 
+
 
 \subsubsection{Interpreting random definitions}\label{sec:random-interp}
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
