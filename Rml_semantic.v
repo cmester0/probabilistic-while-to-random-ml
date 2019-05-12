@@ -44,14 +44,23 @@ Proof.
       assumption.
 Qed.
 
-Fixpoint ubn {R : realType} {A B : Type} (F : distr R (Choice ((A -> B) -> A -> B))) (n : nat) : distr R (Choice (A -> B)) :=
-  match n return distr R (Choice (A -> B)) with
+(* Fixpoint ubn {R : realType} {A B : Type} (F : distr R (Choice ((A -> B) -> A -> B))) (n : nat) : distr R (Choice (A -> B)) := *)
+(*   match n return distr R (Choice (A -> B)) with *)
+(*   | 0 => dnull *)
+(*   | S n' => *)
+(*     @dlet R (Choice (A -> B)) (Choice (A -> B)) (fun G => *)
+(*     @dlet R (Choice ((A -> B) -> A -> B)) (Choice (A -> B)) (fun H => *)
+(*     @dunit R (Choice (A -> B)) (H G)) F) (ubn F n') *)
+(*   end. *)
+
+Fixpoint ubn {R : realType} {A B : Type} (F : (A -> distr R (Choice B)) -> A -> distr R (Choice B)) (n : nat) : A -> distr R (Choice B) :=
+  fun a =>
+  match n return distr R (Choice B) with
   | 0 => dnull
-  | S n' =>
-    @dlet R (Choice (A -> B)) (Choice (A -> B)) (fun G =>
-    @dlet R (Choice ((A -> B) -> A -> B)) (Choice (A -> B)) (fun H =>
-    @dunit R (Choice (A -> B)) (H G)) F) (ubn F n')
+  | S n' => F (ubn F n') a
   end.
+
+Definition ubn' {R} {A B} F a n := @ubn R A B F n a.
 
 Lemma rewrite_type :
   forall T A C R (x : distr R (Choice (A -> C))), T = (A -> C) -> distr R (Choice T).
@@ -98,7 +107,7 @@ Proof.
   apply a.
   apply X.
 Qed.
-
+  
 Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type * (@mem_type R))) (x_valid : srml_valid_type T (map fst env) x) {struct x} : {distr (Choice T) / R}.
   destruct x.
   (* sVar *)
@@ -107,26 +116,9 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
   (* sConst *)
   { refine (@dunit R (Choice T) t). }
 
-  (* sFun *)
-  {
-    assert (srml_valid_type C [:: p & [seq i.1 | i <- env]] x) by (apply helper3 in x_valid ; intros ; assumption).
-
-    pose (fun (a : p.2) => ssem_aux R C x ((p,(new_element (@dunit R (Choice p.2) a))) :: env) H).
-    pose (fun a => @call_by_value_function' R p.2 C a).
-
-    pose (@dlet R (Choice p.2) (Choice (p.2 -> C)) (fun p2 : p.2 =>
-      @dlet R (Choice C) (Choice (p.2 -> C)) (fun c =>
-      d0 (fun p => dunit c) p2
-      ) (d p2))).
-
-    assert (T = (p.2 -> C)) by assumption ; subst ; clear H0.
-    apply d1.
-    apply dnull.
-    (* TODO, convert to a distribution function *)    
-  }
-
   (* sIf *)
-  { assert (srml_valid_type bool [seq i.1 | i <- env] x1) by (inversion x_valid ; assumption).
+  {
+    assert (srml_valid_type bool [seq i.1 | i <- env] x1) by (inversion x_valid ; assumption).
     assert (srml_valid_type T [seq i.1 | i <- env] x2) by (inversion x_valid ; assumption).
     assert (srml_valid_type T [seq i.1 | i <- env] x3) by (inversion x_valid ; assumption).
     refine (let b'' := choice_of_type_to_choice_type (ssem_aux _ _ x1 env H) in
@@ -143,69 +135,33 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
   }
 
   (* sFix *)
-  {
-    Set Printing All.
-    
+  {    
     apply helper2 in x_valid.
     inversion_clear x_valid.
 
-    pose (x2' := sFun T (nf,B -> C) (type_equality_reflexive _) x2).
-
-    (* Manually proof function recursive step : *)
-
-    (* T = (p.2 -> C) *)
-    assert (valid_x2' : srml_valid_type ((B -> C) -> T) [seq i.1 | i <- env] x2') by (constructor ; assumption).
+    (* x1 : B -> C *)
+    (* f : ((B -> C) -> B -> C) *)
     
-    assert (valid_x2 : srml_valid_type T ((nf, B -> C) :: [seq i.1 | i <- env]) x2) by (apply helper3 in valid_x2' ; assumption).
+    pose (fx := sApp _ x1 (sVar nx)).
 
-    pose (fun k => rewrite_type ((B -> C) -> T) (B -> C) T R (
-    @dlet R (Choice T) (Choice ((B -> C) -> T)) (fun c =>
-    @dunit R (Choice ((B -> C) -> T)) (fun x =>
-    c)) (ssem_aux R T x2 ((nf,B -> C,k) :: env) valid_x2)) (type_equality_reflexive _)).
-
-    pose (x := d (fun A => @dnull R (Choice A))). (* (B -> C) -> T *)
-    (* End manually inserted proof *)
-
-    pose (x1' := sFun C (nx,B) (type_equality_reflexive _) (sApp _ x1 (sVar nx))).
-    pose (x1'' := sFun (B -> C) (nf,B -> C) (type_equality_reflexive _) x1').
-
-    (* Manually proof function recursive step : *)
-
-    assert (srml_valid_type ((B -> C) -> B -> C) [seq i.1 | i <- env] x1'').
-    constructor.
-    constructor.
+    assert (valid_fx : srml_valid_type C [:: (nx, B), (nf, B -> C) & [seq i.1 | i <- env]] fx).
     constructor.
     assumption.
     constructor.
     left.
-    reflexivity.
+    reflexivity.    
 
-    assert (valid_x1 : srml_valid_type (B -> C) ((nx,B) :: (nf, B -> C) :: [seq i.1 | i <- env]) x1) by (apply helper3 in H1 ; assumption).
-
+    pose (fun (k1 : B -> distr R (Choice C)) => call_by_value_function' B C k1).
     
-    pose (fun k j =>
-    @dlet R (Choice (B -> C)) (Choice (B -> C)) (fun c =>
-    @dunit R (Choice (B -> C)) (fun x => c x))
-    (ssem_aux R (B -> C) x1 ((nx,B,j) :: (nf,B -> C,k) :: env) valid_x1)).
+    pose (f := fun (k1 : B -> distr R (Choice C)) => fun k2 => ssem_aux R C fx [:: (nx, B, (fun A => @dnull R (Choice A))), (nf, B -> C, new_element (call_by_value_function' B C k1 k2)) & env] valid_fx).
 
-    assert (valid_x1' : srml_valid_type (B -> C) ((nf, B -> C) :: [seq i.1 | i <- env]) x1') by (apply helper3 in H1 ; assumption).
+    pose (fun x => dlim (ubn' f x)).
 
-    pose (fun k =>
-    @dlet R (Choice (B -> C)) (Choice ((B -> C) -> B -> C)) (fun c =>
-    @dunit R (Choice ((B -> C) -> B -> C)) (fun x => c))
-    (ssem_aux R (B -> C) x1' ((nf,B -> C,k) :: env) valid_x1')).
+    pose (call_by_value_function' B C d0).
     
-    pose (f := d1 (fun A => @dnull R (Choice A))). (* (B -> C) -> B -> C *)
-    (* End manually inserted proof *)
-
-    (* ************************* *)
-
-    intros.
-    subst.
+    pose (fun xv => ssem_aux R T x2 [:: (nf, B -> C, new_element (d1 xv)) & env] H0).
+    apply d2.
     
-    refine (@dlet R (Choice (B -> C)) (Choice T) (fun f' =>
-          @dlet R (Choice ((B -> C) -> T)) (Choice T) (fun x' : (B -> C) -> T =>
-          @dunit R (Choice T) (x' f')) x) (dlim (ubn f))).
   }
 Admitted.
 
