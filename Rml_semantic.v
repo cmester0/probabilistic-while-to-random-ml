@@ -143,25 +143,25 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
     (* f : ((B -> C) -> B -> C) *)
     
     pose (fx := sApp _ x1 (sVar nx)).
-
-    assert (valid_fx : srml_valid_type C [:: (nx, B), (nf, B -> C) & [seq i.1 | i <- env]] fx).
+    
+    assert (valid_fx : srml_valid_type T [:: (nx, B), (nf, B -> T) & [seq i.1 | i <- env]] fx).
     constructor.
     assumption.
     constructor.
     left.
     reflexivity.    
 
-    pose (fun (k1 : B -> distr R (Choice C)) => call_by_value_function' B C k1).
+    pose (fun (k1 : B -> distr R (Choice T)) => call_by_value_function' B T k1).
     
-    pose (f := fun (k1 : B -> distr R (Choice C)) => fun k2 => ssem_aux R C fx [:: (nx, B, (fun A => @dnull R (Choice A))), (nf, B -> C, new_element (call_by_value_function' B C k1 k2)) & env] valid_fx).
+    pose (f := fun (k1 : B -> distr R (Choice T)) => fun k2 => ssem_aux R T fx [:: (nx, B, (fun A => @dnull R (Choice A))), (nf, B -> T, new_element (call_by_value_function' B T k1 k2)) & env] valid_fx).
 
     pose (fun x => dlim (ubn' f x)).
 
-    pose (call_by_value_function' B C d0).
+    pose (ssem_aux R B x2 env H0).
     
-    pose (fun xv => ssem_aux R T x2 [:: (nf, B -> C, new_element (d1 xv)) & env] H0).
-    apply d2.
+    pose (@dlet R (Choice B) (Choice T) (fun b => d0 b) d1).
     
+    apply d2.   
   }
 Admitted.
 
