@@ -107,8 +107,9 @@ Proof.
   apply a.
   apply X.
 Qed.
-  
+
 Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type * (@mem_type R))) (x_valid : srml_valid_type T (map fst env) x) {struct x} : {distr (Choice T) / R}.
+Proof.
   destruct x.
   (* sVar *)
   { refine (lookup env (n,T) (var_p_in_list n T env x_valid) T). }
@@ -139,31 +140,26 @@ Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type
     apply helper2 in x_valid.
     inversion_clear x_valid.
 
-    (* x1 : B -> C *)
-    (* f : ((B -> C) -> B -> C) *)
-    
     pose (fx := sApp _ x1 (sVar nx)).
-    
-    assert (valid_fx : srml_valid_type T [:: (nx, B), (nf, B -> T) & [seq i.1 | i <- env]] fx).
+
+    (* start app *)
+    assert (x_valid : srml_valid_type T ((nx,B) :: (nf,B -> T) :: (map fst env)) fx).
     constructor.
     assumption.
     constructor.
     left.
-    reflexivity.    
-
-    pose (fun (k1 : B -> distr R (Choice T)) => call_by_value_function' B T k1).
+    reflexivity.
     
-    pose (f := fun (k1 : B -> distr R (Choice T)) => fun k2 => ssem_aux R T fx [:: (nx, B, (fun A => @dnull R (Choice A))), (nf, B -> T, new_element (call_by_value_function' B T k1 k2)) & env] valid_fx).
+    apply helper in x_valid.
+    inversion x_valid.
+    pose (f := fun (k1 : B -> distr R (Choice T)) k2 => @dlet R (Choice (B -> T)) (Choice T) (fun t =>
+    @dlet R (Choice B) (Choice T) (fun u =>
+    @dunit R (Choice T) (t u)) (@ssem_aux R B x2 env H0)) (@ssem_aux R (B -> T) x1 ((nx,B,new_element (dunit k2)) :: (nf,B -> T,new_element (k1 k2)) :: env) H1)).
+    (* end app *)
 
-    pose (fun x => dlim (ubn' f x)).
-
-    pose (ssem_aux R B x2 env H0).
-    
-    pose (@dlet R (Choice B) (Choice T) (fun b => d0 b) d1).
-    
-    apply d2.   
+    apply (@dlet R (Choice B) (Choice T) (fun b => dlim (ubn' f b)) (ssem_aux R B x2 env H0)).
   }
-Admitted.
+Defined.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
   let y := @replace_all_variables_type T x x_valid in
