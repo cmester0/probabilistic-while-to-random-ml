@@ -283,7 +283,10 @@ on probabilistic languages and their interpretation rather than their use.\\
 \todo[inline]{Explain what prp is all about}
 
 The result of interpreting a program in \texttt{pwhile} is a distribution over
-memories. 
+memories.
+
+\todo{Is it enough to describe what the semantics is, or should I extract the formal
+  semantics from the xhl development? }
 
 
 \subsection{Complete partial orders}
@@ -410,6 +413,8 @@ I am confused by what it says on page 574: First we talk about $\mu$(f) for f:A$
 and then we say that $\mu$ is a measure on A. Shouldn't it be on probability
 distributions over A (so A$\to$[0,1])?}
 
+\todo[inline]{Monadic transformation. Should we add a subsection on monads or should we just
+  mention them?}
 
 % Packages: comment
 
@@ -450,14 +455,16 @@ variables, constants to constants, and function applications to function applica
 In order to translate statements we choose a set of SML-style matching rules; this
 choice is due to the translation of sequences being dependent on what the first
 statement is. We will in the following write the translation of a \texttt{while}
-statement $s$ to an expression in our functional language as 
+statement $s$ to an expression in our functional language as $\llbracket s
+\rrbracket$. 
 
-Furthermore we need to handle the fact that while the imperative \texttt{while} has a
-return memory that one could extract the wished results from, a functional language
-has no such thing. We therefore need to choose the memory positions we are interested
-in and encapsulate those in a variable.
-\todo{Make the meaning of the translation and use of $x_r$ more explicit.}We will, in
-the following, choose $x_r$ to be the name of said variable.  \\
+The result of a computation in \texttt{while} is the state of a memory, while the
+result of a functional computation is a value. A simple way to make up for this
+difference is by choosing a variable name that is designated the return variable and
+encapsulates the information we are interested in after the computation. This is the
+result of a program translated from \texttt{while} to our functional language; in the
+following we choose $x_r$ as the symbol for the chosen return variable. 
+\todo{@Bas: Is this description of our return and $x_r$ sufficiently clear?}
 
 \begin{align}
   \label{eq:transwhile}
@@ -501,6 +508,8 @@ argument for recursive definitions, we give a dummy argument.
 
 
 \subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
+\todo[inline, color=red]{This section is preliminary and needs either huge changes or deletion
+  before the report is finalised. }
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
@@ -555,7 +564,18 @@ Simple form:
   &\quad 3
 \end{align*}
 
+
+\subsection{Interpreting $\lambda$-calculus in the space of $\omega$-cpos}
+\todo[inline]{What do $\omega$-cpos have to do with this?}
+
+
+\subsection{Interpreting \texttt{while} directly}
+\todo[inline]{This should probably mainly refer back to the interpretation of
+  \texttt{pwhile}.}
+
+
 \subsection{All translations (forward)}
+\todo[inline]{What is the point of this section? }
 \begin{center}
   \rotatebox{0}{
     \resizebox{1.05\linewidth}{!}{
