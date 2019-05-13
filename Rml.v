@@ -80,7 +80,6 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
 
 | valid_let_rec : forall B nf nx e1 e2,
     @rml_valid_type (B -> A) vl ((nx,B) :: (nf,B -> A) :: fl) e1 ->
-    (* ^ Should be ((B -> C) -> B -> C) *)
     @rml_valid_type B vl fl e2 ->
     rml_valid_type A vl fl (Let_rec B A nf nx e1 e2).
 
@@ -472,11 +471,6 @@ Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
-Lemma helper4 :
-  forall A vl fl T T0 n n0 r1 r2, rml_valid_type A vl fl (Let_rec T T0 n n0 r1 r2) -> T0 = A.
-Proof.
-Admitted.
-
 Fixpoint rml_to_sRml_l {A : Type} (x : Rml) vl fl `{rml_simple : @rml_is_simple fl x} `{rml_valid : @rml_valid_type A vl fl x} {struct x} : @sRml A.
 Proof.
   (** Structure **)
@@ -530,8 +524,7 @@ Proof.
     pose (rml_to_sRml_l (T -> T0) r1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
     pose (rml_to_sRml_l T r2 vl fl H1 H3).
 
-    apply (helper4) in rml_valid.
-    subst.
+    assert (A = T0) by (inversion rml_valid ; reflexivity) ; subst.
     
     refine (sFix T n n0 s s0).
   } 
@@ -542,7 +535,7 @@ Defined.
 Theorem srml_to_rml_correctness :
   forall A fl (srml : @sRml A) (valid : srml_valid_type A fl srml),
     srml = @rml_to_sRml_l A (@sRml_to_rml A srml) nil fl (@sRml_simple A srml fl valid) (sRml_valid A srml nil fl valid).
-Proof.  
+Proof.
 Admitted.
 
 Theorem rml_to_srml_correctness :
