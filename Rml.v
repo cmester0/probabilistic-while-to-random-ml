@@ -11,7 +11,10 @@ Inductive Rml :=
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml
+| Random : Rml -> Rml
+| Flip : Rml.
+
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -28,8 +31,8 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     well_formed vl fl (Const A c)
                 
 | well_let : forall x (e1 e2 : Rml),
-    @well_formed vl fl e1 ->
-    @well_formed (x :: vl) fl e2 ->
+    well_formed vl fl e1 ->
+    well_formed (x :: vl) fl e2 ->
     well_formed vl fl (Let_stm x e1 e2)
                 
 | well_if : forall b m1 m2,
@@ -44,9 +47,16 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     well_formed vl fl (App_stm B e1 e2)
 
 | well_let_rec : forall B C nf nx (e1 e2 : Rml),
-    @well_formed vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
-    @well_formed vl fl e2 ->
-    well_formed vl fl (Let_rec B C nf nx e1 e2).
+    well_formed vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
+    well_formed vl fl e2 ->
+    well_formed vl fl (Let_rec B C nf nx e1 e2)
+
+| well_random : forall e,
+    well_formed vl fl e ->
+    well_formed vl fl (Random e)
+
+| well_flip :
+    well_formed vl fl Flip.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -79,9 +89,18 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
     rml_valid_type A vl fl (App_stm B e1 e2)
 
 | valid_let_rec : forall B nf nx e1 e2,
-    @rml_valid_type (B -> A) vl ((nx,B) :: (nf,B -> A) :: fl) e1 ->
+    @rml_valid_type A vl ((nx,B) :: (nf,B -> A) :: fl) e1 ->
     @rml_valid_type B vl fl e2 ->
-    rml_valid_type A vl fl (Let_rec B A nf nx e1 e2).
+    rml_valid_type A vl fl (Let_rec B A nf nx e1 e2)
+
+| valid_random : forall e,
+    A = nat ->
+    rml_valid_type nat vl fl e ->
+    rml_valid_type A vl fl (Random e)
+
+| valid_flip :
+    A = bool ->
+    rml_valid_type A vl fl Flip.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -126,7 +145,9 @@ Inductive sRml {A : Type} :=
 | sConst : A -> sRml
 | sIf : @sRml bool -> sRml -> sRml -> sRml
 | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+| sFix : forall B (nf nx : nat), @sRml A -> @sRml B -> sRml
+| sRandom : (A = nat) -> @sRml nat -> sRml
+| sFlip : (A = bool) -> sRml.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -151,7 +172,14 @@ Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 | is_fix : forall B C nf nx e1 e2,
     @rml_is_simple [:: (nx,B), (nf,B -> C) & l] e1 ->
     @rml_is_simple l e2 ->
-    rml_is_simple (@Let_rec B C nf nx e1 e2).
+    rml_is_simple (@Let_rec B C nf nx e1 e2)
+
+| is_random : forall e,
+    rml_is_simple e ->
+    rml_is_simple (Random e)
+
+| is_flip :
+    rml_is_simple Flip.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -165,6 +193,8 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
     Let_rec B A nf nx
             (sRml_to_rml f)
             (sRml_to_rml x)
+  | sRandom A e => Random (sRml_to_rml e)
+  | sFlip A => Flip
   end.
 
 Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :=
@@ -187,9 +217,16 @@ Inductive srml_valid_type (A : Type) (fl : seq (nat * Type)) : @sRml A -> Prop :
     @srml_valid_type A fl (sApp B e1 e2)
                      
 | svalid_fix : forall B nf nx f x,
-    @srml_valid_type (B -> A) ((nx,B) :: (nf,B -> A) :: fl) f ->
+    @srml_valid_type A ((nx,B) :: (nf,B -> A) :: fl) f ->
     @srml_valid_type B fl x ->
-    srml_valid_type A fl (sFix B nf nx f x).
+    srml_valid_type A fl (sFix B nf nx f x)
+
+| svalid_random : forall e (H : A = nat),
+    srml_valid_type nat fl e ->
+    srml_valid_type A fl (sRandom H e)
+                    
+| svalid_flip : forall (H : A = bool),
+    srml_valid_type A fl (sFlip H).
 
 (** * Properties of sRml expressions *)
 
@@ -217,16 +254,16 @@ Qed.
 Lemma helper2 :
   forall A B nx nf x1 x2 fl,
     srml_valid_type A fl (sFix B nf nx x1 x2) ->
-    srml_valid_type (B -> A) [:: (nx, B), (nf, B -> A) & fl] x1 /\
+    srml_valid_type A [:: (nx, B), (nf, B -> A) & fl] x1 /\
     srml_valid_type B fl x2.
   intros.
   inversion H.
   subst.
 
-  assert (f0 = x1) by (apply (inj_pair2_eq_dec Type dec_eq) in H4 ; assumption).
+  (* assert (f0 = x1) by (apply (inj_pair2_eq_dec Type dec_eq) in H4 ; assumption). *)
   assert (x0 = x2) by (apply (inj_pair2_eq_dec Type dec_eq) in H5 ; assumption).
   
-  subst ; clear H5.
+  subst.
   
   split ; assumption.
 Qed.
@@ -272,6 +309,11 @@ Proof.
       assumption.
     + apply IHx2.
       assumption.
+  - inversion_clear H.
+    constructor.
+    apply IHx.    
+    assumption.
+  - constructor.
 Qed.
 
 Lemma sRml_simple :
@@ -312,6 +354,20 @@ Proof.
       assumption.
     - apply IHx2.
       assumption.
+  }
+
+  (* sRandom *)
+  {
+    inversion_clear x_valid.
+    simpl.
+    constructor.
+    apply IHx.
+    assumption.
+  }
+
+  (* sFlip *)
+  {
+    constructor.
   }
 Qed.
 
@@ -359,6 +415,24 @@ Proof.
     - assumption.
     - assumption.
   }
+
+  (* sRandom *)
+  {
+    inversion_clear x_valid.
+    
+    simpl.
+    constructor.
+    assumption.
+    apply IHx.
+
+    assumption.
+  }
+
+  (* sFlip *)
+  {
+    constructor.
+    assumption.
+  }
 Qed.
 
 (** * Environment **)
@@ -383,7 +457,9 @@ Proof.
   generalize dependent T.
   generalize dependent l1.
   induction r ; intros.
-  - inversion H ; subst.
+  (* Var *)
+  {
+    inversion H ; subst.
     + constructor.
       apply List.in_app_or in H1.
       inversion H1.
@@ -397,20 +473,57 @@ Proof.
         assumption.
     + constructor 2.
       assumption.
-    + inversion H ; subst.
-      constructor.
-    + inversion H ; subst.
-      constructor.
-      * apply IHr1.
-        assumption.
-      * apply (IHr2 ((x,B) :: l1)).
-        assumption.
-    + inversion H ; subst.
-      constructor ; eauto.
-    + inversion H ; subst.
-      constructor ; eauto.
-    + inversion H ; subst.
-      constructor ; eauto.
+  }
+
+  (* Const *)
+  {
+    inversion H ; subst.
+    constructor.
+  }
+  
+  (* Let *)
+  {
+    inversion H ; subst.
+    constructor.
+    * apply IHr1.
+      assumption.
+    * apply (IHr2 ((x,B) :: l1)).
+      assumption.
+  }
+
+  (* If *)
+  {
+    inversion H ; subst.
+    constructor ; eauto.
+  }
+
+  (* App *)
+  {
+    inversion H ; subst.
+    constructor ; eauto.
+  }
+
+  (* Let_rec *)
+  {
+    inversion H ; subst.
+    constructor ; eauto.
+  }
+
+  (* Random *)
+  {
+    inversion H ; subst.
+    constructor.
+    reflexivity.
+    apply IHr.
+    assumption.
+  }
+
+  (* Flip *)
+  {
+    inversion H ; subst.
+    constructor.
+    reflexivity.
+  }
 Qed.
 
 Corollary valid_weakening_nil :
@@ -436,7 +549,9 @@ Proof.
   generalize dependent T.
   generalize dependent l1.
   induction r ; intros.
-  - inversion H ; subst.
+  (* Var *)
+  {
+    inversion H ; subst.
     + constructor.
       assumption.
     + constructor 2.
@@ -450,23 +565,60 @@ Proof.
         apply List.in_or_app.
         right.
         assumption.
-  - inversion H.
+  }
+
+  (* Const *)
+  {
+    inversion H.
     constructor.
-  - inversion H ; subst.
+  }
+
+  (* Let *)
+  {
+    inversion H ; subst.
     constructor.
     + apply IHr1.
       assumption.
     + apply IHr2.
       assumption.
-  - inversion H ; subst.
+  }
+
+  (* If *)
+  {
+    inversion H ; subst.
     constructor ; eauto.
-  - inversion H ; subst.
+  }
+
+  (* App *)
+  {
+    inversion H ; subst.
     constructor ; eauto.
-  - inversion H ; subst.
+  }
+
+  (* Let_rec *)
+  {
+    inversion H ; subst.
     constructor ; eauto.
-  - inversion H ; subst.
+    inversion H ; subst.
     apply (IHr1 [:: (n1,T) , (n0,T -> T0) & l1]).
     assumption.
+  }
+
+  (* Random *)
+  {
+    inversion H ; subst.
+    constructor.
+    reflexivity.
+    apply IHr.
+    assumption.
+  }
+
+  (* Flip *)
+  {
+    inversion H ; subst.
+    constructor.
+    reflexivity.
+  }
 Qed.
 
 (* -------------------------------------------------------------------------------- *)
@@ -517,17 +669,33 @@ Proof.
         
     inversion_clear H.
     
-    assert (rml_valid_type (T -> T0) vl [:: (n0,T), (n,T -> T0) & fl] r1 /\ rml_valid_type T vl fl r2) by (inversion rml_valid ; inversion H8 ; subst ; easy).
+    assert (rml_valid_type T0 vl [:: (n0,T), (n,T -> T0) & fl] r1 /\ rml_valid_type T vl fl r2) by (inversion rml_valid ; inversion H8 ; subst ; easy).
 
     inversion_clear H.
     
-    pose (rml_to_sRml_l (T -> T0) r1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
+    pose (rml_to_sRml_l T0 r1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
     pose (rml_to_sRml_l T r2 vl fl H1 H3).
 
     assert (A = T0) by (inversion rml_valid ; reflexivity) ; subst.
     
-    refine (sFix T n n0 s s0).
-  } 
+    exact (sFix T n n0 s s0).
+  }
+
+  (** Random **)
+  {
+    assert (@rml_is_simple fl r) by (inversion rml_simple ; assumption).
+    assert (rml_valid_type nat vl fl r) by (inversion rml_valid ; assumption).
+    assert (A = nat) by (inversion rml_valid ; assumption).
+    
+    pose (rml_to_sRml_l nat r vl fl H H0).
+    exact (sRandom H1 s).
+  }
+
+  (** Flip **)
+  {
+    assert (A = bool) by (inversion rml_valid ; assumption).
+    exact (sFlip H).    
+  }
 Defined.
 
 (* -------------------------------------------------------------------------------- *)
@@ -617,6 +785,19 @@ Proof.
     - apply IHx2.
       assumption.
   }
+
+  (** Random *)
+  {
+    inversion H ; subst.
+    constructor.
+    apply IHx.
+    assumption.
+  }
+
+  (** Flip **)
+  {
+    constructor.
+  }
 Qed.    
 
 Lemma extend_fl_still_valid :
@@ -633,25 +814,7 @@ Proof.
       assumption.
     + apply IHenv.
       assumption.
-Qed.
-
-Check Let_rec.
-Fixpoint push_let_rec_down (T T0 : Type) (n n0 : nat) (x1 x2 : Rml) {struct x2} : Rml.
-  destruct x2 eqn : ox.
-  - refine (Let_rec T T0 n n0 x1 x2).
-  - refine x2.
-  - refine (Let_stm p
-                    (push_let_rec_down T T0 n n0 x1 r1)
-                    (push_let_rec_down T T0 n n0 x1 r2)).
-  - refine (If_stm (push_let_rec_down T T0 n n0 x1 r1)
-                   (push_let_rec_down T T0 n n0 x1 r2)
-                   (push_let_rec_down T T0 n n0 x1 r3)).
-  - refine (App_stm T1
-                    (push_let_rec_down T T0 n n0 x1 r1)
-                    (push_let_rec_down T T0 n n0 x1 r2)).
-  - refine (push_let_rec_down T T0 n n0 x1 r2). (* Should push everything down *)
-Defined.
-  
+Qed.  
 
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
@@ -741,19 +904,36 @@ Proof.
   {
     pose (fl_x1 := [:: (n0, T), (n, T -> T0) & fl]).
     
-    assert (x1_valid : rml_valid_type (T -> A) [seq i.1 | i <- env] fl_x1 x1) by (inversion x_valid ; subst ; assumption).
+    assert (x1_valid : rml_valid_type A [seq i.1 | i <- env] fl_x1 x1) by (inversion x_valid ; subst ; assumption).
     
     assert (x2_valid : rml_valid_type T [seq i.1 | i <- env] fl x2) by (inversion x_valid ; subst ; assumption).
 
     
     assert (env_valid_x1 : valid_env env fl_x1) by (repeat apply extend_fl_still_valid ; assumption).
     
-    pose (x1' := replace_all_variables_aux_type (T -> A) x1 env fl_x1 env_valid_x1 x1_valid).
+    pose (x1' := replace_all_variables_aux_type A x1 env fl_x1 env_valid_x1 x1_valid).
     assert (env_valid_x2 : valid_env env fl) by (repeat apply extend_fl_still_valid ; assumption).
     
     pose (x2' := replace_all_variables_aux_type T x2 env fl env_valid_x2 x2_valid).    
     
     refine (sFix T n n0 x1' x2').
+  }
+
+  (** Random **)
+  {
+    assert (rml_valid_type nat (map fst env) fl x) by (inversion x_valid ; assumption).
+
+    pose (replace_all_variables_aux_type nat x env fl env_valid H).
+
+    assert (A = nat) by (inversion x_valid ; assumption).
+    
+    refine (sRandom H0 s).
+  }
+
+  (** Flip **)
+  {
+    assert (A = bool) by (inversion x_valid ; assumption).
+    refine (sFlip H).
   }
 Defined.
 

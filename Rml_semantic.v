@@ -12,10 +12,23 @@ Require Import Util.
 
 Definition Choice T := (ChoiceType (EqType T gen_eqMixin) gen_choiceMixin).
 
+Lemma choice_type_eq : (Choice bool = bool_choiceType). Admitted.
+
 Lemma choice_of_type_to_choice_type :
   forall {R : realType} (x : distr R (Choice bool)), distr R (bool_choiceType).
 Proof.
-Admitted.
+  intros.
+  rewrite <- choice_type_eq.
+  assumption.
+Qed.
+
+Lemma choice_type_to_choice_of_type :
+  forall {R : realType} (x : distr R bool_choiceType), distr R (Choice bool).
+Proof.
+  intros.
+  rewrite choice_type_eq.
+  assumption.
+Qed.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -108,6 +121,12 @@ Proof.
   apply X.
 Qed.
 
+Fixpoint range (x : nat) : seq nat :=
+  match x with
+  | 0 => [:: 0]
+  | S n' => [:: x & range n']
+  end.
+
 Fixpoint ssem_aux {R : realType} {T : Type} (x : @sRml T) (env : seq (nat * Type * (@mem_type R))) (x_valid : srml_valid_type T (map fst env) x) {struct x} : {distr (Choice T) / R}.
 Proof.
   destruct x.
@@ -140,24 +159,27 @@ Proof.
     apply helper2 in x_valid.
     inversion_clear x_valid.
 
-    pose (fx := sApp _ x1 (sVar nx)).
+    pose (fun (k1 : B -> distr R (Choice T)) k2 =>
+    @ssem_aux R T x1 ((nx,B,new_element (dunit k2)) :: (nf,B -> T,new_element (k1 k2)) :: env) H).
 
-    (* start app *)
-    assert (x_valid : srml_valid_type T ((nx,B) :: (nf,B -> T) :: (map fst env)) fx).
-    constructor.
-    assumption.
-    constructor.
-    left.
-    reflexivity.
-    
-    apply helper in x_valid.
-    inversion x_valid.
-    pose (f := fun (k1 : B -> distr R (Choice T)) k2 => @dlet R (Choice (B -> T)) (Choice T) (fun t =>
-    @dlet R (Choice B) (Choice T) (fun u =>
-    @dunit R (Choice T) (t u)) (@ssem_aux R B x2 env H0)) (@ssem_aux R (B -> T) x1 ((nx,B,new_element (dunit k2)) :: (nf,B -> T,new_element (k1 k2)) :: env) H1)).
-    (* end app *)
+    apply (@dlet R (Choice B) (Choice T) (fun b => dlim (ubn' d b)) (ssem_aux R B x2 env H0)).
+  }
 
-    apply (@dlet R (Choice B) (Choice T) (fun b => dlim (ubn' f b)) (ssem_aux R B x2 env H0)).
+  (* sRandom *)
+  {
+    subst.
+    assert (srml_valid_type nat [seq i.1 | i <- env] x) by (inversion x_valid ; assumption).
+    pose (ssem_aux R nat x env H).
+    pose (@duni R (Choice nat)).
+    pose (@dlet R (Choice nat) (Choice nat) (fun x => d0 (range x)) d).
+    refine d1.
+  }
+
+  (* sFlip *)
+  {
+    subst.
+    apply (@choice_type_to_choice_of_type R).
+    exact (@dflip R 1).
   }
 Defined.
 
