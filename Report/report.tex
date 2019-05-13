@@ -15,6 +15,11 @@
 \usepackage{stmaryrd} % For interpretation bracket (and maybe other stuff)
 \usepackage{listings}
 
+% -------------------------------------------------------------
+% For convenient development
+% -------------------------------------------------------------
+\usepackage{todonotes}
+
 \lstdefinelanguage{Coq}{ 
 %
 % Anything betweeen $ becomes LaTeX math mode
@@ -249,8 +254,37 @@ Inductive sRml {A : Type} :=
 \end{center}
 That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\subsection{\texttt{pwhile}}
-% Here we should give a quick description of EasyCrypt an present pwhile
+\subsection{\textsc{EasyCrypt} and \texttt{pwhile}}
+% Here we should give a quick description of EasyCrypt and present pwhile
+\textsc{EasyCrypt} is a framework that has been developed in order to help in the
+construction of machine-checkable proofs about cryptographic constructions and
+protocols. %\cite{ https://www.easycrypt.info/documentation/refman.pdf}
+A standard approach to this kind of proofs is based on so-called games; in
+\textsc{EasyCrypt} cryptographic algorithms as well as games are modelled as
+\textit{modules} consisting of procedures written in a simple imperative language
+called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands for
+``probabilistic'', so in total the name refers to a probabilistic extension of the
+well-known minimalistic \texttt{while} language.
+
+We will in this section give an overview of the language as well as its
+interpretation in Coq, which is due to a development by Pierre-Yves Strub
+\footnote{https://github.com/strub/xhl}. We will not concern ourselves with the
+module system of \textsc{EasyCrypt} since the focus of the present development is
+on probabilistic languages and their interpretation rather than their use.\\
+\\
+\texttt{pwhile} consists of the following expressions and commands: 
+\begin{align*}
+  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp } pred~mem ~\vert ~ e_1\ e_2\\
+  cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
+  \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
+            \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
+\end{align*}
+
+\todo[inline]{Explain what prp is all about}
+
+The result of interpreting a program in \texttt{pwhile} is a distribution over
+memories. 
+
 
 \subsection{Complete partial orders}
 % Describe cpos, omega-cpos, and dcpos
@@ -360,22 +394,24 @@ always the least element of the function space $F$ operates on.
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
 % of our programs in pwhile and rml.
 
-% A measure is a linear function µ from a set A to non-negative real numbers. It also
-% preserves least upper bounds.
-% Our set is the functions of a base-type to [0,1]. We write Mß for a measure on the
-% type ß.
+\todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
+  non-negative real numbers. It also preserves least upper bounds. \\
 
-% Mß = (ß->[0,1])->[0,1]
-% The (ß->[0,1]) part describes a probability distribution. With this input we can
-% compute a new probability distribution in our programs. 
+Mß = (ß$\to$[0,1])$\to$[0,1]
+The (ß$\to$[0,1]) part describes a probability distribution. 
+We can view our programs as transformations of probability distributions.\\
 
-% "a term e of type ß is translated to a purely functional one [e] which is
-% understood as a measure on the same type."
+"a term e of type ß is translated to a purely functional one [e] which is
+understood as a measure on the same type."}
 
-% The w-cpo structure on [0,1]; why is it an w-cpo?
-% Packages: Todo, comment
-% mention: EC has not only pwhile, but also a module system that includes
-% procedures. 
+\todo[inline]{The w-cpo structure on [0,1]; why is it an w-cpo?\\
+@Bas: What do we need the structure for? \\
+I am confused by what it says on page 574: First we talk about $\mu$(f) for f:A$\to$[0,1]
+and then we say that $\mu$ is a measure on A. Shouldn't it be on probability
+distributions over A (so A$\to$[0,1])?}
+
+
+% Packages: comment
 
 
 \section{Our approach}
@@ -391,7 +427,7 @@ always the least element of the function space $F$ operates on.
 
 
 \subsection{Translating \texttt{while} to a functional language}
-% Make the meaning of the translation and use of x_r more explicit.
+% 
 In order to do the translations properly, let us first have a look at a translation
 from the simple, widely known \texttt{while} language to a simple functional language
 resembling \rml. The thought behind this is that once this translation is in place,
@@ -419,8 +455,9 @@ statement $s$ to an expression in our functional language as
 Furthermore we need to handle the fact that while the imperative \texttt{while} has a
 return memory that one could extract the wished results from, a functional language
 has no such thing. We therefore need to choose the memory positions we are interested
-in and encapsulate those in a variable. We will, in the following, choose $x_r$ to be
-the name of said variable. 
+in and encapsulate those in a variable.
+\todo{Make the meaning of the translation and use of $x_r$ more explicit.}We will, in
+the following, choose $x_r$ to be the name of said variable.  \\
 
 \begin{align}
   \label{eq:transwhile}
