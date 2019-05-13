@@ -6,7 +6,7 @@ Require Import Coq.Logic.Eqdep_dec.
 (* -------------------------------------------------------------------------------- *)
 
 Inductive Rml :=
-| Var : (nat * Type) -> Rml
+| Var : (nat * Type) -> bool -> Rml (* bool = is fun var? *)
 | Const : forall (A : Type), A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
@@ -21,11 +21,11 @@ Inductive Rml :=
 Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> Prop :=
 | well_var : forall A x,
     List.In (x,A) vl ->
-    well_formed vl fl (Var (x,A))
+    well_formed vl fl (Var (x,A) false)
 
 | well_fun_var : forall A x,
     List.In (x,A) fl ->
-    well_formed vl fl (Var (x,A))
+    well_formed vl fl (Var (x,A) true)
                 
 | well_const : forall A c,
     well_formed vl fl (Const A c)
@@ -63,11 +63,11 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
 Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> Prop :=
 | valid_var : forall x,
     List.In (x,A) vl ->
-    rml_valid_type A vl fl (Var (x,A))
+    rml_valid_type A vl fl (Var (x,A) false)
 
 | valid_fun_var : forall x,
     List.In (x,A) fl ->
-    rml_valid_type A vl fl (Var (x,A))
+    rml_valid_type A vl fl (Var (x,A) true)
                    
 | valid_const : forall (c : A),
     rml_valid_type A vl fl (Const A c)
@@ -153,7 +153,7 @@ Inductive sRml {A : Type} :=
 
 Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 | is_fun_var : forall (p : nat * Type),
-    List.In p l -> rml_is_simple (Var p)
+    List.In p l -> rml_is_simple (Var p true)
                                                              
 | is_const : forall (A : Type) c,
     rml_is_simple (@Const A c)
@@ -185,7 +185,7 @@ Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 
 Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   match x with
-  | sVar n => Var (n,A)
+  | sVar n => Var (n,A) true
   | sConst c => Const A c
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
   | sApp T e1 e2 => App_stm T (sRml_to_rml e1) (sRml_to_rml e2)
@@ -735,7 +735,6 @@ Defined.
 Lemma valid_rml_makes_valid_srml :
   forall A x y vl fl, rml_valid_type A vl fl x -> srml_valid_type A fl y.
 Proof.
-  intros.
 Admitted.
 
 Lemma rml_simple_weakening :
@@ -744,14 +743,14 @@ Proof.
   induction x ; intros.
   (** Var **)
   {
+    inversion H ; subst.
     constructor.
-    inversion H.
     apply List.in_app_or in H1.
     inversion H1.
-    - apply List.in_or_app.
+    + apply List.in_or_app.
       left.
       assumption.
-    - apply List.in_or_app.
+    + apply List.in_or_app.
       right.
       apply List.in_or_app.
       right.
@@ -826,29 +825,31 @@ Proof.
   generalize dependent env.
   generalize dependent A.
   induction x ; intros.
+  (** Var *)
   {
     assert (List.In p (map fst env) \/ List.In p fl) by (inversion x_valid ; subst ; auto).
     destruct p.
     assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst.
     refine (@lookup (n,T) env fl env_valid H).
   }
+
+  (** Const **)
   {
     assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst.
     refine (sConst a).
   }
       
   (** Let-stm **)
-  {    
+  {
     assert (x1_valid : rml_valid_type p.2 [seq i.1 | i <- env] fl x1) by (inversion x_valid ; subst ; assumption).
     
     pose (x1' := replace_all_variables_aux_type p.2 x1 env fl env_valid x1_valid).
     
     pose (x1'' := sRml_to_rml x1').
-
-    pose (x1'_valid := valid_rml_makes_valid_srml p.2 x1 x1' [seq i.1 | i <- env] fl x1_valid).
     
+    pose (x1'_valid := valid_rml_makes_valid_srml p.2 x1 x1' [seq i.1 | i <- env] fl x1_valid).    
     pose (x1''_simple := @sRml_simple p.2 x1' fl x1'_valid).
-    pose (x1''_valid := sRml_valid p.2 x1' [seq i.1 | i <- env] fl x1'_valid).
+    pose (x1''_valid := @sRml_valid p.2 x1' (map fst env) fl x1'_valid).
 
     assert (x2_valid : rml_valid_type A (p :: [seq i.1 | i <- env]) fl x2) by (inversion x_valid ; subst ; assumption).
 

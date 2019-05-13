@@ -6,6 +6,31 @@ Require Import Rml_semantic.
 
 (** * Examples **)
 
+Definition some : Rml :=
+  Let_rec nat nat 0 1
+          (Random (Var (1,nat <: Type)))
+          (Const nat 10).
+
+Definition some_valid : rml_valid_type nat nil nil some.
+  constructor.
+  - constructor.
+    + reflexivity.
+    + constructor 2.
+      left.
+      reflexivity.
+  - constructor.
+Defined.
+
+Check @ssem _ nat some some_valid.
+
+Check ssem (Const nat 3).
+Check @replace_all_variables_type nat (Const nat 3) (valid_const nat nil nil 3).
+Compute @replace_all_variables_type nat (Const nat 3) (valid_const nat nil nil 3).
+
+
+Check (valid_rml_makes_valid_srml nat (Const nat 3) (sConst 3) nil nil (valid_const nat nil nil 3)).
+Compute (valid_rml_makes_valid_srml nat (Const nat 3) (sConst 3) nil nil (valid_const nat nil nil 3)).
+Compute ssem_aux (sConst 3).
 
 Definition walk : Rml :=
   Let_rec nat nat 0 1
@@ -39,6 +64,7 @@ Qed.
 Check @ssem.
 Check @ssem _ nat walk walk_valid.
 Compute @ssem _ nat walk walk_valid.
+
 
 
 

@@ -57,15 +57,6 @@ Proof.
       assumption.
 Qed.
 
-(* Fixpoint ubn {R : realType} {A B : Type} (F : distr R (Choice ((A -> B) -> A -> B))) (n : nat) : distr R (Choice (A -> B)) := *)
-(*   match n return distr R (Choice (A -> B)) with *)
-(*   | 0 => dnull *)
-(*   | S n' => *)
-(*     @dlet R (Choice (A -> B)) (Choice (A -> B)) (fun G => *)
-(*     @dlet R (Choice ((A -> B) -> A -> B)) (Choice (A -> B)) (fun H => *)
-(*     @dunit R (Choice (A -> B)) (H G)) F) (ubn F n') *)
-(*   end. *)
-
 Fixpoint ubn {R : realType} {A B : Type} (F : (A -> distr R (Choice B)) -> A -> distr R (Choice B)) (n : nat) : A -> distr R (Choice B) :=
   fun a =>
   match n return distr R (Choice B) with
