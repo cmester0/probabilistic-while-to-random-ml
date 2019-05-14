@@ -274,13 +274,11 @@ on probabilistic languages and their interpretation rather than their use.\\
 \\
 \texttt{pwhile} consists of the following expressions and commands: 
 \begin{align*}
-  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp } pred~mem ~\vert ~ e_1\ e_2\\
+  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp (pred mem)}~\vert ~ e_1\ e_2\\
   cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
   \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
             \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
 \end{align*}
-
-\todo[inline]{Explain what prp is all about}
 
 The result of interpreting a program in \texttt{pwhile} is a distribution over
 memories.
@@ -288,6 +286,17 @@ memories.
 \todo{Is it enough to describe what the semantics is, or should I extract the formal
   semantics from the xhl development? }
 \todo[inline]{What do the predicates do? Types for constants. }
+\todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
+  Coq. This means that constants are nothing other than Gallina values; note that since
+  Gallina is a functional language, functions can be viewed as values as well and
+  hence it makes sense to have function application as an expression even though we
+  have no ``real'' way of defining functions in \texttt{pwhile.} }
+\todo[inline, color=green!40]{\texttt{pred} is an ssreflect Type
+  transformer. Something of type \texttt{pred T} is a function that takes as input an
+  element of type T and returns a boolean value. So a \texttt{pred mem} is simply a
+  function that takes a memory and returns a boolean value depending on the state of
+  said memory. }
+\todo[inline] {Is \texttt{prp} needed for expressiveness? }
 
 
 \subsection{Complete partial orders}
@@ -301,7 +310,7 @@ relation is not defined on every pair of elements in the set.
 
 There exist a number of different completeness properties that a poset can have.
 We will here have a look at $\omega$-complete partial orders, which we will use in
-order to interpret general recursion and randomised programs. 
+order to interpret general recursion and probabilistic programs. 
 
 \begin{defn}
   \textit{$\omega$-complete partial order ($\omega$-cpo)}\\
@@ -394,7 +403,7 @@ the general case this follows from the fact that $F$ has to be monotone and $F_0
 always the least element of the function space $F$ operates on. 
 
 
-\subsubsection{Interpreting random definitions}\label{sec:random-interp}
+\subsection{Interpreting probabilistic definitions}\label{sec:prob-interp}
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
 % of our programs in pwhile and rml.
 
@@ -450,7 +459,7 @@ all we have to do to translate \texttt{pwhile} to \rml is to add probability.
 \end{align}
 
 The syntax of our functional language is the same as \rml modulo the pre-defined
-randomised functions.
+probabilistic functions.
 
 The translation of expressions is completely straightforward: variables are mapped to
 variables, constants to constants, and function applications to function applications. 
@@ -467,7 +476,6 @@ difference is by choosing a variable name that is designated the return variable
 encapsulates the information we are interested in after the computation. This is the
 result of a program translated from \texttt{while} to our functional language; in the
 following we choose $x_r$ as the symbol for the chosen return variable. 
-\todo{@Bas: Is this description of our return and $x_r$ sufficiently clear?}
 
 \begin{align}
   \label{eq:transwhile}
