@@ -3,7 +3,7 @@
 % -------------------------------------------------------------
 \documentclass[11pt, leqno]{article}
 \usepackage{graphicx}
-\usepackage[left=30mm,right=30mm]{geometry}
+%\usepackage[left=30mm,right=30mm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 % -------------------------------------------------------------
@@ -214,90 +214,35 @@ literate=
 % overview of what Coq/formal verification is, some very basic things about
 % cryptography, and how they relate.
 
+\todo[inline, color=green!40]{Probabilistic algorithms are widely used, but far less
+  widely proved correct. We explore some probabilistic languages and how to embed
+  them in the widely known and trusted proof assistant Coq. Having an interpretation
+  of such a language in Coq makes it possible to prove facts about the algorithms in
+  Coq's proof logic.
+
+  We explore both a functional design, as presented in [...], %\cite{RML paper}
+  and an imperative one, as in [...]. %\cite{EasyCrypt stuff}
+}
+
 
 \section{Theory and existing frameworks}
 % Goal: 6-12 pages
 
-\subsection{\rml}
-We have two representations of Rml, continuations and distributions. Both build on a monad, for ease of use.
-\\ \\
-The data structure used to represent Rml terms is as follows:
-\begin{center}
-  \begin{minipage}{0.7\linewidth}
-    \begin{lstlisting}[language=coq]
-Inductive Rml :=
-| Var : (nat * Type) -> Rml
-| Const : forall (A : Type), A -> Rml
-| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
-| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
-| If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
-We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
-\\ \\
-We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
-\begin{center}
-  \begin{minipage}{0.7\linewidth}
-    \begin{lstlisting}[language=coq]
-Inductive sRml {A : Type} :=
-| sVar : nat -> sRml
-| sConst : A -> sRml
-| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
-| sIf : @sRml bool -> sRml -> sRml -> sRml
-| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
-That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
+\todo[inline, color=green!40]{As mentioned before we focused our work on developing a
+  framework for proofs of randomised algorithms in the proof assistant Coq. Coq is
+  known to be a reliable tool and proofs formalised with it are widely trusted. Coq
+  is, however, also known to be notoriously difficult to code things in due to a
+  strict type system that requires determinism and certain termination of all
+  programs written in it. Obviously these two are not the optimal conditions for the
+  encoding of randomised algorithms that may not terminate.
 
-\subsection{\textsc{EasyCrypt} and \texttt{pwhile}}
-% Here we should give a quick description of EasyCrypt and present pwhile
-\textsc{EasyCrypt} is a framework that has been developed in order to help in the
-construction of machine-checkable proofs about cryptographic constructions and
-protocols. %\cite{ https://www.easycrypt.info/documentation/refman.pdf}
-A standard approach to this kind of proofs is based on so-called games; in
-\textsc{EasyCrypt} cryptographic algorithms as well as games are modelled as
-\textit{modules} consisting of procedures written in a simple imperative language
-called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands for
-``probabilistic'', so in total the name refers to a probabilistic extension of the
-well-known minimalistic \texttt{while} language.
+  This means that we need a way to encode an interpretation general recursion (or
+  iteration) as well as randomness in such a way that we can still reason about our
+  programs in the proof system of Coq without having to run them.
 
-We will in this section give an overview of the language as well as its
-interpretation in Coq, which is due to a development by Pierre-Yves Strub
-\footnote{https://github.com/strub/xhl}. We will not concern ourselves with the
-module system of \textsc{EasyCrypt} since the focus of the present development is
-on probabilistic languages and their interpretation rather than their use.\\
-\\
-\texttt{pwhile} consists of the following expressions and commands: 
-\begin{align*}
-  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp (pred mem)}~\vert ~ e_1\ e_2\\
-  cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
-  \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
-            \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
-\end{align*}
-
-The result of interpreting a program in \texttt{pwhile} is a distribution over
-memories.
-
-\todo{Is it enough to describe what the semantics is, or should I extract the formal
-  semantics from the xhl development? }
-\todo[inline]{What do the predicates do? Types for constants. }
-\todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
-  Coq. This means that constants are nothing other than Gallina values; note that since
-  Gallina is a functional language, functions can be viewed as values as well and
-  hence it makes sense to have function application as an expression even though we
-  have no ``real'' way of defining functions in \texttt{pwhile.} }
-\todo[inline, color=green!40]{\texttt{pred} is an ssreflect Type
-  transformer. Something of type \texttt{pred T} is a function that takes as input an
-  element of type T and returns a boolean value. So a \texttt{pred mem} is simply a
-  function that takes a memory and returns a boolean value depending on the state of
-  said memory. }
-\todo[inline] {Is \texttt{prp} needed for expressiveness? }
-
+  We will in this section present a monadic interpretation into probability
+  distribution over the outcome of a randomised program as well as a way of
+  interpreting general recursion}
 
 \subsection{Complete partial orders}
 % Describe cpos, omega-cpos, and dcpos
@@ -407,6 +352,8 @@ always the least element of the function space $F$ operates on.
 % Describe how we use omega-cpos in order to express the probabilistic interpretation
 % of our programs in pwhile and rml.
 
+
+
 \todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
   non-negative real numbers. It also preserves least upper bounds. \\
 
@@ -420,15 +367,105 @@ understood as a measure on the same type."}
 \todo[inline]{The w-cpo structure on [0,1]; why is it an w-cpo?\\
 @Bas: What do we need the structure for? \\
 Answer: We just need the w-cpo structur on [0,1] in order to interpret fixed points
-and while loops in the functions to [0,1]. \\
-I am confused by what it says on page 574: First we talk about $\mu$(f) for f:A$\to$[0,1]
-and then we say that $\mu$ is a measure on A. Shouldn't it be on probability
-distributions over A (so A$\to$[0,1])?}
+and while loops in the functions to [0,1].}
+\todo[inline]{I am confused by what it says on page 574: First we talk about $\mu$(f)
+for f:A$\to$[0,1] and then we say that $\mu$ is a measure on A. Shouldn't it be on
+probability distributions over A (so A$\to$[0,1])?\\
+Answer: The measure $\mu$ over A is the same as the integral of f. This means that
+$\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 \todo[inline]{Monadic transformation. Should we add a subsection on monads or should we just
-  mention them?}
+  mention them?\\
+  We should mention them and refer to our FP project. This is to make sure that our
+  censor knows that we know stuff about monads. }
+
 
 % Packages: comment
+\subsection{The functional approach: \rml}
+The first approach to proving something about randomised algorithms in Coq that we
+will examine here is due toe Philippe Audebaud and Christine Paulin-Mohring %\cite
+and features the functional language \rml. 
+\\ \\
+We have two representations of Rml, continuations and distributions. Both build on a
+monad, for ease of use.
+\\ \\
+The data structure used to represent Rml terms is as follows:
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive Rml :=
+| Var : (nat * Type) -> Rml
+| Const : forall (A : Type), A -> Rml
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
+| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
+| If_stm : Rml -> Rml -> Rml -> Rml
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
+\\ \\
+We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive sRml {A : Type} :=
+| sVar : nat -> sRml
+| sConst : A -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
+
+\subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}
+% Here we should give a quick description of EasyCrypt and present pwhile
+\textsc{EasyCrypt} is a framework that has been developed in order to help in the
+construction of machine-checkable proofs about cryptographic constructions and
+protocols. %\cite{ https://www.easycrypt.info/documentation/refman.pdf}
+A standard approach to this kind of proofs is based on so-called games; in
+\textsc{EasyCrypt} cryptographic algorithms as well as games are modelled as
+\textit{modules} consisting of procedures written in a simple imperative language
+called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands for
+``probabilistic'', so in total the name refers to a probabilistic extension of the
+well-known minimalistic \texttt{while} language.
+
+We will in this section give an overview of the language as well as its
+interpretation in Coq, which is due to a development by Pierre-Yves Strub
+\footnote{https://github.com/strub/xhl}. We will not concern ourselves with the
+module system of \textsc{EasyCrypt} since the focus of the present development is
+on probabilistic languages and their interpretation rather than their use.\\
+\\
+\texttt{pwhile} consists of the following expressions and commands: 
+\begin{align*}
+  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp (pred mem)}~\vert ~ e_1\ e_2\\
+  cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
+  \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
+            \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
+\end{align*}
+
+The result of interpreting a program in \texttt{pwhile} is a distribution over
+memories.
+
+\todo{Is it enough to describe what the semantics is, or should I extract the formal
+  semantics from the xhl development? }
+\todo[inline]{What do the predicates do? Types for constants. }
+\todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
+  Coq. This means that constants are nothing other than Gallina values; note that since
+  Gallina is a functional language, functions can be viewed as values as well and
+  hence it makes sense to have function application as an expression even though we
+  have no ``real'' way of defining functions in \texttt{pwhile.} }
+\todo[inline, color=green!40]{\texttt{pred} is an ssreflect Type
+  transformer. Something of type \texttt{pred T} is a function that takes as input an
+  element of type T and returns a boolean value. So a \texttt{pred mem} is simply a
+  function that takes a memory and returns a boolean value depending on the state of
+  said memory. }
+\todo[inline] {Is \texttt{prp} needed for expressiveness? }
+
 
 
 \section{Our approach}
@@ -479,31 +516,39 @@ following we choose $x_r$ as the symbol for the chosen return variable.
 
 \begin{align}
   \label{eq:transwhile}
-  \texttt{skip}~;~s & ~\mapsto~ & \llbracket s \rrbracket\\
-  \texttt{skip}     & ~\mapsto~ & x_r\\
-  x := e~;~s        & ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
-  x_r := e          & ~\mapsto~ & e \\
-  x := e            & ~\mapsto~ & x_r \\
+  \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket\\
+  \notag\\
+  \texttt{skip}     ~\mapsto~ & x_r\\
+  \notag\\
+  x := e~;~s        ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
+  \notag\\
+  x_r := e          ~\mapsto~ & e \\
+  \notag\\
+  x := e            ~\mapsto~ & x_r \\
+  \notag\\
   (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
-                    & ~\mapsto~ & \texttt{if } e
-                                  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket
-                                  \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \\
+                    ~\mapsto~ & \texttt{if } e \\
+                    &  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
+                    & \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \notag\\
+  \notag\\
   \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
-                    & ~\mapsto~ & \texttt{if } e
+                    ~\mapsto~ & \texttt{if } e
                                   \texttt{ then } \llbracket s_1 \rrbracket
                                   \texttt{ else } \llbracket s_2 \rrbracket \\
+  \notag\\
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
-                    & ~\mapsto~ & \texttt{let rec } f~x :=
-                                  \texttt{if } e
-                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
-                                  \texttt{ else } \llbracket s_2 \rrbracket \label{eq:while1}
-                                  \texttt{ in } f~0\\
+                    ~\mapsto~ & \texttt{let rec } f~x :=
+                                  \texttt{if } e \label{eq:while1}\\
+                    & \phantom{{}=11111111111} \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket \notag\\
+                    &\phantom{{}=11111111111}\texttt{ else } \llbracket s_2 \rrbracket\notag\\
+                    & \texttt{ in } f~0 \notag \\
+  \notag\\
   \texttt{while } e \texttt{ do } s_1
-                    & ~\mapsto~ & \texttt{let rec } f~x :=
-                                  \texttt{if } e
-                                  \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket
-                                  \texttt{ else } x_r \label{eq:while2}
-                                  \texttt{ in } f~0
+                    ~\mapsto~ & \texttt{let rec } f~x :=
+                                 \texttt{if } e \label{eq:while2}\\
+                    & \phantom{{}=11111111111}\texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket\notag\\
+                    & \phantom{{}=11111111111}\texttt{ else } x_r \notag\\
+                    & \texttt{ in } f~0\notag
 \end{align}
 
 Note that in \ref{eq:while1} and \ref{eq:while2} we create recursive functions with a
