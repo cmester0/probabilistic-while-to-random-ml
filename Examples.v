@@ -22,6 +22,7 @@ Definition some_valid : rml_valid_type nat nil nil some.
 Defined.
 
 Check @ssem _ nat some some_valid.
+Compute @ssem _ nat some some_valid (fun x => 1).
 
 Check ssem (Const nat 3).
 Check @replace_all_variables_type nat (Const nat 3) (valid_const nat nil nil 3).

@@ -7,14 +7,13 @@ Require Import Coq.Logic.Eqdep_dec.
 
 Inductive Rml :=
 | Var : (nat * Type) -> bool -> Rml (* bool = is fun var? *)
-| Const : forall (A : Type), A -> Rml
+| Const : forall {A : Type}, A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml
 | Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml
 | Random : Rml -> Rml
 | Flip : Rml.
-
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -28,7 +27,7 @@ Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> P
     well_formed vl fl (Var (x,A) true)
                 
 | well_const : forall A c,
-    well_formed vl fl (Const A c)
+    well_formed vl fl (@Const A c)
                 
 | well_let : forall x (e1 e2 : Rml),
     well_formed vl fl e1 ->
@@ -70,7 +69,7 @@ Inductive rml_valid_type (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Typ
     rml_valid_type A vl fl (Var (x,A) true)
                    
 | valid_const : forall (c : A),
-    rml_valid_type A vl fl (Const A c)
+    rml_valid_type A vl fl (@Const A c)
                    
 | valid_let : forall B x a b,
     @rml_valid_type B vl fl a ->
@@ -186,7 +185,7 @@ Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   match x with
   | sVar n => Var (n,A) true
-  | sConst c => Const A c
+  | sConst c => @Const A c
   | sIf b m1 m2 => If_stm (sRml_to_rml b) (sRml_to_rml m1) (sRml_to_rml m2)
   | sApp T e1 e2 => App_stm T (sRml_to_rml e1) (sRml_to_rml e2)
   | sFix B nf nx f x =>
@@ -237,7 +236,7 @@ Require Import Eqdep_dec.
 Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}).
 Proof.
   (* decide equality. *)
-Admitted. 
+Admitted.
 
 Lemma helper :
   forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
@@ -445,6 +444,14 @@ Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
     (@rml_valid_type x.1.2 (map fst xs) l x.2) ->
     valid_env xs l ->
     valid_env (x :: xs) l.
+
+(* Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop := *)
+(* | env_nil l : valid_env nil l *)
+(* | env_cons (x : nat * Type * Rml) xs l : *)
+(*     (@rml_is_simple l x.2) -> *)
+(*     (@rml_valid_type x.1.2 (map fst xs) l x.2) -> *)
+(*     valid_env xs l -> *)
+(*     valid_env (x :: xs) l. *)
 
 Lemma valid_weakening:
   forall (a : nat * Type * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
@@ -700,20 +707,6 @@ Defined.
 
 (* -------------------------------------------------------------------------------- *)
 
-Theorem srml_to_rml_correctness :
-  forall A fl (srml : @sRml A) (valid : srml_valid_type A fl srml),
-    srml = @rml_to_sRml_l A (@sRml_to_rml A srml) nil fl (@sRml_simple A srml fl valid) (sRml_valid A srml nil fl valid).
-Proof.
-Admitted.
-
-Theorem rml_to_srml_correctness :
-  forall A rml vl fl simple valid,
-     rml = @sRml_to_rml A (@rml_to_sRml_l A rml vl fl simple valid).
-Proof.
-Admitted.
-
-(* -------------------------------------------------------------------------------- *)
-
 Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) (fl : seq (nat * Type)) `{env_valid : valid_env env fl} `{_ : List.In p (map fst env) \/ List.In p fl} {struct env} : @sRml p.2.
   intros.
   induction env.
@@ -731,11 +724,6 @@ Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml)) (fl : seq (nat
         -- right.
            assumption.
 Defined.
-
-Lemma valid_rml_makes_valid_srml :
-  forall A x y vl fl, rml_valid_type A vl fl x -> srml_valid_type A fl y.
-Proof.
-Admitted.
 
 Lemma rml_simple_weakening :
   forall x l1 l2 l3, @rml_is_simple (l1 ++ l3) x -> @rml_is_simple (l1 ++ l2 ++ l3) x.
@@ -815,6 +803,296 @@ Proof.
       assumption.
 Qed.  
 
+
+(* EXAMPLE *)
+
+Inductive correctness {A} : @sRml A -> Rml -> Prop :=
+| correct_var : forall n,
+    correctness (sVar n) (Var (n,A) true)
+                
+| correct_const : forall c,
+    correctness (sConst c) (@Const A c)
+                
+| correct_if : forall b b' m1 m1' m2 m2',
+    @correctness bool b b' ->
+    correctness m1 m1' ->
+    correctness m2 m2' ->
+    correctness (sIf b m1 m2) (If_stm b' m1' m2')
+| correct_app : forall T e1 e1' e2 e2',
+    @correctness (T -> A) e1 e1' ->
+    @correctness T e2 e2' ->
+    correctness (sApp T e1 e2) (App_stm T e1' e2')
+                
+| correct_rec : forall B f f' x x' nf nx,
+    @correctness B x x' ->
+    correctness f f' ->
+    correctness (sFix B nf nx f x) (Let_rec B A nf nx f' x')
+                
+| correct_random : forall e e' (H : A = nat),
+    @correctness nat e e' ->
+    correctness (sRandom H e) (Random e')
+                
+| correct_flip : forall (H : A = bool),
+    correctness (sFlip H) (Flip).
+
+Theorem srml_to_rml_correctness :
+  forall A (x : @sRml A), @correctness A x (sRml_to_rml x).
+Proof.
+  induction x ; simpl ; constructor ; assumption.
+Qed.
+
+Lemma correct_is_simple :
+  forall A x y vl fl, @rml_valid_type A vl fl x -> @correctness A y x -> @rml_is_simple fl x.
+Proof.
+  intros.
+  generalize dependent x.
+  generalize dependent fl.
+  induction y ; intros.
+  (* sVar *)
+  {
+    inversion H0 ; subst.
+    inversion H ; subst.
+    constructor.
+    assumption.
+  }
+
+  (* sConst *)
+  {
+    inversion H0 ; subst.
+    constructor.
+  }
+
+  (* if *)
+  {
+    inversion H0 ; subst.
+    inversion H ; subst.
+    constructor ; eauto.
+  }
+  
+  (* app *)
+  {
+    inversion H0 ; subst.
+    inversion H ; subst.
+    apply (inj_pair2_eq_dec Type dec_eq) in H2.
+    apply (inj_pair2_eq_dec Type dec_eq) in H4.
+    subst.
+    simpl.
+    constructor ; eauto.
+  }
+
+  (* fix *)
+  {
+    inversion H0 ; subst.
+    inversion H ; subst.
+    apply (inj_pair2_eq_dec Type dec_eq) in H6.
+    subst.
+    constructor ; eauto.
+  }
+
+  (* random *)
+  {
+    inversion H0 ; subst.
+    inversion H ; subst.
+    constructor ; eauto.
+  }
+
+  (* flip *)
+  {
+    inversion H0 ; subst.
+    constructor.
+  }
+Qed.
+
+Definition asdf : Rml :=
+  Let_stm (4,nat <: Type) (Const 100) (Var (4,nat <: Type) false).
+
+Definition asdf2 : Rml := (Const 100).
+
+Fixpoint count_let (x : Rml) : nat :=
+  match x with
+  | Var _ _ | @Const _ _ | Flip => 0
+  | Let_stm _ a b => 1 + count_let a + count_let b
+  | If_stm a b c => count_let a + count_let b + count_let c
+  | App_stm _ a b => count_let a + count_let b
+  | Let_rec _ _ _ _ a b => count_let a + count_let b
+  | Random a => count_let a
+  end.
+
+Theorem sum_to_zero :
+  forall x y,
+    x + y = 0 <-> x = 0 /\ y = 0.
+Proof. induction x ; easy. Qed.    
+
+Theorem zero_let_is_simple :
+  forall A x fl (x_valid : rml_valid_type A nil fl x),
+    count_let x = 0 -> @rml_is_simple fl x.
+Proof.
+  intros.
+  generalize dependent fl.
+  generalize dependent A.
+  induction x ; intros.
+  - inversion x_valid ; subst.
+    + contradiction.
+    + constructor.
+      assumption.
+  - constructor.
+  - inversion H. (* contradiction *)
+  - inversion x_valid ; subst.
+    inversion H.
+    apply sum_to_zero in H1.
+    inversion_clear H1.
+    apply sum_to_zero in H0.
+    inversion_clear H0.
+    apply (IHx1 H1) in H3.
+    apply (IHx2 H6) in H4.
+    apply (IHx3 H2) in H5.
+    
+    constructor ; assumption.
+
+  - inversion x_valid ; subst.
+    inversion H.
+    apply sum_to_zero in H1.
+    inversion_clear H1.
+    apply (IHx1 H0) in H2.
+    apply (IHx2 H3) in H4.
+    
+    constructor ; assumption.
+    
+  - inversion x_valid ; subst.
+    inversion H.
+    apply sum_to_zero in H1.
+    inversion_clear H1.
+    apply (IHx1 H0) in H2.
+    apply (IHx2 H3) in H7.
+    constructor ; assumption.
+
+  - constructor.
+    inversion H.
+    inversion x_valid ; subst.
+    apply (IHx H1 nat).
+    assumption.
+
+  - constructor.
+Qed.
+
+(* END *)
+
+Lemma back_no_lets :
+  forall A x, count_let (@sRml_to_rml A x) = 0.
+Proof.
+  intros.
+  induction x.
+  - constructor.
+  - constructor.
+  - simpl.
+    apply sum_to_zero.
+    split.
+    apply sum_to_zero.
+    split.
+    assumption.
+    assumption.
+    assumption.
+  - simpl.
+    apply sum_to_zero.
+    split ; assumption.
+  - simpl.
+    apply sum_to_zero.
+    split ; assumption.
+  - simpl.
+    assumption.
+  - simpl.
+    reflexivity.
+Qed.    
+
+Fixpoint count_false_var (x : Rml) : nat :=
+  match x with
+  | Var _ false => 1
+  | Var _ true | @Const _ _ | Flip => 0
+  | Let_stm _ a b => count_false_var a + count_false_var b
+  | If_stm a b c => count_false_var a + count_false_var b + count_false_var c
+  | App_stm _ a b => count_false_var a + count_false_var b
+  | Let_rec _ _ _ _ a b => count_false_var a + count_false_var b
+  | Random a => count_false_var a
+  end.
+
+Lemma back_no_false_var :
+  forall A x, count_false_var (@sRml_to_rml A x) = 0.
+Proof.
+  intros.
+  induction x.
+  - constructor.
+  - constructor.
+  - simpl.
+    apply sum_to_zero.
+    split.
+    apply sum_to_zero.
+    split.
+    assumption.
+    assumption.
+    assumption.
+  - simpl.
+    apply sum_to_zero.
+    split ; assumption.
+  - simpl.
+    apply sum_to_zero.
+    split ; assumption.
+  - simpl.
+    assumption.
+  - simpl.
+    reflexivity.
+Qed.
+
+Lemma simple_if_well :
+  forall fl x,
+    well_formed nil fl x ->
+    count_false_var x = 0 ->
+    count_let x = 0 ->
+    @rml_is_simple fl x.
+Proof.
+  intros.
+  generalize dependent fl.
+  induction x ; intros.
+  - inversion H ; subst.
+    + contradiction.
+    + constructor.
+      assumption.
+  - constructor.
+  - inversion H1.
+  - inversion H ; subst.
+    inversion H1.
+    inversion H0.
+    apply sum_to_zero in H3.
+    inversion_clear H3.
+    apply sum_to_zero in H2.
+    inversion_clear H2.
+    apply sum_to_zero in H4.
+    inversion_clear H4.
+    apply sum_to_zero in H2.
+    inversion_clear H2.        
+    constructor ; eauto.
+  - inversion H ; subst.
+    inversion H1.
+    inversion H0.
+    apply sum_to_zero in H3.
+    inversion_clear H3.
+    apply sum_to_zero in H5.
+    inversion_clear H5.
+    constructor ; eauto.
+  - inversion H ; subst.
+    inversion H1.
+    inversion H0.
+    apply sum_to_zero in H3.
+    inversion_clear H3.
+    apply sum_to_zero in H5.
+    inversion_clear H5.
+    constructor ; eauto.
+  - inversion H ; subst.
+    inversion H1.
+    inversion H0.
+    constructor ; eauto.
+  - constructor.
+Qed.
+    
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
          (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
@@ -842,20 +1120,33 @@ Proof.
   (** Let-stm **)
   {
     assert (x1_valid : rml_valid_type p.2 [seq i.1 | i <- env] fl x1) by (inversion x_valid ; subst ; assumption).
-    
-    pose (x1' := replace_all_variables_aux_type p.2 x1 env fl env_valid x1_valid).
-    
-    pose (x1'' := sRml_to_rml x1').
-    
-    pose (x1'_valid := valid_rml_makes_valid_srml p.2 x1 x1' [seq i.1 | i <- env] fl x1_valid).    
-    pose (x1''_simple := @sRml_simple p.2 x1' fl x1'_valid).
-    pose (x1''_valid := @sRml_valid p.2 x1' (map fst env) fl x1'_valid).
 
+    pose (x1' := replace_all_variables_aux_type p.2 x1 env fl env_valid x1_valid).
+    pose (x1'' := @sRml_to_rml p.2 x1').
+
+    assert (correctness x1' x1'') by apply (@srml_to_rml_correctness p.2 x1').
+
+    pose (correct_is_simple p.2 x1'' x1' (map fst env) fl).
+
+    
+    
+    pose (x1''' := replace_all_variables_aux_type p.2 x1'' env fl env_valid x1_valid).
+
+    
+    pose (@rml_to_sRml_l p.2 x1'' (map fst env) fl).
+    
+    assert (replace_correct : correctness x1' x1).
+    unfold x1'.
+    induction x1.
+    - 
+    
+    pose (x1_simple := correct_is_simple p.2 x1 x1' (map fst env) fl x1_valid replace_correct).
+    
     assert (x2_valid : rml_valid_type A (p :: [seq i.1 | i <- env]) fl x2) by (inversion x_valid ; subst ; assumption).
 
-    assert (env_valid' : valid_env ((p,x1'') :: env) fl) by (constructor ; assumption).
+    assert (env_valid' : valid_env ((p,x1) :: env) fl) by (constructor ; assumption).
     
-    refine (replace_all_variables_aux_type A x2 ((p,x1'') :: env) fl env_valid' x2_valid).
+    refine (replace_all_variables_aux_type A x2 ((p,x1) :: env) fl env_valid' x2_valid).
   }
     
   (** If-stm **)
