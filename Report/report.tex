@@ -242,9 +242,17 @@ literate=
 
   We will in this section present a monadic interpretation into probability
   distribution over the outcome of a randomised program as well as a way of
-  interpreting general recursion}
+  interpreting general recursion.}
 
-\subsection{Complete partial orders}
+\todo[inline, color=green!40]{In this section we will have a look at how to use
+  complete partial orders to interpret general recursion (Section \ref{sec:cpos}), and
+  how we can represent the result of a probabilistic computation using a monadic
+  interpretation of probability measures (Section \ref{sec:prob-interp}. Afterwards we
+  will move on to presenting two different developments that have worked with
+  probabilistic languages in Coq: the functional \rml (Section \ref{sec:rml}) and the
+  imperative \texttt{pwhile} (Section \ref{sec:pwhile}).}
+
+\subsection{Complete partial orders}\label{sec:cpos}
 % Describe cpos, omega-cpos, and dcpos
 % partial order: a set with an ordering relation, but not every two elements have to
 % be comparable
@@ -381,7 +389,7 @@ $\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 
 % Packages: comment
-\subsection{The functional approach: \rml}
+\subsection{The functional approach: \rml}\label{sec:rml}
 The first approach to proving something about randomised algorithms in Coq that we
 will examine here is due toe Philippe Audebaud and Christine Paulin-Mohring %\cite
 and features the functional language \rml. 
@@ -422,7 +430,7 @@ Inductive sRml {A : Type} :=
 \end{center}
 That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}
+\subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}\label{sec:pwhile}
 % Here we should give a quick description of EasyCrypt and present pwhile
 \textsc{EasyCrypt} is a framework that has been developed in order to help in the
 construction of machine-checkable proofs about cryptographic constructions and
@@ -448,11 +456,18 @@ on probabilistic languages and their interpretation rather than their use.\\
             \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
 \end{align*}
 
-The result of interpreting a program in \texttt{pwhile} is a distribution over
-memories.
+The embedding of \texttt{pwhile} in Coq is a so-called shallow embedding, which means
+that we use Coq terms and types as part of programs in \texttt{pwhile}. This is used
+in order to form expressions: Constants in \texttt{pwhile} are Coq constants, hence
+an expression in \texttt{pwhile} can have any Coq type. In the implementation,
+expressions are parameterised by their type.
 
-\todo{Is it enough to describe what the semantics is, or should I extract the formal
-  semantics from the xhl development? }
+Most of the above constructs are well known and need no special explanation. What is
+worth noting, however, is \texttt{prp (pred mem)}: \texttt{pred} is the
+\todo{Is there a word like 'functional' for types?}type transformer $\forall \tau:
+\tau \to \mathbb{B}$, while \texttt{mem} is a type that is defined by the
+\texttt{xhl} development in order to represent memories for \texttt{pwhile} programs.  
+
 \todo[inline]{What do the predicates do? Types for constants. }
 \todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
   Coq. This means that constants are nothing other than Gallina values; note that since
