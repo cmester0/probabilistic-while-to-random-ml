@@ -357,10 +357,35 @@ always the least element of the function space $F$ operates on.
 
 
 \subsection{Interpreting probabilistic definitions}\label{sec:prob-interp}
-% Describe how we use omega-cpos in order to express the probabilistic interpretation
-% of our programs in pwhile and rml.
+In order to interpret probabilistic definitions, we need a way of expressing
+the distribution of possible results. For this we will use probability measures as
+described in [...].% \cite{rml-paper}
 
+\subsubsection{The concept of measures}
+In layman's terms, we can describe a measure on a set $A$ as exactly that: a way of
+measuring subsets of $A$. More precisely, a measure on $A$ assigns a non-negative
+real number to every ``suitable'' subset of $A$, where ``suitable'' means fulfilling
+certain arbitrary conditions. We will henceforth write $\mu (X)$ to signify the value
+of $X \subseteq A$ under the measure $\mu$. 
 
+In order for a function to be a measure, there are three properties it has to have:
+It must take only non-negative values, $\mu (\varnothing) = 0$, and it has to be
+countably additive. Being countably additive means that for every set of pairwise
+disjoint objects, the value of this set is equal to the sum of the values of each
+object:
+
+\begin{equation*}
+  \mu (X) = \mu(\bigcup_{x\in X} x) = \Sigma_{x\in X} \mu (x)
+\end{equation*}
+
+An example might be to choose $A$ to be a set of 3-dimensional objects and a possible
+measure would be the total volume of objects in a subset. 
+
+\todo{Is this understood correctly?} We can understand a measure on $A$ as integral
+over functions from $A$ to $\mathbb{R}^+$. From this perspective, the above example
+would consist of the function that given an object in $A$ returns its volume. The
+integral over this function would be the volume of said object, and it is easy to see
+that $\mu$ satisfies all of the above mentioned requirements for being a measure.
 
 \todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
   non-negative real numbers. It also preserves least upper bounds. \\
@@ -381,6 +406,8 @@ for f:A$\to$[0,1] and then we say that $\mu$ is a measure on A. Shouldn't it be 
 probability distributions over A (so A$\to$[0,1])?\\
 Answer: The measure $\mu$ over A is the same as the integral of f. This means that
 $\mu$ has to be applied to a function, but is in reality a measure on A. }
+
+\subsubsection{A monadic interpretation}
 
 \todo[inline]{Monadic transformation. Should we add a subsection on monads or should we just
   mention them?\\
@@ -476,22 +503,21 @@ over the working memory at the time of evaluation.
 For more clarity, we will look at an example. Let us take the situation where we only
 want to proceed with a computation, if a certain variable, $x$ is defined in the
 memory; we want to access $x$, but want to avoid our program crashing if $x$ has not
-been defined. We now write a function that, given a memory, returns true if $x$ is
-defined in said memory and false otherwise. 
-
-
-\todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
-  Coq. This means that constants are nothing other than Gallina values; note that since
-  Gallina is a functional language, functions can be viewed as values as well and
-  hence it makes sense to have function application as an expression even though we
-  have no ``real'' way of defining functions in \texttt{pwhile.} }
-\todo[inline, color=green!40]{\texttt{pred} is an ssreflect Type
-  transformer. Something of type \texttt{pred T} is a function that takes as input an
-  element of type T and returns a boolean value. So a \texttt{pred mem} is simply a
-  function that takes a memory and returns a boolean value depending on the state of
-  said memory. }
-\todo[inline] {Is \texttt{prp} needed for expressiveness? }
-
+been defined. We now write the function \texttt{x\_defined} that, given a memory,
+returns true if $x$ is defined in said memory and false otherwise. By branching on
+\texttt{prp x\_defined}, we can now make sure that we only take the branch accessing
+$x$ if it is present in the memory and do not end up with a program that may
+crash. \\
+\\
+At this point a comment about ``crashing'' programs is in order. There are multiple
+ways in which a program can lead to an undefined result: encountering undefined
+behaviour, non-termination, and the \texttt{abort} command. The interpretation of all
+of these is the same: We recall that the result of interpreting a \texttt{pwhile}
+program in Coq is a probability distribution over memories; now the result of
+interpreting a ``crash'' is by simply returning the \todo{is this the right word
+  choice? It doesn't seem that that's what a null distribution is. But the keyword
+  use is \texttt{dnull}.}null-distribution over memories.\\
+\\
 
 
 \section{Our approach (Ready draft: 03.06.)}
