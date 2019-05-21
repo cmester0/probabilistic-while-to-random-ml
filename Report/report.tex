@@ -1,7 +1,7 @@
 % -------------------------------------------------------------
 % Document setup
 % -------------------------------------------------------------
-\documentclass[11pt, leqno]{article}
+\documentclass[11pt, leqno, titlepage]{article}
 \usepackage{graphicx}
 %\usepackage[left=30mm,right=30mm]{geometry}
 \usepackage[utf8]{inputenc}
@@ -205,7 +205,7 @@ literate=
 
 % ------------------------------------------------------------- 
 
-\section{Introduction}
+\section{Introduction (Finished 12.06.)}
 % Goal: 1-2 pages
 % I've written an introduction already, but I don't know if it still fits. We should
 % probably write the rest of the report first before adding this section
@@ -225,7 +225,7 @@ literate=
 }
 
 
-\section{Theory and existing frameworks}
+\section{Theory and existing frameworks (Finished: 27.05.)}
 % Goal: 6-12 pages
 
 \todo[inline, color=green!40]{As mentioned before we focused our work on developing a
@@ -450,7 +450,7 @@ on probabilistic languages and their interpretation rather than their use.\\
 \\
 \texttt{pwhile} consists of the following expressions and commands: 
 \begin{align*}
-  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp (pred mem)}~\vert ~ e_1\ e_2\\
+  exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp ($p$ : pred mem)}~\vert ~ e_1\ e_2\\
   cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
   \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
             \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
@@ -462,13 +462,24 @@ in order to form expressions: Constants in \texttt{pwhile} are Coq constants, he
 an expression in \texttt{pwhile} can have any Coq type. In the implementation,
 expressions are parameterised by their type.
 
-Most of the above constructs are well known and need no special explanation. What is
-worth noting, however, is \texttt{prp (pred mem)}: \texttt{pred} is the
-\todo{Is there a word like 'functional' for types?}type transformer $\forall \tau:
-\tau \to \mathbb{B}$, while \texttt{mem} is a type that is defined by the
-\texttt{xhl} development in order to represent memories for \texttt{pwhile} programs.  
+Most of the above constructs are fairly standard and should be known to most
+readers. We give a full formal semantics in Figure \todo{Insert reference to semantics-figure}.
 
-\todo[inline]{What do the predicates do? Types for constants. }
+In addition to the standard expressions and commands, \texttt{pwhile} has the
+expression \texttt{prp $p$}, which we will have a look at here.
+\texttt{prp} takes a single argument of type \texttt{pred mem}. This is a Coq type
+specified with the type constructor \texttt{pred} = $\forall \tau~:~\tau \to
+\mathbb{B}$ applied to the type of memories defined in the \texttt{xhl}
+development. The predicate over memories that is \texttt{prp}s argument is mapped
+over the working memory at the time of evaluation.
+
+For more clarity, we will look at an example. Let us take the situation where we only
+want to proceed with a computation, if a certain variable, $x$ is defined in the
+memory; we want to access $x$, but want to avoid our program crashing if $x$ has not
+been defined. We now write a function that, given a memory, returns true if $x$ is
+defined in said memory and false otherwise. 
+
+
 \todo[inline, color=green!40]{The xhl version of \texttt{pwhile} is a shallow embedding in
   Coq. This means that constants are nothing other than Gallina values; note that since
   Gallina is a functional language, functions can be viewed as values as well and
@@ -483,7 +494,7 @@ worth noting, however, is \texttt{prp (pred mem)}: \texttt{pred} is the
 
 
 
-\section{Our approach}
+\section{Our approach (Ready draft: 03.06.)}
 % Goal: 6-12 pages
 
 % What we tried to do and the theory behind.
@@ -679,7 +690,7 @@ Simple form:
 
 
 
-\section{Our contribution}
+\section{Our contribution (Draft: 03.06; Finished 10.06.)}
 % Goal: 6-12 pages
 % What we actually did.
 
@@ -692,12 +703,12 @@ Simple form:
 % We tried implementing general recursion with the extra step of translating to the
 % typed lambda calculus and using a fixpoint combinator.
 
-\section{Comparisons and future work}
+\section{Comparisons and future work (Finished 12.06.)}
 % Goal: 2-4 pages
 % What the section header says
 
 
-\section{Conclusion}
+\section{Conclusion (Finished 12.06.)}
 % Goal: 1-2 pages
 
 
