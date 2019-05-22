@@ -384,28 +384,66 @@ measure would be the total volume of objects in a subset.
 \todo{Is this understood correctly?} We can understand a measure on $A$ as integral
 over functions from $A$ to $\mathbb{R}^+$. From this perspective, the above example
 would consist of the function that given an object in $A$ returns its volume. The
-integral over this function would be the volume of said object, and it is easy to see
-that $\mu$ satisfies all of the above mentioned requirements for being a measure.
+integral over this function would be the volume of all objects in $A$. Now the
+challenge is to measure only a subset of $A$. We can do this by introducing the
+characteristic function of a subset $X$:%\cite{wikipedia on measures}
 
-\todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
-  non-negative real numbers. It also preserves least upper bounds. \\
+$$\mathbb{I}_X(x)=
+\begin{cases}
+  1~~\text{if }x\in X\\
+  0~~\text{otherwise}
+\end{cases}$$
 
-Mß = (ß$\to$[0,1])$\to$[0,1]
-The (ß$\to$[0,1]) part describes a probability distribution. 
-We can view our programs as transformations of probability distributions.\\
+By multiplying the characteristic function for $X$ with the volume function on
+objects in $A$, we get a new function, $f$, such that $\int f~d\mu = \mu(X)$. With
+this in place, we will allow ourselves to be sloppy in our notation and write
+$\mu(f)$ instead of $\int f~d\mu$.
 
-"a term e of type ß is translated to a purely functional one [e] which is
-understood as a measure on the same type."}
+It is easy to see that the integral perspective still satisfies all the requirements
+that a function has to fulfil in order to be a measure, and the reader is invited to
+check this for herself.\\
+\\
+Now why all this talk about measures? Wasn't it probabilistic programs we were
+talking about?
 
-\todo[inline]{The w-cpo structure on [0,1]; why is it an w-cpo?\\
-@Bas: What do we need the structure for? \\
-Answer: We just need the w-cpo structur on [0,1] in order to interpret fixed points
-and while loops in the functions to [0,1].}
-\todo[inline]{I am confused by what it says on page 574: First we talk about $\mu$(f)
-for f:A$\to$[0,1] and then we say that $\mu$ is a measure on A. Shouldn't it be on
-probability distributions over A (so A$\to$[0,1])?\\
-Answer: The measure $\mu$ over A is the same as the integral of f. This means that
-$\mu$ has to be applied to a function, but is in reality a measure on A. }
+Well, yes. The cool thing is, that being able to measure function whose co-domain is
+the real numbers in the unit interval, $\tau\to[0,1]$, gives us a way of representing
+probability distributions. A measure on type $\tau$ can be expressed with the type
+$(\tau\to[0,1])\to[0,1]$. An interpretation of a probabilistic term whose type is
+$\tau$ can now be understood as a measure on type $\tau$, or equivalently as a
+transformation of a probability distribution.
+
+Something of type $\tau\to[0,1]$ can be understood as the function that returns the
+probability of its input happening, or in other words, we can understand it as a
+probability density function. We can view our programs as a transformation of a
+distribution: If we input an initial distribution (this might also just be the
+characteristic function of a single value), we will as output receive the integral
+over the transformed distribution; with other words, we will receive the probability
+of the result of an actual pseudorandomised run of our program producing a result
+within the input distribution.
+\todo[inline]{Or something like that... I am very unsure about what exactly we get
+  when we input an initial distribution... help? }
+
+
+% \todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
+%   non-negative real numbers. It also preserves least upper bounds. \\
+
+% Mß = (ß$\to$[0,1])$\to$[0,1]
+% The (ß$\to$[0,1]) part describes a probability distribution. 
+% We can view our programs as transformations of probability distributions.\\
+
+% "a term e of type ß is translated to a purely functional one [e] which is
+% understood as a measure on the same type."}
+
+% \todo[inline]{The w-cpo structure on [0,1]; why is it an w-cpo?\\
+% @Bas: What do we need the structure for? \\
+% Answer: We just need the w-cpo structur on [0,1] in order to interpret fixed points
+% and while loops in the functions to [0,1].}
+% \todo[inline]{I am confused by what it says on page 574: First we talk about $\mu$(f)
+% for f:A$\to$[0,1] and then we say that $\mu$ is a measure on A. Shouldn't it be on
+% probability distributions over A (so A$\to$[0,1])?\\
+% Answer: The measure $\mu$ over A is the same as the integral of f. This means that
+% $\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 \subsubsection{A monadic interpretation}
 
