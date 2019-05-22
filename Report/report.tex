@@ -446,6 +446,23 @@ within the input distribution.
 % $\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 \subsubsection{A monadic interpretation}
+\todo[inline]{\textbf{Question:} Should this actually be here, or should it be part
+  of the section on \rml. The measure thing should apply to both \rml and
+  \texttt{pwhile}, but I am not sure about the monadic transformation.\\
+  \textbf{Answer} (possibly): altreals/distr uses the same monad for their type distr
+  T. }
+
+\todo[inline, color=green!40]{
+  We can represent measures with a monadic structure. This is sensible since once we go
+  measure we never go back; once probability is involved in a computation, we will not
+  get rid of it again.}
+
+The monadic operators presented here have been formerly introduced by
+[...] %\cite{rml-paper}
+and satisfy the usual monadic \todo{Footnote too facetious?} properties\footnote{We
+  refer the reader who is unfamiliar with monads (or requires proof of the authors'
+  knowledge thereof) to an earlier work by the authors, which can be found at
+  \url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}. 
 
 \todo[inline]{Monadic transformation. Should we add a subsection on monads or should we just
   mention them?\\
@@ -455,45 +472,22 @@ within the input distribution.
 
 % Packages: comment
 \subsection{The functional approach: \rml}\label{sec:rml}
-The first approach to proving something about randomised algorithms in Coq that we
-will examine here is due toe Philippe Audebaud and Christine Paulin-Mohring %\cite
-and features the functional language \rml. 
+The first language for probabilistic programs implemented in Coq is called \rml
+('Randomised monadic language')
+and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring. %\cite
 \\ \\
-We have two representations of Rml, continuations and distributions. Both build on a
-monad, for ease of use.
-\\ \\
-The data structure used to represent Rml terms is as follows:
-\begin{center}
-  \begin{minipage}{0.7\linewidth}
-    \begin{lstlisting}[language=coq]
-Inductive Rml :=
-| Var : (nat * Type) -> Rml
-| Const : forall (A : Type), A -> Rml
-| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
-| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
-| If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
-We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
-\\ \\
-We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
-\begin{center}
-  \begin{minipage}{0.7\linewidth}
-    \begin{lstlisting}[language=coq]
-Inductive sRml {A : Type} :=
-| sVar : nat -> sRml
-| sConst : A -> sRml
-| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
-| sIf : @sRml bool -> sRml -> sRml -> sRml
-| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
-    \end{lstlisting}
-  \end{minipage}
-\end{center}
-That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
+\rml could be described as a functional version of the \texttt{while} language with
+an interpretation that allows for probabilistic algorithms. The language itself does
+not contain probabilistic expressions, but rather makes use of a \texttt{random($n$)}
+or \texttt{flip} function giving a uniform distribution of natural numbers between 0
+and $n$, and \texttt{true} and \texttt{false}, \todo{check this sentence}respectively.
+
+Since calling either function would be considered a valid \rml term, the result has
+to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
+booleans (in the case of \texttt{flip}).
+
+
+
 
 \subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}\label{sec:pwhile}
 % Here we should give a quick description of EasyCrypt and present pwhile
@@ -766,6 +760,40 @@ Simple form:
 
 % We tried implementing general recursion with the extra step of translating to the
 % typed lambda calculus and using a fixpoint combinator.
+
+\subsection{Our implementation of \rml}
+The data structure used to represent Rml terms is as follows:
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive Rml :=
+| Var : (nat * Type) -> Rml
+| Const : forall (A : Type), A -> Rml
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
+| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
+| If_stm : Rml -> Rml -> Rml -> Rml
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
+\\ \\
+We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
+\begin{center}
+  \begin{minipage}{0.7\linewidth}
+    \begin{lstlisting}[language=coq]
+Inductive sRml {A : Type} :=
+| sVar : nat -> sRml
+| sConst : A -> sRml
+| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+    \end{lstlisting}
+  \end{minipage}
+\end{center}
+That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
 \section{Comparisons and future work (Finished 12.06.)}
 % Goal: 2-4 pages
