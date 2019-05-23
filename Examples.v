@@ -1,39 +1,67 @@
 From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp.analysis Require Import boolp reals distr.
 Require Import Util.
 
-
 Require Import Rml.
-
-Definition fib_f := (@pair nat Type 0 (nat->nat)).
-Definition fib_x := (@pair nat Type 1 nat).
-Definition fib_sub1 :=
-  (App_stm nat (Var fib_f) (App_stm nat (Const (nat -> nat) (fun x => x - 1)) (Var fib_x))).
-Definition fib_sub2 :=
-  (App_stm nat (Var fib_f) (App_stm nat (Const (nat -> nat) (fun x => x - 2)) (Var fib_x))).
-Definition fib_rec :=
-  (App_stm nat (App_stm (nat -> nat) (Const (nat -> nat -> nat) (fun x y => x + y))
-                      fib_sub1) fib_sub2).
-Definition fib :=
-  Let_rec fib_f fib_x
-          (If_stm (App_stm nat (Const (nat -> bool) (fun x => x == 0)) (Var fib_x))
-                  (Const nat 1)
-                  fib_rec)
-          (App_stm nat (Var fib_f) (Const nat 10)).
-
-Compute rml_to_sRml_l fib nil nil.
-
-
 Require Import Rml_semantic.
 
 (** * Examples **)
 
-Compute (fix even (n : nat) := match n with | 0 => 0 | S n' => odd n' end
-                                                      with odd (n : nat) := match n with | 0 => 1 | S n' => even n' end for even) 5.
+Definition some : Rml :=
+  Let_rec nat nat 0 1
+          (Random (Var (1,nat <: Type) true))
+          (Const 10).
 
-
-Fixpoint a (t : nat) : nat
-with b (t : nat) : nat.
+Definition some_valid : rml_valid_type nat nil nil some.
 Proof.
-  exact 0.
-  exact 1.
+  assert (check_valid nat nil nil some = true).
+  native_compute.
+  destruct boolp.pselect.
+  reflexivity.
+  contradiction.
+
+  apply type_checker.
+  assumption.
+Qed.
+
+Definition some_valid2 : rml_valid_type nat nil nil some.
+  constructor.
+  - constructor.
+    + apply (valid_fun_var nil [:: (1,nat <: Type); (0,nat -> nat <: Type)] (1,nat <: Type)).
+      left.
+      reflexivity.
+    + constructor.
 Defined.
+
+Compute (@replace_all_variables_aux_type nat some nil nil (env_nil nil) some_valid).
+Compute (@replace_all_variables_aux_type nat some nil nil (env_nil nil) some_valid2).
+
+Check @ssem_aux _ nat (sFix nat 0 1 (sRandom _ (sVar 1)) (sConst 10)) nil (svalid_fix nat [::] nat 0 1 (sRandom _ (sVar 1)) 
+            (sConst 10)
+            (svalid_random nat [:: (1, nat <: Type); (0, nat -> nat  <: Type)] 
+               (sVar 1) _
+               (svalid_fun_var nat [:: (1, nat <: Type); (0, nat -> nat <: Type)] 1
+                  _)) (svalid_const nat [::] 10)).
+
+Compute @ssem_aux _ nat (sConst 10) nil (svalid_const nat nil 10).
+Check @ssem.
+
+From xhl Require Import pwhile.pwhile.
+
+Compute @ssem R nat (Const 10) (valid_const nat nil nil 10).
+
+Lemma is10 :
+  @ssem R nat (Const 10) (valid_const nat nil nil 10) = @dunit R (Choice nat) 10.
+Proof.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma is_random :
+  @ssem R nat (Random (Const 10)) (valid_random nil nil (Const 10) (valid_const nat nil nil 10)) = @duni R (Choice nat) (range 10).
+Proof.
+  simpl.
+  compute.
+  native_compute.
+  reflexivity.
+Qed.
