@@ -1,10 +1,10 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets reals distr.
 
-Require Import Rml.
-
 From xhl Require Import pwhile.pwhile.
 From xhl Require Import pwhile.psemantic.
+
+Require Import Rml.
 
 Require Import Util.
 
@@ -175,5 +175,5 @@ Proof.
 Defined.
 
 Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
-  let y := @replace_all_variables_type T x x_valid in
-  @ssem_aux R T y nil (valid_rml_makes_valid_srml T x y nil nil x_valid).
+  let (y,y_valid) := @replace_all_variables_type T x x_valid in
+  @ssem_aux R T y nil y_valid.

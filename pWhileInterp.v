@@ -39,9 +39,9 @@ Fixpoint translate_pWhile_expr_to_rml {T} (x : expr T) (ret : nat * Type * ident
   match x with
   | var_ A n =>
     let v := @lookup n.(vname) ret env in
-    Var v
-  | cst_ A a => Const A a
-  | prp_ m => Const bool true (* What does this mean? *)
+    Var v false
+  | cst_ A a => Const a
+  | prp_ m => Const true (* What does this mean? *)
   | app_ A B f x => App_stm B (translate_pWhile_expr_to_rml f ret (@env)) (translate_pWhile_expr_to_rml x ret (@env))
   end.  
 
@@ -58,15 +58,15 @@ Fixpoint translate_pWhile_cmd_to_rml (x : cmd) {T : Type} ret (env : seq (nat * 
       (translate_pWhile_expr_to_rml e ret env)
       (@translate_pWhile_cmd_to_rml e2 T ret env)
     
-  | abort => Var (@lookup ret.2 ret env)
-  | skip => Var (lookup ret.2 ret env)
+  | abort => Var (@lookup ret.2 ret env) true
+  | skip => Var (lookup ret.2 ret env) true
   | assign A n e =>
     Let_stm
       (lookup n.(vname) ret env)
       (translate_pWhile_expr_to_rml e ret (@env))
-      (Var (lookup ret.2 ret env))
+      (Var (lookup ret.2 ret env) true) 
       
-  | random A n e => Var (lookup ret.2 ret env)
+  | random A n e => Random (Const (lookup n.(vname) ret env).1)
   | cond b m1 m2 =>
     If_stm
       (translate_pWhile_expr_to_rml b ret env)

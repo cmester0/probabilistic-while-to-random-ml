@@ -8,25 +8,38 @@ Require Import Rml_semantic.
 
 Definition some : Rml :=
   Let_rec nat nat 0 1
-          (Random (Var (1,nat <: Type)))
-          (Const nat 10).
+          (Random (Var (1,nat <: Type) true))
+          (Const 10).
 
 Definition some_valid : rml_valid_type nat nil nil some.
+Proof.
+  assert (check_valid nat nil nil some = true).
+  native_compute.
+  destruct boolp.pselect.
+  reflexivity.
+  contradiction.
+
+  apply type_checker.
+  assumption.
+Qed.
+
+Definition some_valid2 : rml_valid_type nat nil nil some.
   constructor.
   - constructor.
-    + reflexivity.
-    + constructor 2.
+    + apply (valid_fun_var nil [:: (1,nat <: Type); (0,nat -> nat <: Type)] (1,nat <: Type)).
       left.
       reflexivity.
-  - constructor.
+    + constructor.
 Defined.
 
-Check @ssem _ nat some some_valid.
-Compute @ssem _ nat some some_valid (fun x => 1).
+From xhl Require Import pwhile.pwhile.
 
-Check ssem (Const nat 3).
-Check @replace_all_variables_type nat (Const nat 3) (valid_const nat nil nil 3).
-Compute @replace_all_variables_type nat (Const nat 3) (valid_const nat nil nil 3).
+Check @ssem R nat some some_valid.
+Compute @ssem R nat some some_valid.
+
+Check ssem (Const 3).
+Check @replace_all_variables_type nat (Const 3) (valid_const nat nil nil 3).
+Compute @replace_all_variables_type nat (Const 3) (valid_const nat nil nil 3).
 
 
 Check (valid_rml_makes_valid_srml nat (Const nat 3) (sConst 3) nil nil (valid_const nat nil nil 3)).
@@ -64,7 +77,7 @@ Qed.
 
 Check @ssem.
 Check @ssem _ nat walk walk_valid.
-Compute @ssem _ nat walk walk_valid.
+Compute @ssem pwhile.R nat walk walk_valid.
 
 
 

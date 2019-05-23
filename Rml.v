@@ -3,23 +3,23 @@ From mathcomp.analysis Require Import boolp reals distr.
 Require Import Util.
 Require Import Coq.Logic.Eqdep_dec.
 
-Require Import Eqdep_dec.
+(* Require Import Eqdep_dec. *)
 
 (* -------------------------------------------------------------------------------- *)
 
 Inductive Rml :=
-| Var : (nat * choiceType) -> bool -> Rml (* bool = is fun var? *)
-| Const : forall {A : choiceType}, A -> Rml
-| Let_stm : (nat * choiceType) -> Rml -> Rml -> Rml
+| Var : (nat * Type) -> bool -> Rml (* bool = is fun var? *)
+| Const : forall {A : Type}, A -> Rml
+| Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
-| App_stm : choiceType -> Rml -> Rml -> Rml
-| Let_rec : choiceType -> choiceType -> nat -> nat -> Rml -> Rml -> Rml
+| App_stm : Type -> Rml -> Rml -> Rml
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml
 | Random : Rml -> Rml
 | Flip : Rml.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive well_formed (vl : seq (nat * choiceType)) (fl : seq (nat * choiceType)) : Rml -> Prop :=
+Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> Prop :=
 | well_var : forall p,
     List.In p vl ->
     well_formed vl fl (Var p false)
@@ -47,8 +47,8 @@ Inductive well_formed (vl : seq (nat * choiceType)) (fl : seq (nat * choiceType)
     well_formed vl fl e2 ->
     well_formed vl fl (App_stm B e1 e2)
 
-| well_let_rec : forall (B C : choiceType) nf nx (e1 e2 : Rml),
-    well_formed vl ((nx,B) :: (nf,prod_choiceType B C) :: fl) e1 ->
+| well_let_rec : forall (B C : Type) nf nx (e1 e2 : Rml),
+    well_formed vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
     well_formed vl fl e2 ->
     well_formed vl fl (Let_rec B C nf nx e1 e2)
 
@@ -61,7 +61,7 @@ Inductive well_formed (vl : seq (nat * choiceType)) (fl : seq (nat * choiceType)
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive rml_valid_type : choiceType -> seq (nat * choiceType) -> seq (nat * choiceType) -> Rml -> Prop :=
+Inductive rml_valid_type : Type -> seq (nat * Type) -> seq (nat * Type) -> Rml -> Prop :=
 | valid_var : forall vl fl p,
     List.In p vl ->
     rml_valid_type p.2 vl fl (Var p false)
@@ -70,7 +70,7 @@ Inductive rml_valid_type : choiceType -> seq (nat * choiceType) -> seq (nat * ch
     List.In p fl ->
     rml_valid_type p.2 vl fl (Var p true)
                    
-| valid_const : forall (A : choiceType) vl fl (c : A),
+| valid_const : forall (A : Type) vl fl (c : A),
     rml_valid_type A vl fl (@Const A c)
                    
 | valid_let : forall A vl fl p a b,
@@ -79,50 +79,50 @@ Inductive rml_valid_type : choiceType -> seq (nat * choiceType) -> seq (nat * ch
     rml_valid_type A vl fl (Let_stm p a b)
                    
 | valid_if : forall A vl fl b m1 m2,
-    rml_valid_type bool_choiceType vl fl b ->
+    rml_valid_type bool vl fl b ->
     rml_valid_type A vl fl m1 ->
     rml_valid_type A vl fl m2 ->
     rml_valid_type A vl fl (If_stm b m1 m2)
                    
-| valid_app : forall A vl fl (B : choiceType) e1 e2,
-    rml_valid_type (prod_choiceType B A) vl fl e1 ->
+| valid_app : forall A vl fl (B : Type) e1 e2,
+    rml_valid_type (B -> A) vl fl e1 ->
     rml_valid_type B vl fl e2 ->
     rml_valid_type A vl fl (App_stm B e1 e2)
 
 | valid_let_rec : forall A vl fl B nf nx e1 e2,
-    @rml_valid_type A vl ((nx,B) :: (nf,prod_choiceType B A) :: fl) e1 ->
+    @rml_valid_type A vl ((nx,B) :: (nf,B -> A) :: fl) e1 ->
     @rml_valid_type B vl fl e2 ->
     rml_valid_type A vl fl (Let_rec B A nf nx e1 e2)
 
 | valid_random : forall vl fl e,
-    rml_valid_type nat_choiceType vl fl e ->
-    rml_valid_type nat_choiceType vl fl (Random e)
+    rml_valid_type nat vl fl e ->
+    rml_valid_type nat vl fl (Random e)
 
 | valid_flip : forall vl fl,
-    rml_valid_type bool_choiceType vl fl Flip.
+    rml_valid_type bool vl fl Flip.
 
-Lemma dec_eq : (forall x y : choiceType, {x = y} + {x <> y}).
+Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}).
 Proof.
   (* decide equality. *)
 Admitted.
 
-Fixpoint check_valid (A : choiceType) (vl : seq (nat * choiceType)) (fl : seq (nat * choiceType)) (x : Rml) {struct x} : bool :=
+Fixpoint check_valid (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Type)) (x : Rml) {struct x} : bool :=
   match x with
-  | Var p true => List.existsb (fun (a : nat * choiceType) => (p.1 == a.1) && asbool (p.2 = a.2)) fl && asbool (p.2 = A)
-  | Var p false => List.existsb (fun (a : nat * choiceType) => (p.1 == a.1) && asbool (p.2 = a.2)) vl && asbool (p.2 = A)
+  | Var p true => List.existsb (fun (a : nat * Type) => (p.1 == a.1) && asbool (p.2 = a.2)) fl && asbool (p.2 = A)
+  | Var p false => List.existsb (fun (a : nat * Type) => (p.1 == a.1) && asbool (p.2 = a.2)) vl && asbool (p.2 = A)
   | Const A0 a => asbool (A = A0)
   | Let_stm p x1 x2 => check_valid p.2 vl fl x1 && check_valid A (p :: vl) fl x2
-  | If_stm b m1 m2 => check_valid bool_choiceType vl fl b && check_valid A vl fl m1 && check_valid A vl fl m2
-  | App_stm T e1 e2 => check_valid (prod_choiceType T A) vl fl e1 && check_valid T vl fl e2
-  | Let_rec T T0 nf nx e1 e2 => check_valid A vl [:: (nx, T), (nf, prod_choiceType T T0) & fl] e1 && check_valid T vl fl e2 && asbool (T0 = A)
-  | Random x => check_valid nat_choiceType vl fl x && asbool (nat_choiceType = A)
-  | Flip => asbool (bool_choiceType = A)
+  | If_stm b m1 m2 => check_valid bool vl fl b && check_valid A vl fl m1 && check_valid A vl fl m2
+  | App_stm T e1 e2 => check_valid (T -> A) vl fl e1 && check_valid T vl fl e2
+  | Let_rec T T0 nf nx e1 e2 => check_valid A vl [:: (nx, T), (nf, T -> T0) & fl] e1 && check_valid T vl fl e2 && asbool (T0 = A)
+  | Random x => check_valid nat vl fl x && asbool ((nat <: Type) = A)
+  | Flip => asbool ((bool <: Type) = A)
   end.
 
 Theorem type_checker :
   forall A vl fl x, check_valid A vl fl x = true <-> rml_valid_type A vl fl x.
 Proof.
-  assert (asbool_true : forall (k : choiceType), `[< k = k >] = true) by (intros ; apply (@asbool_equiv_eqP (k = k) true true) ; constructor ; easy ; easy).
+  assert (asbool_true : forall (k : Type), `[< k = k >] = true) by (intros ; apply (@asbool_equiv_eqP (k = k) true true) ; constructor ; easy ; easy).
   
   intros.
   split.
@@ -351,7 +351,7 @@ Proof.
 
       apply IHx1 ; assumption.
       apply IHx2 ; assumption.
-      apply (asbool_true t0).
+      apply (asbool_true T0).
     }
     {
       inversion H ; subst.
@@ -360,12 +360,12 @@ Proof.
       split.
       
       apply IHx ; assumption.
-      apply (asbool_true nat_choiceType).
+      apply (asbool_true nat).
     }
     {
       inversion H ; subst.
       simpl.
-      apply (asbool_true bool_choiceType).
+      apply (asbool_true bool).
     }
   }
 Defined.
@@ -409,22 +409,22 @@ Definition ob :=
 (** * Simple Rml *) 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive sRml {A : choiceType} :=
+Inductive sRml {A : Type} :=
 | sVar : nat -> sRml
 | sConst : A -> sRml
-| sIf : @sRml bool_choiceType -> sRml -> sRml -> sRml
-| sApp : forall T, @sRml (prod_choiceType T A) -> @sRml T -> sRml
+| sIf : @sRml bool -> sRml -> sRml -> sRml
+| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
 | sFix : forall B (nf nx : nat), @sRml A -> @sRml B -> sRml
-| sRandom : (A = nat_choiceType) -> @sRml nat_choiceType -> sRml
-| sFlip : (A = bool_choiceType) -> sRml.
+| sRandom : (A = nat) -> @sRml nat -> sRml
+| sFlip : (A = bool) -> sRml.
 
 (* -------------------------------------------------------------------------------- *)
 
-Inductive rml_is_simple {l : seq (nat * choiceType)} : Rml -> Prop :=
-| is_fun_var : forall (p : nat * choiceType),
+Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
+| is_fun_var : forall (p : nat * Type),
     List.In p l -> rml_is_simple (Var p true)
                                                              
-| is_const : forall (A : choiceType) c,
+| is_const : forall (A : Type) c,
     rml_is_simple (@Const A c)
                                            
 | is_if : forall b m1 m2,
@@ -433,13 +433,13 @@ Inductive rml_is_simple {l : seq (nat * choiceType)} : Rml -> Prop :=
     rml_is_simple m2 ->
     rml_is_simple (@If_stm b m1 m2)
                   
-| is_app : forall (B : choiceType) e1 e2,
+| is_app : forall (B : Type) e1 e2,
     rml_is_simple e1 ->
     rml_is_simple e2 ->
     rml_is_simple (@App_stm B e1 e2)
                   
 | is_fix : forall B C nf nx e1 e2,
-    @rml_is_simple [:: (nx,B), (nf,prod_choiceType B C) & l] e1 ->
+    @rml_is_simple [:: (nx,B), (nf,B -> C) & l] e1 ->
     @rml_is_simple l e2 ->
     rml_is_simple (@Let_rec B C nf nx e1 e2)
 
@@ -466,7 +466,7 @@ Fixpoint sRml_to_rml {A} (x : @sRml A) : Rml :=
   | sFlip A => Flip
   end.
 
-Inductive srml_valid_type (A : choiceType) : seq (nat * choiceType) -> @sRml A -> Prop :=
+Inductive srml_valid_type (A : Type) : seq (nat * Type) -> @sRml A -> Prop :=
 | svalid_fun_var : forall fl x,
     List.In (x,A) fl ->
     srml_valid_type A fl (sVar x)
@@ -475,26 +475,26 @@ Inductive srml_valid_type (A : choiceType) : seq (nat * choiceType) -> @sRml A -
     srml_valid_type A fl (sConst c)
                    
 | svalid_if : forall fl b m1 m2,
-    srml_valid_type bool_choiceType fl b ->
+    srml_valid_type bool fl b ->
     srml_valid_type A fl m1 ->
     srml_valid_type A fl m2 ->
     srml_valid_type A fl (sIf b m1 m2)
                     
-| svalid_app : forall fl (B : choiceType) e1 e2,
-    @srml_valid_type (prod_choiceType B A) fl e1 ->
+| svalid_app : forall fl (B : Type) e1 e2,
+    @srml_valid_type (B -> A) fl e1 ->
     @srml_valid_type B fl e2 ->
     @srml_valid_type A fl (sApp B e1 e2)
                      
 | svalid_fix : forall fl B nf nx f x,
-    @srml_valid_type A ((nx,B) :: (nf,prod_choiceType B A) :: fl) f ->
+    @srml_valid_type A ((nx,B) :: (nf,B -> A) :: fl) f ->
     @srml_valid_type B fl x ->
     srml_valid_type A fl (sFix B nf nx f x)
 
-| svalid_random : forall fl e (H : A = nat_choiceType),
-    srml_valid_type nat_choiceType fl e ->
+| svalid_random : forall fl e (H : A = nat),
+    srml_valid_type nat fl e ->
     srml_valid_type A fl (sRandom H e)
                     
-| svalid_flip : forall fl (H : A = bool_choiceType),
+| svalid_flip : forall fl (H : A = bool),
     srml_valid_type A fl (sFlip H).
 
 (** * Properties of sRml expressions *)
@@ -502,12 +502,12 @@ Inductive srml_valid_type (A : choiceType) : seq (nat * choiceType) -> @sRml A -
 (* -------------------------------------------------------------------------------- *)
 
 Lemma helper :
-  forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (prod_choiceType T A) l x1 /\ srml_valid_type T l x2.
+  forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
   intros.
   inversion H.
 
-  assert (e3 = x2) by apply (inj_pair2_eq_dec choiceType dec_eq [eta @sRml] T e3 x2 H4).
-  assert (e0 = x1) by apply (inj_pair2_eq_dec choiceType dec_eq (fun T : choiceType => @sRml _) T e0 x1 H1).
+  assert (e3 = x2) by apply (inj_pair2_eq_dec Type dec_eq [eta @sRml] T e3 x2 H4).
+  assert (e0 = x1) by apply (inj_pair2_eq_dec Type dec_eq (fun T : Type => @sRml _) T e0 x1 H1).
   subst ; clear H1 ; clear H4.  
   
   split ; assumption.
@@ -516,22 +516,22 @@ Qed.
 Lemma helper2 :
   forall A B nx nf x1 x2 fl,
     srml_valid_type A fl (sFix B nf nx x1 x2) ->
-    srml_valid_type A [:: (nx, B), (nf, prod_choiceType B A) & fl] x1 /\
+    srml_valid_type A [:: (nx, B), (nf, B -> A) & fl] x1 /\
     srml_valid_type B fl x2.
   intros.
   inversion H.
   subst.
 
   (* assert (f0 = x1) by (apply (inj_pair2_eq_dec Type dec_eq) in H4 ; assumption). *)
-  assert (x0 = x2) by (apply (inj_pair2_eq_dec choiceType dec_eq) in H6 ; assumption).
+  assert (x0 = x2) by (apply (inj_pair2_eq_dec Type dec_eq) in H6 ; assumption).
   
   subst.
   
   split ; assumption.
-Qed.
+Qed.                                                              
 
 Lemma srml_valid_weakening:
-  forall (p : nat * choiceType) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
+  forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
 Proof.
   intros.
   generalize dependent l1.
@@ -557,7 +557,7 @@ Proof.
   - apply helper2 in H.
     inversion_clear H.
     constructor.
-    + apply (IHx1 ([:: (nx, B), (nf, prod_choiceType B A) & l1])).
+    + apply (IHx1 ([:: (nx, B), (nf, B -> A) & l1])).
       assumption.
     + apply IHx2.
       assumption.
@@ -592,7 +592,7 @@ Proof.
     apply helper in x_valid.
     inversion x_valid.
     constructor ; eauto 2.
-  } 
+  }
 
   (* sFix *)
   {
@@ -688,23 +688,23 @@ Qed.
 (** * Environment **)
 (* -------------------------------------------------------------------------------- *)
 
-Inductive valid_env : seq (nat * choiceType * Rml) -> seq (nat * choiceType) -> Prop :=
+Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
 | env_nil l : valid_env nil l
-| env_cons (x : nat * choiceType * Rml) xs l :
+| env_cons (x : nat * Type * Rml) xs l :
     (@rml_is_simple l x.2) ->
     (@rml_valid_type x.1.2 (map fst xs) l x.2) ->
     valid_env xs l ->
     valid_env (x :: xs) l.
                 
 Lemma valid_weakening:
-  forall (a : nat * choiceType * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
+  forall (a : nat * Type * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
 Proof.
   intros.
   destruct a.
   destruct p.
   simpl in *.
   generalize dependent fl.
-  generalize dependent t.
+  generalize dependent T.
   generalize dependent l1.
   induction r ; intros.
   (* Var *)
@@ -775,9 +775,9 @@ Proof.
 Qed.
 
 Corollary valid_weakening_nil :
-  forall (a : nat * choiceType * Rml) l1 l2 fl, rml_valid_type a.1.2 (l1) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
+  forall (a : nat * Type * Rml) l1 l2 fl, rml_valid_type a.1.2 (l1) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
 Proof.
-  intros.  
+  intros.
   pose (valid_weakening a l1 l2 nil%SEQ).
   rewrite <- (cats0 (l1 ++ l2)).
   rewrite <- catA.
@@ -787,14 +787,14 @@ Proof.
 Qed.
 
 Lemma valid_weakening_fl :
-  forall (a : nat * choiceType * Rml) l1 l2 l3 vl, rml_valid_type a.1.2 vl (l1 ++ l3) a.2 -> rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
+  forall (a : nat * Type * Rml) l1 l2 l3 vl, rml_valid_type a.1.2 vl (l1 ++ l3) a.2 -> rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
 Proof.
   intros.
   destruct a.
   destruct p.
   simpl in *.
   generalize dependent vl.
-  generalize dependent t.
+  generalize dependent T.
   generalize dependent l1.
   induction r ; intros.
   (* Var *)
@@ -848,7 +848,7 @@ Proof.
     inversion H ; subst.
     constructor ; eauto.
     inversion H ; subst.
-    apply (IHr1 [:: (n1,t) , (n0,prod_choiceType t t0) & l1]).
+    apply (IHr1 [:: (n1,T) , (n0,T -> T0) & l1]).
     assumption.
   }
 
@@ -867,11 +867,17 @@ Proof.
   }
 Qed.
 
+
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint rml_to_sRml_l {A : choiceType} (x : Rml) vl fl
+Inductive verified_srml A fl :=
+| verified : forall (y : @sRml A), srml_valid_type A fl y -> verified_srml A fl.
+
+(* -------------------------------------------------------------------------------- *)
+
+Fixpoint rml_to_sRml_l {A : Type} (x : Rml) vl fl
          `{rml_simple : @rml_is_simple fl x} `{rml_valid : @rml_valid_type A vl fl x}
-         {struct x} : exists (y : @sRml A), srml_valid_type A fl y.
+         {struct x} : verified_srml A fl.
 Proof.
   (** Structure **)
   destruct x.
@@ -891,7 +897,7 @@ Proof.
   (** Const **)
   {
     assert (A = A0) by (inversion rml_valid ; reflexivity) ; subst.
-    exists (sConst s).
+    exists (sConst a).
     constructor.
   }
 
@@ -900,27 +906,27 @@ Proof.
 
   (** If *)
   {
-    assert (if_valid_type : (rml_valid_type bool_choiceType vl fl x1 /\ rml_valid_type A vl fl x2 /\ rml_valid_type A vl fl x3)) by (intros; inversion rml_valid; easy).
+    assert (if_valid_type : (rml_valid_type bool vl fl x1 /\ rml_valid_type A vl fl x2 /\ rml_valid_type A vl fl x3)) by (intros; inversion rml_valid; easy).
     inversion if_valid_type as [p1 [p2 p3]] ; clear if_valid_type.
 
-    assert (if_is_simple : @rml_is_simple fl x1 /\ @rml_is_simple fl x2 /\ @rml_is_simple fl x3) by (inversion rml_simple ; subst ; easy).        
+    assert (if_is_simple : @rml_is_simple fl x1 /\ @rml_is_simple fl x2 /\ @rml_is_simple fl x3) by (inversion rml_simple ; subst ; easy).
     inversion if_is_simple as [s1 [s2 s3]] ; clear if_is_simple.
 
-    pose (rec1 := @rml_to_sRml_l bool_choiceType x1 vl fl s1 p1).
+    pose (rec1 := @rml_to_sRml_l bool x1 vl fl s1 p1).
     pose (rec2 := @rml_to_sRml_l A x2 vl fl s2 p2).
     pose (rec3 := @rml_to_sRml_l A x3 vl fl s3 p3).
 
-    destruct rec1 as [b'].
-    destruct rec2 as [m1'].
-    destruct rec3 as [m2'].
+    destruct rec1 as [b' b'_valid].
+    destruct rec2 as [m1' m1'_valid].
+    destruct rec3 as [m2' m2'_valid].
     
     exists (sIf b' m1' m2').
     constructor ; assumption.
   }
 
   (** App *)
-  {    
-    assert (app_valid_type : rml_valid_type (prod_choiceType t A) vl fl x1 /\ rml_valid_type t vl fl x2) by (inversion rml_valid ; subst ; split ; try constructor ; easy).
+  {
+    assert (app_valid_type : rml_valid_type (T -> A) vl fl x1 /\ rml_valid_type T vl fl x2) by (inversion rml_valid ; subst ; split ; try constructor ; easy).
     
     inversion app_valid_type as [p1 p2] ; clear app_valid_type.
 
@@ -928,55 +934,55 @@ Proof.
     
     inversion app_is_simple as [H1 H2] ; clear app_is_simple.
 
-    pose (rec1 := @rml_to_sRml_l (prod_choiceType t A) x1 vl fl H1 p1).
-    pose (rec2 := @rml_to_sRml_l t x2 vl fl H2 p2).
+    pose (rec1 := @rml_to_sRml_l (T -> A) x1 vl fl H1 p1).
+    pose (rec2 := @rml_to_sRml_l T x2 vl fl H2 p2).
 
-    destruct rec1 as [e1'].
-    destruct rec2 as [e2'].
+    destruct rec1 as [e1' e1'_valid].
+    destruct rec2 as [e2' e2'_valid].
     
-    exists (sApp t e1' e2').
+    exists (sApp T e1' e2').
     constructor ; assumption.
   }
 
   (** Let rec **)
   {
     
-    assert (@rml_is_simple [:: (n0,t) , (n,prod_choiceType t t0) & fl] x1 /\ @rml_is_simple fl x2) by (inversion rml_simple ; subst ; easy).
+    assert (@rml_is_simple [:: (n0,T) , (n,T -> T0) & fl] x1 /\ @rml_is_simple fl x2) by (inversion rml_simple ; subst ; easy).
         
     inversion_clear H.
     
-    assert (rml_valid_type t0 vl [:: (n0,t), (n,prod_choiceType t t0) & fl] x1 /\ rml_valid_type t vl fl x2) by (inversion rml_valid ; inversion H8 ; subst ; easy).
+    assert (rml_valid_type T0 vl [:: (n0,T), (n,T -> T0) & fl] x1 /\ rml_valid_type T vl fl x2) by (inversion rml_valid ; inversion H8 ; subst ; easy).
 
     inversion_clear H.
     
-    pose (rml_to_sRml_l t0 x1 vl ((n0,t) :: (n,prod_choiceType t t0) :: fl) H0 H2).
-    pose (rml_to_sRml_l t x2 vl fl H1 H3).
+    pose (x1' := rml_to_sRml_l T0 x1 vl ((n0,T) :: (n,T -> T0) :: fl) H0 H2).
+    pose (x2' := rml_to_sRml_l T x2 vl fl H1 H3).
 
-    destruct e as [s].
-    destruct e0 as [s0].
+    destruct x1' as [x1' x1'_valid].
+    destruct x2' as [x2' x2'_valid].
     
-    assert (A = t0) by (inversion rml_valid ; reflexivity) ; subst.
+    assert (A = T0) by (inversion rml_valid ; reflexivity) ; subst.
     
-    exists (sFix t n n0 s s0).
+    exists (sFix T n n0 x1' x2').
     constructor ; assumption.
   }
 
   (** Random **)
   {
     assert (@rml_is_simple fl x) by (inversion rml_simple ; assumption).
-    assert (rml_valid_type nat_choiceType vl fl x) by (inversion rml_valid ; assumption).
-    assert (A = nat_choiceType) by (inversion rml_valid ; reflexivity).
+    assert (rml_valid_type nat vl fl x) by (inversion rml_valid ; assumption).
+    assert (A = nat) by (inversion rml_valid ; reflexivity).
     
-    pose (rml_to_sRml_l nat_choiceType x vl fl H H0).
-    destruct e as [s].
+    pose (x' := rml_to_sRml_l nat x vl fl H H0).
+    destruct x' as [x' x'_valid].
     
-    exists (sRandom H1 s).
+    exists (sRandom H1 x').
     constructor ; assumption.
   }
 
   (** Flip **)
   {
-    assert (A = bool_choiceType) by (inversion rml_valid ; reflexivity).
+    assert (A = bool) by (inversion rml_valid ; reflexivity).
     exists (sFlip H).
     constructor.
   }
@@ -984,10 +990,11 @@ Defined.
   
 (* -------------------------------------------------------------------------------- *)
 
-Fixpoint lookup (p : (nat * choiceType)) (env : seq (nat * choiceType * Rml))
-         (fl : seq (nat * choiceType))
+Fixpoint lookup (p : (nat * Type)) (env : seq (nat * Type * Rml))
+         (fl : seq (nat * Type))
          `{env_valid : valid_env env fl} `{_ : List.In p (map fst env) \/ List.In p fl}
-         {struct env} : exists (y : @sRml p.2), srml_valid_type p.2 fl y.
+         {struct env} : verified_srml p.2 fl.
+Proof.
   intros.
   induction env.
   - exists (sVar p.1).
@@ -1055,7 +1062,7 @@ Proof.
   {
     inversion H ; subst.
     constructor.
-    - apply (IHx1 ((n0,t) :: (n,prod_choiceType t t0) :: l1) l2 l3).
+    - apply (IHx1 ((n0,T) :: (n,T -> T0) :: l1) l2 l3).
       assumption.
     - apply IHx2.
       assumption.
@@ -1073,7 +1080,7 @@ Proof.
   {
     constructor.
   }
-Qed.    
+Qed.
 
 Lemma extend_fl_still_valid :
   forall p env fl, valid_env env fl -> valid_env env (p :: fl).
@@ -1089,7 +1096,7 @@ Proof.
       assumption.
     + apply IHenv.
       assumption.
-Qed.  
+Qed.
 
 Fixpoint count_let (x : Rml) : nat :=
   match x with
@@ -1102,9 +1109,10 @@ Fixpoint count_let (x : Rml) : nat :=
   end.
 
 Fixpoint replace_all_variables_aux_type
-         A (x : Rml) (env : seq (nat * choiceType * Rml))
-         (fl : seq (nat * choiceType)) `{env_valid : valid_env env fl}
-         `{x_valid : @rml_valid_type A (map fst env) fl x} {struct x} : exists (k : @sRml A), srml_valid_type A fl k.
+         A (x : Rml) (env : seq (nat * Type * Rml))
+         (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+         `{x_valid : @rml_valid_type A (map fst env) fl x} {struct x}
+  : verified_srml A fl.
 Proof.
   (** Structure **)
   generalize dependent fl.
@@ -1115,14 +1123,14 @@ Proof.
   {
     assert (List.In p (map fst env) \/ List.In p fl) by (inversion x_valid ; subst ; auto).
     destruct p.
-    assert (A = t) by (inversion x_valid ; subst ; reflexivity) ; subst.
-    apply (@lookup (n,t) env fl env_valid H).
+    assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    apply (@lookup (n,T) env fl env_valid H).
   }
 
   (** Const **)
   {
     assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst.
-    exists (sConst s).
+    exists (sConst a).
     constructor.
   }
       
@@ -1153,11 +1161,11 @@ Proof.
     
   (** If-stm **)
   {
-    assert (x1_valid : rml_valid_type bool_choiceType (map fst env) fl x1) by (inversion x_valid ; subst ; assumption).
+    assert (x1_valid : rml_valid_type bool (map fst env) fl x1) by (inversion x_valid ; subst ; assumption).
     assert (x2_valid : rml_valid_type A (map fst env) fl x2) by (inversion x_valid ; subst ; assumption).
     assert (x3_valid : rml_valid_type A (map fst env) fl x3) by (inversion x_valid ; subst ; assumption).
     
-    pose (b' := replace_all_variables_aux_type bool_choiceType x1 env fl env_valid x1_valid).
+    pose (b' := replace_all_variables_aux_type bool x1 env fl env_valid x1_valid).
     pose (m1' := replace_all_variables_aux_type A x2 env fl env_valid x2_valid).
     pose (m2' := replace_all_variables_aux_type A x3 env fl env_valid x3_valid).
 
@@ -1176,12 +1184,12 @@ Proof.
 
   (** App-stm **)
   {
-    assert (x1_valid : rml_valid_type (prod_choiceType t A) (map fst env) fl x1) by (inversion x_valid ; subst ; assumption).
+    assert (x1_valid : rml_valid_type (T -> A) (map fst env) fl x1) by (inversion x_valid ; subst ; assumption).
         
-    assert (x2_valid : rml_valid_type t (map fst env) fl x2) by (inversion x_valid ; subst ; assumption).
+    assert (x2_valid : rml_valid_type T (map fst env) fl x2) by (inversion x_valid ; subst ; assumption).
     
-    pose (e1' := replace_all_variables_aux_type (prod_choiceType t A) x1 env fl env_valid x1_valid).
-    pose (e2' := replace_all_variables_aux_type t x2 env fl env_valid x2_valid).
+    pose (e1' := replace_all_variables_aux_type (T -> A) x1 env fl env_valid x1_valid).
+    pose (e2' := replace_all_variables_aux_type T x2 env fl env_valid x2_valid).
 
     destruct e1' as [e1'].
     destruct e2' as [e2'].
@@ -1189,18 +1197,18 @@ Proof.
     pose (e1'' := sRml_to_rml e1').
     pose (e2'' := sRml_to_rml e2').
     
-    refine (rml_to_sRml_l (App_stm t e1'' e2'') [seq i.1 | i <- env] fl).
+    refine (rml_to_sRml_l (App_stm T e1'' e2'') [seq i.1 | i <- env] fl).
     constructor ; eauto 2 using sRml_simple.
     constructor ; eauto 2 using sRml_valid.
   }
 
   (** Let rec **)
   {
-    pose (fl_x1 := [:: (n0, t), (n, prod_choiceType t t0) & fl]).
+    pose (fl_x1 := [:: (n0, T), (n, T -> T0) & fl]).
     
     assert (x1_valid : rml_valid_type A [seq i.1 | i <- env] fl_x1 x1) by (inversion x_valid ; subst ; assumption).
     
-    assert (x2_valid : rml_valid_type t [seq i.1 | i <- env] fl x2) by (inversion x_valid ; subst ; assumption).
+    assert (x2_valid : rml_valid_type T [seq i.1 | i <- env] fl x2) by (inversion x_valid ; subst ; assumption).
 
     
     assert (env_valid_x1 : valid_env env fl_x1) by (repeat apply extend_fl_still_valid ; assumption).
@@ -1208,34 +1216,34 @@ Proof.
     pose (x1' := replace_all_variables_aux_type A x1 env fl_x1 env_valid_x1 x1_valid).
     assert (env_valid_x2 : valid_env env fl) by (repeat apply extend_fl_still_valid ; assumption).
     
-    pose (x2' := replace_all_variables_aux_type t x2 env fl env_valid_x2 x2_valid).    
+    pose (x2' := replace_all_variables_aux_type T x2 env fl env_valid_x2 x2_valid).
 
     destruct x1' as [x1'].
     destruct x2' as [x2'].
     
-    assert (A = t0) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    assert (A = T0) by (inversion x_valid ; subst ; reflexivity) ; subst.
     
-    exists (sFix t n n0 x1' x2').
-    constructor ; assumption.        
+    exists (sFix T n n0 x1' x2').
+    constructor ; assumption.
   }
 
   (** Random **)
   {
-    assert (rml_valid_type nat_choiceType (map fst env) fl x) by (inversion x_valid ; assumption).
+    assert (inner_x_valid : rml_valid_type nat (map fst env) fl x) by (inversion x_valid ; assumption).
 
-    pose (replace_all_variables_aux_type nat_choiceType x env fl env_valid H).
+    pose (x' := replace_all_variables_aux_type nat x env fl env_valid inner_x_valid).
 
-    assert (A = nat_choiceType) by (inversion x_valid ; reflexivity).
+    assert (type_eq : A = nat) by (inversion x_valid ; reflexivity).
 
-    destruct e as [s].
+    destruct x' as [x' x'_valid].
     
-    exists (sRandom H0 s).
+    exists (sRandom type_eq x').
     constructor ; assumption.
   }
 
   (** Flip **)
   {
-    assert (A = bool_choiceType) by (inversion x_valid ; reflexivity).
+    assert (A = bool) by (inversion x_valid ; reflexivity).
     exists (sFlip H).
     constructor.
   }
@@ -1260,4 +1268,4 @@ Proof.
   all: inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
 Qed.
 
-(* -------------------------------------------------------------------------------- *) 
+(* -------------------------------------------------------------------------------- *)
