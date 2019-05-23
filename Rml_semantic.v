@@ -174,6 +174,14 @@ Proof.
   }
 Defined.
 
-Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil _ x} : {distr (Choice T) / R} :=
+Fixpoint ssem {R : realType} {T : Type} (x : Rml) `{x_valid : rml_valid_type T nil nil x} : {distr (Choice T) / R} :=
   let (y,y_valid) := @replace_all_variables_type T x x_valid in
   @ssem_aux R T y nil y_valid.
+
+Fixpoint option_ssem {R : realType} {T : Type} (x : Rml) : option {distr (Choice T) / R}.
+  destruct (check_valid T nil nil x) eqn : cv.
+  - apply type_checker in cv.
+    exact (Some (@ssem R T x cv)).
+  - exact None.
+Qed.
+  

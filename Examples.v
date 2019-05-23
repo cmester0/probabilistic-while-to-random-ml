@@ -1,4 +1,5 @@
 From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp.analysis Require Import boolp reals distr.
 Require Import Util.
 
 Require Import Rml.
@@ -32,87 +33,35 @@ Definition some_valid2 : rml_valid_type nat nil nil some.
     + constructor.
 Defined.
 
+Compute (@replace_all_variables_aux_type nat some nil nil (env_nil nil) some_valid).
+Compute (@replace_all_variables_aux_type nat some nil nil (env_nil nil) some_valid2).
+
+Check @ssem_aux _ nat (sFix nat 0 1 (sRandom _ (sVar 1)) (sConst 10)) nil (svalid_fix nat [::] nat 0 1 (sRandom _ (sVar 1)) 
+            (sConst 10)
+            (svalid_random nat [:: (1, nat <: Type); (0, nat -> nat  <: Type)] 
+               (sVar 1) _
+               (svalid_fun_var nat [:: (1, nat <: Type); (0, nat -> nat <: Type)] 1
+                  _)) (svalid_const nat [::] 10)).
+
+Compute @ssem_aux _ nat (sConst 10) nil (svalid_const nat nil 10).
+Check @ssem.
+
 From xhl Require Import pwhile.pwhile.
 
-Check @ssem R nat some some_valid.
-Compute @ssem R nat some some_valid.
+Compute @ssem R nat (Const 10) (valid_const nat nil nil 10).
 
-Check ssem (Const 3).
-Check @replace_all_variables_type nat (Const 3) (valid_const nat nil nil 3).
-Compute @replace_all_variables_type nat (Const 3) (valid_const nat nil nil 3).
-
-
-Check (valid_rml_makes_valid_srml nat (Const nat 3) (sConst 3) nil nil (valid_const nat nil nil 3)).
-Compute (valid_rml_makes_valid_srml nat (Const nat 3) (sConst 3) nil nil (valid_const nat nil nil 3)).
-Compute ssem_aux (sConst 3).
-
-Definition walk : Rml :=
-  Let_rec nat nat 0 1
-          (If_stm Flip
-                  (Var (1,nat <: Type))
-                  (App_stm nat (Var (0,nat -> nat <: Type)) (App_stm nat (Const (nat -> nat) (fun x => x+1)) (Var (1,nat <: Type)))))
-          (Const nat 0).
-
-Definition walk_valid : rml_valid_type nat nil nil walk.
+Lemma is10 :
+  @ssem R nat (Const 10) (valid_const nat nil nil 10) = @dunit R (Choice nat) 10.
 Proof.
-  constructor.
-  constructor.
-  constructor.
+  simpl.
   reflexivity.
-  constructor 2.
-  left.
-  reflexivity.
-  constructor.
-  constructor 2.
-  right.
-  left.
-  reflexivity.
-  constructor.
-  constructor.
-  constructor 2.
-  left.
-  reflexivity.
-  constructor.
 Qed.
 
-Check @ssem.
-Check @ssem _ nat walk walk_valid.
-Compute @ssem pwhile.R nat walk walk_valid.
-
-
-
-
-Definition apps := (App_stm nat (Const (nat -> bool) (fun n => true)) (Const nat 10)).
-Definition apps_valid : rml_valid_type bool [::] [::] apps.
+Lemma is_random :
+  @ssem R nat (Random (Const 10)) (valid_random nil nil (Const 10) (valid_const nat nil nil 10)) = @duni R (Choice nat) (range 10).
 Proof.
-  constructor.
-  constructor.
-  constructor.
-Qed.
-
-Definition even_e1 := (App_stm nat (Const (nat -> bool) (fun n => true)) (Var (1,nat <: Type))).
-Definition even_e2 := (Const nat 4).
-
-Definition even := Let_rec nat bool 0 1 even_e1 even_e2.
-
-Definition even_valid : rml_valid_type bool [::] [::] even.
-Proof.
-  constructor.
-  constructor.
-  constructor.
-  constructor 2.
-  left.
+  simpl.
+  compute.
+  native_compute.
   reflexivity.
-  constructor.
 Qed.
-  
-Check @replace_all_variables_type bool even even_valid.
-Check (fun R => @ssem R bool even even_valid).
-Compute (fun R => @ssem R bool even even_valid).
-
-Definition prime_test := (* p = 0, n = 1 *)
-  Let_rec nat bool 0 1
-          (If_stm (App_stm nat (Const (nat -> bool) (fun n => n == 0)) (Var (1,nat <: Type)))
-                  (Const bool true)
-                  (Let_stm k = ))
-.
