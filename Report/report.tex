@@ -1,5 +1,5 @@
 % -------------------------------------------------------------
-% Document setup
+% Document setup 
 % -------------------------------------------------------------
 \documentclass[11pt, leqno, titlepage]{article}
 \usepackage{graphicx}
@@ -183,7 +183,7 @@ literate=
 \newcommand{\Type}{\textcolor{blue}{\mathtt{Type}}}
 \newcommand{\wellformed}{\texttt{well\_formed}}
 \newcommand{\valid}{\texttt{rml\_valid\_type}}
-\newcommand{\bind}{\textcolor{magenta}{>\!\!>\!\!=}}
+\newcommand{\bind}{>\!\!>\!\!=}
 
 \theoremstyle{definition}
 \newtheorem{thm}{Theorem}
@@ -754,56 +754,46 @@ argument for recursive definitions, we give a dummy argument.
 \begin{center}
   \begin{tabular}{|c|c|}
     \hline
-    Rml & typed $\lambda$-calculus \\ \hline
-    Var $(x,A)$ & $x : A$ \\
-    Const $A$ $c$ & $c : A$ \\
-    Let $(x,A)$ $e_1$ $e_2$ & $(\lambda x : A. e_2)~e_1$ \\
-    Fun $(x,A)$ $e$ & $\lambda x : A. e$ \\
-    App $e_1$ $e_2$ & $e_1~e_2$ \\
-    Let rec $(f,A \rightarrow B)$ $(x,A)$ $e_1$ $e_2$ & $(\lambda f : A \rightarrow B. e_2)~(Y~(\lambda f : A \rightarrow B. \lambda x : A. e_1))$ \\ \hline
+    Rml & @sRml A \\ \hline
+    Var $(x,A)$ & sVar $x$ \\
+    Const $A$ $c$ & sConst c \\
+    Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
+    If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
+    Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
+    App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
+    Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
   \end{tabular}
 \end{center}
-The problem here is that we need to translate \(e1\) and \(e2\) to their simple forms, so we do an intermediate translation:
-\[Let\]
 
-\subsubsection{Example: Fib}
+\begin{center}
+  \begin{tabular}{|c|c|c|}
+    \hline
+    @sRml A & typed $\lambda$-calculus & distr \\ \hline
+    sVar $x$ & $x : A$ & dunit (lookup x) \\
+    sConst c & $c : A$ & dunit c \\
+    sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ & $\backslash x \rightarrow \text{dunit}~e$  \\
+    sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{dunit}~(e_1''~e_2'')$ \\
+    sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(\lambda f : T \rightarrow S, e_2)~(Y~(\lambda f : T \rightarrow S, (\lambda x : T, e_1~x))) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \text{dlim}~(\text{ubn}~e_1~x))$ \\ \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Example: Fact}
 Expression:
 \begin{align*}
 \mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
-  (&\mathtt{if}~x \leq 0\\
-                 &\mathtt{then}~0\\
-                 &\mathtt{else}~f~(x - 1) + f~(x-2))\\
+  (&\mathtt{If}~(x = 0)~(1)~(x * f~(x-1)))\\
   (&f~3)
-\end{align*}
-Typing:
-\begin{align*}
-\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
-  ((&\mathtt{if}~(x \leq 0 : \mathbb{B})\\
-                 &\mathtt{then}~(0 : \mathbb{N})\\
-                 &\mathtt{else}~(f : \mathbb{N} \rightarrow \mathbb{N})~(x - 1 : \mathbb{N}) + (f : \mathbb{N} \rightarrow \mathbb{N})~(x-2 : \mathbb{N}) : \mathbb{N}) : \mathbb{N})\\
-  (&(f : \mathbb{N} \rightarrow \mathbb{N})~(3 : \mathbb{N}) : \mathbb{N})
-\end{align*}
-Semi-simple
-\begin{align*}
-  &\mathtt{Let\_stm}~f \\
-  &\quad \mathtt{sFix} \\
-  &\quad \quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
-  &\quad \quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
-  &\quad \quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
-  &\quad \quad \quad \quad ~~\mathtt{then}~0\\
-  &\quad \quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2)))\\
-  &\quad (f~3)
 \end{align*}
 Simple form:
 \begin{align*}
-  &\mathtt{sApp}~\mathtt{sFix} \\
-  &\quad \mathtt{sFun}~(f,\mathbb{N} \rightarrow \mathbb{N})\\
-  &\quad \quad \mathtt{sFun}~(x,\mathbb{N}) \\
-  &\quad \quad \quad ((\mathtt{if}~(x \leq 0)\\
-  &\quad \quad \quad ~~\mathtt{then}~0\\
-  &\quad \quad \quad ~~\mathtt{else}~f~(x - 1) + f~(x-2))) \\
-  &\quad 3
+  & \mathtt{sFix}~f~x \\
+  & \quad (\mathtt{sIf}~(x = 0)~1~(x * f~(x - 1)))\\
+  & \quad (f~3)
 \end{align*}
+Typed lambda expressions:
+\[(\lambda f : \mathbb{N} \rightarrow \mathbb{N}, f~3)~(Y (\lambda f : \mathbb{N} \rightarrow \mathbb{N}, \lambda x : \mathbb{N}, (x = 0)~(1)~(x * f~(x-1))))\]
+Distribution:
+\[\backslash\mathtt{dlet}\_(f \leftarrow \mathtt{dunit}~(\lambda x, \backslash\mathtt{dlim} (\backslash\mathtt{ubn}~(\lambda f, (x = 0)~(1)~(x * f~(x-1))))))~(f~3)\]
 
 
 \subsection{Interpreting $\lambda$-calculus in the space of $\omega$-cpos}
@@ -818,32 +808,35 @@ Simple form:
 \subsection{All translations (forward)}
 \todo[inline]{What is the point of this section? }
 \begin{center}
-  \rotatebox{0}{
     \resizebox{1.05\linewidth}{!}{
-      \begin{tabular}{|c|c|c|}
+      \begin{tabular}{|c|c|}
         \hline
-        Rml & @sRml A & typed $\lambda$-calculus \\ \hline
-        Var $(x,A)$ & sVar $x$ & $x : A$ \\
-        Const $A$ $c$ & sConst c & $c : A$ \\
-        Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ & $(\lambda x : T, e_2 : A)~(e_1 : T) : A$ \\
-        Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ \\
-        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ \\ && \\
-        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ &
-                                              \begin{tabular}{l}
-                                                sApp $(T \rightarrow S)$ \\
-                                                \quad (sFun $A$ $(f,T \rightarrow S)$ $e_2'$) \\
-                                                \quad (sFun $S$ $(x,T)$\\
-                                                \quad \quad (sFix $T$ $f$ $x$ $e_1'$ (sVar $x$)))
-                                              \end{tabular}
-&
-                                                              \begin{tabular}{l}
-                                                                $(\lambda f : T \rightarrow S, e_2 : A)$\\
-                                                                \quad $(Y~(\lambda f : T \rightarrow S, \lambda x : T, e_1 : S) : T \rightarrow S) : A$
-                                                              \end{tabular}
-\\ \hline
+        Rml & @sRml A \\ \hline
+        Var $(x,A)$ & sVar $x$ \\
+        Const $A$ $c$ & sConst c \\
+        Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
+        If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
+        Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
+        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
+        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
       \end{tabular}
-    }}
+    }
 \end{center}
+
+\begin{center}
+  \resizebox{1.05\linewidth}{!}{
+    \begin{tabular}{|c|c|c|}
+      \hline
+      @sRml A & typed $\lambda$-calculus & distr \\ \hline
+      sVar $x$ & $x : A$ & dunit (lookup x) \\
+      sConst c & $c : A$ & dunit c \\
+      sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ &  \\
+      sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{ret}~(e_1'~e_2')$ \\
+      sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(e_2 : (T \rightarrow S) \rightarrow A)~(Y~(e_1 : (T \rightarrow S) \rightarrow T \rightarrow S) : T \rightarrow S) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \mathtt{dlim}~(\mathtt{ubn}~e_1~x))$ \\ \hline
+    \end{tabular}
+  }
+\end{center}
+Problem we get a function \(f : A \rightarrow distr~B\), instead of \(f : distr~(A \rightarrow B)\) (solution bind)
 
 
 
