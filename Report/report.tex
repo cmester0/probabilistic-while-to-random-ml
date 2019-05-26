@@ -422,7 +422,16 @@ over the transformed distribution; with other words, we will receive the probabi
 of the result of an actual pseudorandomised run of our program producing a result
 within the input distribution.
 \todo[inline]{Or something like that... I am very unsure about what exactly we get
-  when we input an initial distribution... help? }
+  when we input an initial distribution... help?\\
+  It seems we get the integral over the joint distribution (given that both
+  distributions are independent, which we will have to assume).}
+\todo[inline]{Geistesblitz! The input is a function that expresses the probability of
+  something being memeber of some set. The characteristic function of a set is
+  non-probabilistic and hence the result of inputting this will give the exact
+  probability of our result being part of that set. If we, for example, have a set
+  where both \texttt{true} and \texttt{false} are memebers with probability
+  $\frac{1}{2}$, the result of inputting this into, e.g., \texttt{unit true} would be
+  the probability of the value (\texttt{true}) being a member of said set. }
 
 
 % \todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
@@ -446,28 +455,73 @@ within the input distribution.
 % $\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 \subsubsection{A monadic interpretation}
-\todo[inline]{\textbf{Question:} Should this actually be here, or should it be part
-  of the section on \rml. The measure thing should apply to both \rml and
-  \texttt{pwhile}, but I am not sure about the monadic transformation.\\
-  \textbf{Answer} (possibly): altreals/distr uses the same monad for their type distr
-  T. }
-
 \todo[inline, color=green!40]{
   We can represent measures with a monadic structure. This is sensible since once we go
   measure we never go back; once probability is involved in a computation, we will not
   get rid of it again.}
+\todo[inline]{Add something about how the measure type now is called \texttt{M}.}
 
 The monadic operators presented here have been formerly introduced by
 [...] %\cite{rml-paper}
 and satisfy the usual monadic \todo{Footnote too facetious?} properties\footnote{We
   refer the reader who is unfamiliar with monads (or requires proof of the authors'
   knowledge thereof) to an earlier work by the authors, which can be found at
-  \url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}. 
+  \url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}.
+They are also used by the Mathematical Components compliant Analysis Library\footnote
+{\url{https://github.com/math-comp/analysis/tree/master/}} in their representation of
+distributions.
 
-\todo[inline]{Monadic transformation. Should we add a subsection on monads or should we just
-  mention them?\\
-  We should mention them and refer to our FP project. This is to make sure that our
-  censor knows that we know stuff about monads. }
+\begin{align*}
+  \texttt{unit} & :~ \tau\to\texttt{M}\tau\\
+                & = \texttt{fun }(x:\tau)\Rightarrow
+                  \texttt{fun }(f~:~\tau\to[0,1])\Rightarrow f~x\\
+  \texttt{bind} & :~\texttt{M}\tau\to(\tau\to\texttt{M}\sigma)\to\texttt{M}\sigma\\
+                & = \texttt{fun }(\mu~:~\texttt{M}\tau)\Rightarrow \texttt{fun }
+                  (M~:~\tau\to\texttt{M}\sigma) \Rightarrow\\
+                & ~~~~\texttt{fun }(f~:~\sigma\to[0,1])\Rightarrow \mu~ (\texttt{fun
+                  }(x~:~\tau)\Rightarrow M~x~f)
+\end{align*}
+\\
+These definitions look big and scary, so let's break them down.
+\\ \\
+The \texttt{unit} function could be described as the ``wrapper'' that takes a value
+and wraps the monad around it. The outermost \todo{Is this the right word for the
+\texttt{fun}-keyword)}function binding
+takes the value that we want to produce the measure of and remembers it. The second
+function binding is to match the type of measures; this is where the probability
+distribution is received as input, and where we then give the output of said
+distribution function applied to our initial value.
+
+A simple example could be \texttt{unit 5} applied to the uniform distributions of
+numbers between 1 and 5. The result would then be 0.2, since that is the probability
+of a (pseudo-)random sampling from our measure (we recall that in this case it is
+just the characteristic function $\mathbb{I}_{\{5\}}$) and a (psuedo-)random sampling
+from the initial distribution coinciding. 
+\\ \\
+The \texttt{bind} function can be viewed as something transforming the value inside
+the monad. 
+Let us take it from the inside and out. Clearly the last line of the definition is
+the result, the \texttt{M}$\sigma$ part; this is obvious from the types. $\mu$ and
+$M$ are the usual arguments to a \texttt{bind} operation, $\mu$ being the initial
+value and $M$ the transformation to be applied to it.
+
+We can view the final construction like continuation passing style programming. We
+still have a value of type $\tau$ inside the monad before we bind it into a function,
+and we want to retain that information in the result of the \texttt{bind}. But we can
+not access this information unless we supply the value of type \texttt{M}$\tau$ with
+a function of type $\tau \to [0,1]$; this function is the one that $\mu$ is applied
+to in the final value. Since the result is of type \texttt{M}$\sigma$, it would make
+sense to use its input on something of type $\sigma$ to get something in [0,1], which
+would satisfy the output type for the function we apply $\mu$ to.
+
+The final function takes the input of type $\tau$, that $\mu$ will give it,
+uses $M$ on it to transform it to something of type \texttt{M}$\sigma$, and then
+supplies it with the last piece of the computation, $f$.
+
+This way we retain all of the information that is contained in $\mu$, transform it
+with $M$, and lastly transform it with $f$, once that is supplied.
+
+\todo[inline]{Add an example.}
 
 
 % Packages: comment
@@ -484,10 +538,53 @@ and $n$, and \texttt{true} and \texttt{false}, \todo{check this sentence}respect
 
 Since calling either function would be considered a valid \rml term, the result has
 to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
-booleans (in the case of \texttt{flip}).
+booleans (in the case of \texttt{flip}).\\
+\\
+The expressions that our language consists of \todo{Is this parenthetical needed?}(we
+recall that it is a functional language, so there are only expressions, no
+statements) are as follows:
 
+\begin{align*}
+  exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else} e_2~
+  \vert ~ \texttt{let }x = e_1 \texttt{ in }e_2~\vert ~ f~e_1~\dots~e_n
+\end{align*}
 
+Here $x$ refers to a variable name previously bound in a let-binding, and $c$ refers
+to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
+definition of what a constant can be, it makes sense to assume, that it can be any
+Coq term.
 
+The $f$ in function application can be a \todo{quote}``primitive or a user-defined
+function'', where primitive would be \texttt{random($n$)} or \texttt{flip}, and a
+user-defined function should be specified by \texttt{let }$f~x_1~\dots~ x_n= e$,
+according to the language specification. Recursive functions can be defined with the
+keyword \texttt{let rec}.
+
+The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
+\todo{What the hell is wrong with figure numbering?}figure \ref{fig:rml-monad}.
+
+\begin{figure}[h]
+  \label{fig:rml-monad}
+  \begin{center}
+    \begin{tabular}{|c|c|}
+      \hline
+      \rml term $e~:~\tau$ & Coq value $[e]~:~\texttt{M}\tau$\\
+      \hline
+      $v$ & \texttt{unit }$v ~~ v$ variable or constant\\ & \\
+      $\texttt{let }x=a\texttt{ in } b$ & $\texttt{bind }[a]~(\texttt{fun } x
+                                          \Rightarrow [b])$\\ & \\
+      $f~a_1\dots a_n$ & $\texttt{bind }[a_1]~(\texttt{fun } x_1 \Rightarrow \dots
+                         \texttt{bind }[a_n]~$ \\
+                           & $(\texttt{fun } x_n \Rightarrow [f]~x_1
+                             \dots x_n) \dots ) $\\ & \\
+      \texttt{if $b$ then $a_1$ else $a_2$} &  $\texttt{bind } [b]~(\texttt{fun }
+                                              x~:~\texttt{bool}) \Rightarrow$\\
+                           & (\texttt{if $x$ then $[a_n]$ else $[a_2]$})\\
+      \hline
+    \end{tabular}\\
+    \caption{Monadic interpretation of \rml terms as presented in [...]}%\cite{rml-paper}
+  \end{center}
+\end{figure}
 
 \subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}\label{sec:pwhile}
 % Here we should give a quick description of EasyCrypt and present pwhile
@@ -523,6 +620,8 @@ expressions are parameterised by their type.
 
 Most of the above constructs are fairly standard and should be known to most
 readers. We give a full formal semantics in Figure \todo{Insert reference to semantics-figure}.
+
+\todo[inline]{Write the semantics for \texttt{pwhile}.}
 
 In addition to the standard expressions and commands, \texttt{pwhile} has the
 expression \texttt{prp $p$}, which we will have a look at here.
@@ -619,7 +718,9 @@ following we choose $x_r$ as the symbol for the chosen return variable.
                     ~\mapsto~ & \texttt{if } e
                                   \texttt{ then } \llbracket s_1 \rrbracket
                                   \texttt{ else } \llbracket s_2 \rrbracket \\
-  \notag\\
+  \notag
+\end{align}
+\begin{align}
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
                     ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e \label{eq:while1}\\
@@ -748,7 +849,7 @@ Simple form:
 
 
 
-\section{Our contribution (Draft: 03.06; Finished 10.06.)}
+\section{Our contribution (Draft: 03.06; Finished 10.06.)}\label{sec:contrib}
 % Goal: 6-12 pages
 % What we actually did.
 
