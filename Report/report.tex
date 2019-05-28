@@ -225,7 +225,7 @@ literate=
 }
 
 
-\section{Theory and existing frameworks (Finished: 27.05.)}
+\section{Theory and existing frameworks (DRAFT READY, minor additions needed)} 
 % Goal: 6-12 pages
 
 \todo[inline, color=green!40]{As mentioned before we focused our work on developing a
@@ -651,10 +651,8 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 \\
 
 
-\section{Our approach (Ready draft: 03.06.)}
+\section{Our approach (Ready draft: 03.06.)}\label{sec:approach}
 % Goal: 6-12 pages
-
-% What we tried to do and the theory behind.
 
 % Describe the translation from while to functional (+recursion), to lambda-calculus,
 % to an interpretation in omega-cpos.
@@ -662,8 +660,35 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 % We planned on making an interpretation of Rml in Coq and then translating the xhl
 % implementation of pwhile to our abstract syntax. 
 
+\todo[inline, color=green!40]{The goal of the present project was to gain an
+  actionable understanding of \rml and \texttt{pwhile}, their respective
+  interpretations, theoretic background, and similarities and differences between
+  them. Our approach was to define a translation between \texttt{pwhile} and \rml as
+  well as an interpretation of \rml, and subsequently show that translating from
+  \texttt{pwhile} to \rml and interpreting the resulting program would lead to the
+  same interpretation as interpreting the \texttt{pwhile} program directly.
 
-\subsection{Translating \texttt{while} to a functional language}
+  This approach allowed us to get acquainted with both languages as well as the
+  difficulties in interpretation that both of them share.}
+
+\todo[inline]{Triangle figure.}
+
+\todo[inline, color=green!40]{In this section we will concern ourselves with the
+  translation between \texttt{pwhile} and \rml, as well as a full interpretation of
+  \rml. We will first have a look at deterministic versions of both in order to
+  define the main part of the translations (Sections \ref{sec:while-to-fun},
+  \ref{sec:fun-to-lambda}, \ref{sec:lambda-interp}, and \ref{sec:while-interp}), and
+  afterwards we will have a look at how to add probabilistic constructs into all
+  translations (Section \ref{sec:probab}).
+
+  According to Boileau, ``what one understands well is expressed clearly'', and there
+  are few ways to say things as concisely as in code. Due to this, we decided to
+  implement part of the content of the present section in Coq and section
+  \ref{sec:contrib} will give a comprehensive overview of our development.} 
+
+
+\subsection{Translating \texttt{while} to a functional
+  language}\label{sec:while-to-fun} 
 % 
 In order to do the translations properly, let us first have a look at a translation
 from the simple, widely known \texttt{while} language to a simple functional language
@@ -748,7 +773,8 @@ argument. This is because they act as procedures, but since our syntax requires 
 argument for recursive definitions, we give a dummy argument.
 
 
-\subsection{Translation from Rml to typed $\mathbf{\lambda}$-calculus}
+\subsection{Translation from Rml to typed
+  $\mathbf{\lambda}$-calculus}\label{sec:fun-to-lambda}  
 \todo[inline, color=red]{This section is preliminary and needs either huge changes or deletion
   before the report is finalised. }
 \begin{center}
@@ -796,13 +822,16 @@ Distribution:
 \[\backslash\mathtt{dlet}\_(f \leftarrow \mathtt{dunit}~(\lambda x, \backslash\mathtt{dlim} (\backslash\mathtt{ubn}~(\lambda f, (x = 0)~(1)~(x * f~(x-1))))))~(f~3)\]
 
 
-\subsection{Interpreting $\lambda$-calculus in the space of $\omega$-cpos}
+\subsection{Interpreting $\lambda$-calculus in the space of
+  $\omega$-cpos}\label{sec:lambda-interp} 
 \todo[inline]{What do $\omega$-cpos have to do with this?}
 
 
-\subsection{Interpreting \texttt{while} directly}
+\subsection{Interpreting \texttt{while} directly}\label{sec:while-interp}
 \todo[inline]{This should probably mainly refer back to the interpretation of
   \texttt{pwhile}.}
+
+\subsection{Adding probabilistic definitions}\label{sec:probab}
 
 
 \subsection{All translations (forward)}
