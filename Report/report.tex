@@ -173,8 +173,11 @@ literate=
 \author{Lasse Letager Hansen %201508114
   \\ Kira Kutscher %201509720
 }
-\date{\today}
-\title{Technical report}
+\date{June 2019}
+\title{Interpreting probabilistic definitions in Coq\\
+  using \\measure theory \\and \\$\omega$-complete partial orders}
+\title{Exploring interpretations \\of\\ probabilistic algorithms\\
+  using measure theory \\in Coq}
 
 \newcommand{\set}[1]{\{#1\}}
 
@@ -194,6 +197,7 @@ literate=
 % -------------------------------------------------------------
 
 \newcommand\rml{$\mathcal{R}$\texttt{ml} } % for a pretty version of "Rml"
+\newcommand\rmlx{$\mathcal{R}$\texttt{ml}* }
 \newcommand\M{\texttt{M}} % for the M representing monads
 
 % -------------------------------------------------------------
@@ -223,9 +227,19 @@ literate=
   We explore both a functional design, as presented in [...], %\cite{RML paper}
   and an imperative one, as in [...]. %\cite{EasyCrypt stuff}
 }
+\todo[inline, caption={}]
+  {Requirements to the reader:
+  \begin{itemize}
+      \item A rudimentary understanding of probability theory, but no knowledge of
+    measure theory
+      \item Section \ref{sec:prob-interp} requires an understanding of monads and
+    how they are used in functional programming
+      \item Section \ref{sec:contrib} requires a basic understanding of Coq
+  \end{itemize}}
 
 
-\section{Theory and existing frameworks (DRAFT READY, minor additions needed)} 
+\section{Theory and existing frameworks (DRAFT READY, minor additions needed; should
+  be done by 03.06.)} 
 % Goal: 6-12 pages
 
 \todo[inline, color=green!40]{As mentioned before we focused our work on developing a
@@ -651,7 +665,7 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 \\
 
 
-\section{Our approach (Ready draft: 03.06.)}\label{sec:approach}
+\section{Our approach (Ready draft: 07.06.)}\label{sec:approach}
 % Goal: 6-12 pages
 
 % Describe the translation from while to functional (+recursion), to lambda-calculus,
@@ -674,17 +688,15 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 \todo[inline]{Triangle figure.}
 
 \todo[inline, color=green!40]{In this section we will concern ourselves with the
-  translation between \texttt{pwhile} and \rml, as well as a full interpretation of
-  \rml. We will first have a look at deterministic versions of both in order to
-  define the main part of the translations (Sections \ref{sec:while-to-fun},
+  translation between \texttt{pwhile} and \rml, as well as their respective
+  interpretations.  We will first have a look at deterministic versions of both in
+  order to define the main part of the translations (Sections \ref{sec:while-to-fun},
   \ref{sec:fun-to-lambda}, \ref{sec:lambda-interp}, and \ref{sec:while-interp}), and
   afterwards we will have a look at how to add probabilistic constructs into all
   translations (Section \ref{sec:probab}).
 
-  According to Boileau, ``what one understands well is expressed clearly'', and there
-  are few ways to say things as concisely as in code. Due to this, we decided to
-  implement part of the content of the present section in Coq and section
-  \ref{sec:contrib} will give a comprehensive overview of our development.} 
+  The current section is fully theoretic, for a discussion of our implementation, we
+  refer the reader to Section \ref{sec:contrib}. }
 
 
 \subsection{Translating \texttt{while} to a functional
@@ -871,7 +883,7 @@ Problem we get a function \(f : A \rightarrow distr~B\), instead of \(f : distr~
 
 
 
-\section{Our contribution (Draft: 03.06; Finished 10.06.)}\label{sec:contrib}
+\section{Our contribution (Draft 31.05; Finished 03.06)}\label{sec:contrib}
 % Goal: 6-12 pages
 % What we actually did.
 
@@ -883,23 +895,129 @@ Problem we get a function \(f : A \rightarrow distr~B\), instead of \(f : distr~
 
 % We tried implementing general recursion with the extra step of translating to the
 % typed lambda calculus and using a fixpoint combinator.
+According to Boileau, ``what one understands well is expressed clearly''. Few forms
+of expressing an idea are as concise as code written for a computer.
 
-\subsection{Our implementation of \rml}
-The data structure used to represent Rml terms is as follows:
+Since the main goal of the present project was to gain an actionable understanding of
+a number of concepts within the field of language design, we chose to implement some
+of the theory present in the previous section in Coq.
+
+Our development contains an implementation of a language based on \rml, a number of
+definitions concerning the correctness of programs in said language, as well as an
+interpreter for such correct programs. Our goal was to implement \rml according to
+its specification, but due to a number of wrestling matches with Coq's typechecker,
+we ended up deviating from what was presented in [...].%\cite{rml-paper}
+
+We will in the following call the language we actually implemented for \rmlx.
+
+\subsection{The definition of \rmlx}
+
+In order to write an interpreter for a language, we need to have a way to represent
+the language's abstract syntax. To this end we define a datatype using the Coq
+keyword \coqe{Inductive}. 
+
 \begin{center}
-  \begin{minipage}{0.7\linewidth}
+  \begin{minipage}{0.8\linewidth}
     \begin{lstlisting}[language=coq]
 Inductive Rml :=
-| Var : (nat * Type) -> Rml
-| Const : forall (A : Type), A -> Rml
+| Var : (nat * Type) -> bool -> Rml 
+| Const : forall {A : Type}, A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
-| Fun_stm : Type -> (nat * Type) -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
 | App_stm : Type -> Rml -> Rml -> Rml
-| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml.
+| Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml
+| Random : Rml -> Rml
+| Flip : Rml.
     \end{lstlisting}
   \end{minipage}
 \end{center}
+
+The names of the constructors are straightforward and easily recognised from the
+discussion of \rml in Section \ref{sec:rml}. The arguments that each constructor
+takes are specific to our implementation so let us have a look at them.
+
+\paragraph{\coqe{Var}} takes a pair of a natural number and a type as well as a boolean. 
+The number and the type represent the information to identify a variable with. We use
+natural numbers as identifiers because they are easy to work with, and the only
+requirement for an identifier is that there is an equality operation on its type. The
+second part of the pair is the type of the variable. The type information of a
+variable is needed for type-checking and interpretation of an expression, because it
+enables us to check that the value of said variable has the type we expect it to
+have.
+
+The second argument for the construction of a variable is a boolean value. This is
+used to indicate if the variable refers to a function or a
+\todo{but... functions are values too...? } value.
+If it is true, the variable name refers to a function, otherwise it refers to a
+\todo{Do we need this?}value.
+
+\paragraph{\coqe{Const}} constructs a constant and is straightforward. The only explicit
+argument it takes is a Coq value; the implicit argument \texttt{A} is the type of
+said value.
+
+At this point it should be noted, that in Coq functions are values as well, so it is
+possible to have a constant whose type is a function type. In other words: When we
+want to access a Coq-toplevel function in our \rmlx program, we can do this by
+encapsulating it in an \rmlx constant. 
+
+\paragraph{\coqe{Let_stm}} is rather straightforward. The pair of a natural number and a
+type is the identifier of the variable being defined. The first argument of type
+\coqe{Rml} is the value of the variable, and the other is the expression the value is
+being used in.
+
+For example \coqe{Let_stm (x,T) $e_1$ $e_2$} would, in \rml syntax, be written as
+\texttt{Let (x:T) := $e_1$ in $e_2$}. 
+
+\paragraph{\coqe{If_stm}} is straightforward. All this constructor takes are the condition
+and the two branches, all in form of \coqe{Rml} values.
+
+\paragraph{\coqe{App_stm}} takes an argument more or one less than we would
+intuitively expect. It takes one type as argument instead of either inferring the
+types or asking for both the function type and the result type.
+
+The trick here is that when type-checking, we know the type we expect the whole application
+expression to have, but we do not know what to expect from the function or its
+argument. We therefore explicitly supply the intermediate type. 
+
+An example would be \coqe{App_stm nat~ (Const is_even) (Const 50)}, where we would
+typecheck the whole expression to have type \coqe{bool}, while we need the explicit
+\coqe{nat} to check that the argument has the right type
+\todo{This is because we can't construct on types in Coq, right...?}for the function.
+
+\paragraph{\coqe{Let_rec}} is the most complicated of the linguistic constructs of
+\rmlx. It takes two types, two identifiers (natural numbers) and two \coqe{Rml}
+expressions.
+
+The two types are rather straightforwardly the domain and co-domain of the
+recursively defined function.
+
+The identifiers are the name of the function and the name of its argument,
+respectively. Both can be referred to in the function body, which is the first
+argument of type \coqe{Rml}.
+
+The last argument should be an \coqe{Rml} value of the same type as the newly defined
+function's argument. This is probably our largest deviation from the original
+specification of \rml. We do not have any expressions of the form \texttt{Let rec
+  \dots in \dots}, instead we require to be recursive definitions to be of the form
+\texttt{Let rec f x := \dots in f(\dots)}. This way of writing and using recursive
+functions has the exact same expressiveness as the common form, but it is easier to
+interpret in Coq.
+
+\paragraph{\coqe{Flip} and \coqe{Random}} are the two probabilistic functions
+mentioned in Section \ref{sec:rml}. We added these to our abstract syntax, since this
+makes it easier for us to interpret them as \coqe{Rml} terms instead of just as
+distributions. Effectively the types are the same, but having them as part of our
+abstract syntax makes them more readily accessible in \rmlx programs. \\
+\\
+It is easy to see that all of the additional information we store in our abstract
+syntax tree is something that a parser would be able to infer and add. It would even
+be possible to transform the shape of a recursive let-binding at parse-time so it
+would fit our abstract syntax. This might introduce more recursive let-bindings, if
+the function is used in multiple places in the original code, but apart from this,
+the result would be equivalent. 
+
+
+\newpage
 We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
 \\ \\
 We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
@@ -918,7 +1036,7 @@ Inductive sRml {A : Type} :=
 \end{center}
 That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
 
-\section{Comparisons and future work (Finished 12.06.)}
+\section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages
 % What the section header says
 
