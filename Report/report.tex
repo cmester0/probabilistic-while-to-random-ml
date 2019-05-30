@@ -198,6 +198,7 @@ literate=
 
 \newcommand\rml{$\mathcal{R}$\texttt{ml} } % for a pretty version of "Rml"
 \newcommand\rmlx{$\mathcal{R}$\texttt{ml}* }
+\newcommand\srml{\texttt{s}\rml}
 \newcommand\M{\texttt{M}} % for the M representing monads
 
 % -------------------------------------------------------------
@@ -846,55 +847,10 @@ Distribution:
 \subsection{Adding probabilistic definitions}\label{sec:probab}
 
 
-\subsection{All translations (forward)}
-\todo[inline]{What is the point of this section? }
-\begin{center}
-    \resizebox{1.05\linewidth}{!}{
-      \begin{tabular}{|c|c|}
-        \hline
-        Rml & @sRml A \\ \hline
-        Var $(x,A)$ & sVar $x$ \\
-        Const $A$ $c$ & sConst c \\
-        Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
-        If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
-        Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
-        App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
-        Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
-      \end{tabular}
-    }
-\end{center}
-
-\begin{center}
-  \resizebox{1.05\linewidth}{!}{
-    \begin{tabular}{|c|c|c|}
-      \hline
-      @sRml A & typed $\lambda$-calculus & distr \\ \hline
-      sVar $x$ & $x : A$ & dunit (lookup x) \\
-      sConst c & $c : A$ & dunit c \\
-      sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ &  \\
-      sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{ret}~(e_1'~e_2')$ \\
-      sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(e_2 : (T \rightarrow S) \rightarrow A)~(Y~(e_1 : (T \rightarrow S) \rightarrow T \rightarrow S) : T \rightarrow S) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \mathtt{dlim}~(\mathtt{ubn}~e_1~x))$ \\ \hline
-    \end{tabular}
-  }
-\end{center}
-Problem we get a function \(f : A \rightarrow distr~B\), instead of \(f : distr~(A \rightarrow B)\) (solution bind)
-
-
-
-
-
 \section{Our contribution (Draft 31.05; Finished 03.06)}\label{sec:contrib}
 % Goal: 6-12 pages
-% What we actually did.
+\todo[inline]{Need to fix the colour scheme for Coq-blocks.}
 
-% We implemented an abstract syntax for Rml in Coq
-
-% We tried to translate from pwhile to said Rml (syntax to syntax)
-
-% We were able to interpret Rml modulo general recursion, using a probability monad.
-
-% We tried implementing general recursion with the extra step of translating to the
-% typed lambda calculus and using a fixpoint combinator.
 According to Boileau, ``what one understands well is expressed clearly''. Few forms
 of expressing an idea are as concise as code written for a computer.
 
@@ -1017,24 +973,38 @@ the function is used in multiple places in the original code, but apart from thi
 the result would be equivalent. 
 
 
-\newpage
-We use all cog types, as possible types of Rml expressions, since there are no real restrictions on the types. We encode variables, as a type and a natural number, so two variables are the same only if they have the same number and refer to the same type.
-\\ \\
-We have defined a relation \wellformed, that checks that no variables are escaping the scope of an Rml program, that is there is always a binding for an expression of type \(\mathtt{Var}~p\). We furthermore define a relation \valid, which checks that a given Rml expression can be typed under a given type. We have shown that if a Rml program is valid then it is well formed. We have then constructed a simplified form of Rml called sRml (for simple Rml), to make it easier to reason about and evaluate expressions, with the following data structure:
+\subsection{Baby steps: The advent of \srml}
+
 \begin{center}
-  \begin{minipage}{0.7\linewidth}
+  \begin{minipage}{0.8\linewidth}
     \begin{lstlisting}[language=coq]
-Inductive sRml {A : Type} :=
-| sVar : nat -> sRml
-| sConst : A -> sRml
-| sFun : forall C (p : nat * Type), A = (p.2 -> C) -> @sRml C -> sRml
-| sIf : @sRml bool -> sRml -> sRml -> sRml
-| sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-| sFix : forall B (nf nx : nat), @sRml (B -> A) -> @sRml B -> sRml.
+      Inductive sRml {A : Type} :=
+      | sVar : nat -> sRml
+      | sConst : A -> sRml
+      | sIf : @sRml bool -> sRml -> sRml -> sRml
+      | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
+      | sFix : forall B (nf nx : nat), @sRml A -> @sRml B -> sRml
+      | sRandom : (A = nat) -> @sRml nat -> sRml
+      | sFlip : (A = bool) -> sRml.
     \end{lstlisting}
   \end{minipage}
 \end{center}
-That is Rml where we remove expressions with variables, from \texttt{let\_stm} statements (not \texttt{let\_rec} statements). We then show that given a valid typing of an Rml expression, we can simplify that expression, and maintain the valid typing (under the same type). With this we can make an interpreter from an interpreter of sRml, which can be constructed as (for continuations). We have a similar function for Rml, using the posibility distributions as interpretations. We see similar patterns arising, since both interpretations are monadic.
+
+
+\subsection{Hi! I am a placeholder for the section header. Please consult the
+  todo-note just beneath me for more information.}
+\todo[inline]{We need something about what it means for \coqe{Rml} to be well-typed,
+  something about the validity of both translations as well as the translation
+  itself.
+
+  Maybe the stuff about the translation would fit better in the previous section, but
+  we definitely need one for the type-checker and some of our beautiful
+  lemmas/theorems. }
+
+
+\subsection{Something something interpretation}
+\todo[inline]{No, this is not going to be the final title of this subsection, but I
+  needed a placeholder here, in order to have the structure of the section in place.}
 
 \section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages
