@@ -271,6 +271,15 @@ Proof.
   }
 Defined.
 
+
+Fixpoint option_ssem {R : realType} {T : Type} (x : Rml) : option {distr (Choice T) / R}.
+  destruct (check_valid T nil nil x) eqn : cv.
+  - apply type_checker in cv.
+    exact (Some (@ssem R T x cv)).
+  - exact None.
+Qed.
+
+
 (** * Examples **)
 
 Definition some : Rml :=
