@@ -6,6 +6,7 @@
 %\usepackage[left=30mm,right=30mm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
+\usepackage[toc,page]{appendix}
 % -------------------------------------------------------------
 % Notation aids 
 % -------------------------------------------------------------
@@ -196,8 +197,8 @@ literate=
 
 % -------------------------------------------------------------
 
-\newcommand\rml{$\mathcal{R}$\texttt{ml} } % for a pretty version of "Rml"
-\newcommand\rmlx{$\mathcal{R}$\texttt{ml}* }
+\newcommand\rml{$\mathcal{R}$\texttt{ml}} % for a pretty version of "Rml"
+\newcommand\rmlx{$\mathcal{R}$\texttt{ml}*}
 \newcommand\srml{\texttt{s}\rml}
 \newcommand\M{\texttt{M}} % for the M representing monads
 
@@ -264,7 +265,7 @@ literate=
   how we can represent the result of a probabilistic computation using a monadic
   interpretation of probability measures (Section \ref{sec:prob-interp}. Afterwards we
   will move on to presenting two different developments that have worked with
-  probabilistic languages in Coq: the functional \rml (Section \ref{sec:rml}) and the
+  probabilistic languages in Coq: the functional \rml\ (Section \ref{sec:rml}) and the
   imperative \texttt{pwhile} (Section \ref{sec:pwhile}).}
 
 \subsection{Complete partial orders}\label{sec:cpos}
@@ -545,13 +546,13 @@ The first language for probabilistic programs implemented in Coq is called \rml
 ('Randomised monadic language')
 and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring. %\cite
 \\ \\
-\rml could be described as a functional version of the \texttt{while} language with
+\rml\ could be described as a functional version of the \texttt{while} language with
 an interpretation that allows for probabilistic algorithms. The language itself does
 not contain probabilistic expressions, but rather makes use of a \texttt{random($n$)}
 or \texttt{flip} function giving a uniform distribution of natural numbers between 0
 and $n$, and \texttt{true} and \texttt{false}, \todo{check this sentence}respectively.
 
-Since calling either function would be considered a valid \rml term, the result has
+Since calling either function would be considered a valid \rml\ term, the result has
 to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
 booleans (in the case of \texttt{flip}).\\
 \\
@@ -583,7 +584,7 @@ The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
   \begin{center}
     \begin{tabular}{|c|c|}
       \hline
-      \rml term $e~:~\tau$ & Coq value $[e]~:~\texttt{M}\tau$\\
+      \rml\ term $e~:~\tau$ & Coq value $[e]~:~\texttt{M}\tau$\\
       \hline
       $v$ & \texttt{unit }$v ~~ v$ variable or constant\\ & \\
       $\texttt{let }x=a\texttt{ in } b$ & $\texttt{bind }[a]~(\texttt{fun } x
@@ -597,7 +598,7 @@ The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
                            & (\texttt{if $x$ then $[a_n]$ else $[a_2]$})\\
       \hline
     \end{tabular}\\
-    \caption{Monadic interpretation of \rml terms as presented in [...]}%\cite{rml-paper}
+    \caption{Monadic interpretation of \rml\ terms as presented in [...]}%\cite{rml-paper}
   \end{center}
 \end{figure}
 
@@ -676,11 +677,11 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 % implementation of pwhile to our abstract syntax. 
 
 \todo[inline, color=green!40]{The goal of the present project was to gain an
-  actionable understanding of \rml and \texttt{pwhile}, their respective
+  actionable understanding of \rml\ and \texttt{pwhile}, their respective
   interpretations, theoretic background, and similarities and differences between
-  them. Our approach was to define a translation between \texttt{pwhile} and \rml as
+  them. Our approach was to define a translation between \texttt{pwhile} and \rml\ as
   well as an interpretation of \rml, and subsequently show that translating from
-  \texttt{pwhile} to \rml and interpreting the resulting program would lead to the
+  \texttt{pwhile} to \rml\ and interpreting the resulting program would lead to the
   same interpretation as interpreting the \texttt{pwhile} program directly.
 
   This approach allowed us to get acquainted with both languages as well as the
@@ -706,7 +707,7 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 In order to do the translations properly, let us first have a look at a translation
 from the simple, widely known \texttt{while} language to a simple functional language
 resembling \rml. The thought behind this is that once this translation is in place,
-all we have to do to translate \texttt{pwhile} to \rml is to add probability.
+all we have to do to translate \texttt{pwhile} to \rml\ is to add probability.
 
 \begin{align}
   \label{eq:while}
@@ -716,7 +717,7 @@ all we have to do to translate \texttt{pwhile} to \rml is to add probability.
                \vert \texttt{while } e \texttt{ do } s \vert s_1;s_2
 \end{align}
 
-The syntax of our functional language is the same as \rml modulo the pre-defined
+The syntax of our functional language is the same as \rml\ modulo the pre-defined
 probabilistic functions.
 
 The translation of expressions is completely straightforward: variables are mapped to
@@ -860,7 +861,7 @@ of the theory present in the previous section in Coq.
 
 Our development contains an implementation of a language based on \rml, a number of
 definitions concerning the correctness of programs in said language, as well as an
-interpreter for such correct programs. Our goal was to implement \rml according to
+interpreter for such correct programs. Our goal was to implement \rml\ according to
 its specification, but due to a number of wrestling matches with Coq's typechecker,
 we ended up deviating from what was presented in [...].%\cite{rml-paper}
 
@@ -889,7 +890,7 @@ Inductive Rml :=
 \end{center}
 
 The names of the constructors are straightforward and easily recognised from the
-discussion of \rml in Section \ref{sec:rml}. The arguments that each constructor
+discussion of \rml\ in Section \ref{sec:rml}. The arguments that each constructor
 takes are specific to our implementation so let us have a look at them.
 
 \paragraph{\coqe{Var}} takes a pair of a natural number and a type as well as a boolean. 
@@ -913,15 +914,15 @@ said value.
 
 At this point it should be noted, that in Coq functions are values as well, so it is
 possible to have a constant whose type is a function type. In other words: When we
-want to access a Coq-toplevel function in our \rmlx program, we can do this by
-encapsulating it in an \rmlx constant. 
+want to access a Coq-toplevel function in our \rmlx\ program, we can do this by
+encapsulating it in an \rmlx\ constant. 
 
 \paragraph{\coqe{Let_stm}} is rather straightforward. The pair of a natural number and a
 type is the identifier of the variable being defined. The first argument of type
 \coqe{Rml} is the value of the variable, and the other is the expression the value is
 being used in.
 
-For example \coqe{Let_stm (x,T) $e_1$ $e_2$} would, in \rml syntax, be written as
+For example \coqe{Let_stm (x,T) $e_1$ $e_2$} would, in \rml\ syntax, be written as
 \texttt{Let (x:T) := $e_1$ in $e_2$}. 
 
 \paragraph{\coqe{If_stm}} is straightforward. All this constructor takes are the condition
@@ -959,11 +960,16 @@ specification of \rml. We do not have any expressions of the form \texttt{Let re
 functions has the exact same expressiveness as the common form, but it is easier to
 interpret in Coq.
 
+Note that this way of defining \texttt{Let rec}s removes the necessity of having a
+function environment. Each function is used right where it is defined and can not be
+called in the rest of the program, so effectively there is no binding of anything
+happening in our so-called \coqe{Let_rec}. 
+
 \paragraph{\coqe{Flip} and \coqe{Random}} are the two probabilistic functions
 mentioned in Section \ref{sec:rml}. We added these to our abstract syntax, since this
 makes it easier for us to interpret them as \coqe{Rml} terms instead of just as
 distributions. Effectively the types are the same, but having them as part of our
-abstract syntax makes them more readily accessible in \rmlx programs. \\
+abstract syntax makes them more readily accessible in \rmlx\ programs. \\
 \\
 It is easy to see that all of the additional information we store in our abstract
 syntax tree is something that a parser would be able to infer and add. It would even
@@ -974,6 +980,15 @@ the result would be equivalent.
 
 
 \subsection{Baby steps: The advent of \srml}
+In our first try to interpret \rml\ directly, we were not able to figure out how to
+use environments for the interpretation of let-bindings in a way that Coq would
+accept. So instead of going from \rml\ directly to its interpretation (as was
+suggested in [...])%\cite{rml-paper}
+we took a step in between. We defined a language of simplified \rml, \srml. The main
+difference between \rml\ and \srml\ is that \srml\ does not have let-bindings; there is,
+however, still a construct that is the same as the previous \coqe{Let_rec} which we
+call \coqe{sFix}, but as mentioned earlier, this construction does not actually bind
+anything to an identifier, so there is no problem with environments here.
 
 \begin{center}
   \begin{minipage}{0.8\linewidth}
@@ -981,25 +996,38 @@ the result would be equivalent.
       Inductive sRml {A : Type} :=
       | sVar : nat -> sRml
       | sConst : A -> sRml
-      | sIf : @sRml bool -> sRml -> sRml -> sRml
-      | sApp : forall T, @sRml (T -> A) -> @sRml T -> sRml
-      | sFix : forall B (nf nx : nat), @sRml A -> @sRml B -> sRml
-      | sRandom : (A = nat) -> @sRml nat -> sRml
+      | sIf : @@sRml bool -> sRml -> sRml -> sRml
+      | sApp : forall T, @@sRml (T -> A) -> @@sRml T -> sRml
+      | sFix : forall B (nf nx : nat), @@sRml A -> @@sRml B -> sRml
+      | sRandom : (A = nat) -> @@sRml nat -> sRml
       | sFlip : (A = bool) -> sRml.
     \end{lstlisting}
   \end{minipage}
 \end{center}
 
+Having this definition in place, the next step is to translate \rmlx\ to \srml. This
+is done by the function \coqe{replace_all_variables_type}. \todo{refer to appendix
+  with this? }
 
-\subsection{Hi! I am a placeholder for the section header. Please consult the
-  todo-note just beneath me for more information.}
-\todo[inline]{We need something about what it means for \coqe{Rml} to be well-typed,
+\todo[inline]{Why is \srml\ parameterised by a type? }
+
+\subsection{Typing \rmlx}
+\todo[inline]{We need something about what it means for \texttt{Rml} to be well-typed,
   something about the validity of both translations as well as the translation
   itself.
 
   Maybe the stuff about the translation would fit better in the previous section, but
   we definitely need one for the type-checker and some of our beautiful
   lemmas/theorems. }
+
+Before we want to translate a program in \rmlx\ to one in \srml, we want to be sure
+that the program we are trying to interpret does not ``go wrong''. Having learned
+from Robin Milner %\cite{} "A Theory of Type Polymorphism in Programming", 1978
+we know that in order to ensure this we must implement some typing rules and a way to
+check that a program is well-typed.
+
+The rules we implemented are mostly straightforward and can be found in Appendix
+\ref{appendix:rmltypes}. 
 
 
 \subsection{Something something interpretation}
@@ -1017,8 +1045,53 @@ the result would be equivalent.
 
 
 \newpage
-\section{Appendix}
-Example - Error: Stack Overflow.
+\begin{appendices}
+  \section{\rmlx\ typing rules}
+  \label{appendix:rmltypes}
+\begin{lstlisting}[language=coq]
+Inductive rml_valid_type : Type -> seq (nat * Type) -> seq (nat * Type) -> Rml -> Prop :=
+| valid_var : forall vl fl p,
+    List.In p vl ->
+    rml_valid_type p.2 vl fl (Var p false)
+
+| valid_fun_var : forall vl fl p,
+    List.In p fl ->
+    rml_valid_type p.2 vl fl (Var p true)
+                   
+| valid_const : forall (A : Type) vl fl (c : A),
+    rml_valid_type A vl fl (@@Const A c)
+                   
+| valid_let : forall A vl fl p a b,
+    @@rml_valid_type p.2 vl fl a ->
+    @@rml_valid_type A (p :: vl) fl b ->
+    rml_valid_type A vl fl (Let_stm p a b)
+                   
+| valid_if : forall A vl fl b m1 m2,
+    rml_valid_type bool vl fl b ->
+    rml_valid_type A vl fl m1 ->
+    rml_valid_type A vl fl m2 ->
+    rml_valid_type A vl fl (If_stm b m1 m2)
+                   
+| valid_app : forall A vl fl (B : Type) e1 e2,
+    rml_valid_type (B -> A) vl fl e1 ->
+    rml_valid_type B vl fl e2 ->
+    rml_valid_type A vl fl (App_stm B e1 e2)
+
+| valid_let_rec : forall A vl fl B nf nx e1 e2,
+    @@rml_valid_type A vl ((nx,B) :: (nf,B -> A) :: fl) e1 ->
+    @@rml_valid_type B vl fl e2 ->
+    rml_valid_type A vl fl (Let_rec B A nf nx e1 e2)
+
+| valid_random : forall vl fl e,
+    rml_valid_type nat vl fl e ->
+    rml_valid_type nat vl fl (Random e)
+
+| valid_flip : forall vl fl,
+    rml_valid_type bool vl fl Flip.
+\end{lstlisting}
+  \newpage
+
+  \section{Example - Error: Stack Overflow.}
 \begin{lstlisting}[language=coq]
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
@@ -1057,5 +1130,8 @@ Proof.
   all: refine (sVar (0,A)).  
 Defined.
 \end{lstlisting}
+
+
+\end{appendices}
 
 \end{document}
