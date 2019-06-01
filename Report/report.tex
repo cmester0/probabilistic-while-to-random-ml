@@ -1011,6 +1011,38 @@ is done by the function \coqe{replace_all_variables_type}. \todo{refer to append
 
 \todo[inline]{Why is \srml\ parameterised by a type? }
 
+We replace the variables by traversing our abstract syntax tree and building an
+environment that contains the identifier, type, and value of each variable that is
+bound. As we go, we construct the abstract syntax of an \srml\ expression. Most of
+the cases are straightforward and an \rmlx\ construct is just replaced with the
+corresponding \srml\ construct. The interesting cases are \coqe{Var} and
+\coqe{Let}.
+
+\paragraph{Variables} refer to let-bindings, so we want to get rid of them. But we
+still want to be able to have recursive function definitions, so we can not get rid
+of the variables that are the function name and argument in a recursive
+definition. This means we need a way to distinguish them. Here the extra boolean
+argument that the constructor \coqe{Var} takes comes into play:
+\begin{itemize}
+    \item If it is \texttt{false}, we look up the variable in the environment and
+  replace it with its value.
+    \item If it is \texttt{true}, we know that we are currently looking at the body
+  of a recursive definition and have no value with which to replace the variable, so
+  we construct an \coqe{sVar} for it. 
+\end{itemize}
+
+\paragraph{Let-bindings} are what we want to get rid of in our simplification. We
+just saw how we get rid of variables referring back to bindings, so now for the
+actual binding part.
+
+When we encounter a let-binding in our translation, we have to make sure that we can
+replace all variables in its body with their value by just looking into the
+environment. This means that we have to extend the environment with the newly bound
+variable and then replace all the variables in its body. And this is exactly what we
+do. We call the function to replace variables recursively, on the body of the
+let-binding with the newly extended environment. 
+
+
 \subsection{Typing \rmlx}
 \todo[inline]{We need something about what it means for \texttt{Rml} to be well-typed,
   something about the validity of both translations as well as the translation
@@ -1020,14 +1052,14 @@ is done by the function \coqe{replace_all_variables_type}. \todo{refer to append
   we definitely need one for the type-checker and some of our beautiful
   lemmas/theorems. }
 
-Before we want to translate a program in \rmlx\ to one in \srml, we want to be sure
-that the program we are trying to interpret does not ``go wrong''. Having learned
-from Robin Milner %\cite{} "A Theory of Type Polymorphism in Programming", 1978
+But how can we be sure that the translation from \rmlx\ to \srml\ actually works and
+does not ``go wrong''? 
+Having learned from Robin Milner %\cite{} "A Theory of Type Polymorphism in Programming", 1978
 we know that in order to ensure this we must implement some typing rules and a way to
 check that a program is well-typed.
 
-The rules we implemented are mostly straightforward and can be found in Appendix
-\ref{appendix:rmltypes}. 
+The rules we implemented are straightforward and can be found in Appendix
+\ref{appendix:rmltypes}.
 
 
 \subsection{Something something interpretation}
@@ -1046,6 +1078,173 @@ The rules we implemented are mostly straightforward and can be found in Appendix
 
 \newpage
 \begin{appendices}
+
+  \section{Translating \rmlx\ to \srml}
+  This appendix presents the function translating \rmlx\ abstract syntax to \srml\
+  abstract syntax. The auxiliary function, which is the main workhorse, is defined
+  recursively and written in the form of a proof. This is possible because Coq-proofs
+  are program terms that can be run. 
+\begin{lstlisting}[language=coq]
+Fixpoint replace_all_variables_aux_type
+         A (x : Rml) (env : seq (nat * Type * Rml))
+         (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
+         `{x_valid : @@rml_valid_type A (map fst env) fl x} {struct x}
+  : verified_srml A fl.
+Proof.
+  (** Structure **)
+  generalize dependent fl.
+  generalize dependent env.
+  generalize dependent A.
+  induction x ; intros.
+  (** Var *)
+  {
+    assert (List.In p (map fst env) \/ List.In p fl) 
+    by (inversion x_valid ; subst ; auto).
+    destruct p.
+    assert (A = T) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    apply (@@lookup (n,T) env fl env_valid H).
+  }
+
+  (** Const **)
+  {
+    assert (A0 = A) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    exists (sConst a).
+    constructor.
+  }
+      
+  (** Let-stm **)
+  {
+    assert (x1_valid : rml_valid_type p.2 (map fst env) fl x1) 
+    by (inversion x_valid ; subst ; assumption).
+
+    pose (x1' := replace_all_variables_aux_type p.2 x1 env fl env_valid x1_valid).
+    destruct x1' as [x1'].
+    pose (x1'' := @@sRml_to_rml p.2 x1').
+
+    assert (x1''_simple : @@rml_is_simple fl x1'').
+    apply sRml_simple.
+    assumption.
+
+    assert (x1''_valid : @@rml_valid_type p.2 (map fst env) fl x1'').
+    apply sRml_valid.
+    assumption.
+    
+    pose (@@rml_to_sRml_l p.2 x1'' (map fst env) fl).
+        
+    assert (x2_valid : rml_valid_type A (p :: [seq i.1 | i <- env]) fl x2) 
+    by (inversion x_valid ; subst ; assumption).
+
+    assert (env_valid' : valid_env ((p,x1'') :: env) fl) 
+    by (constructor ; assumption).
+    
+    refine (replace_all_variables_aux_type A x2 ((p,x1'') :: env) fl env_valid' x2_valid).
+  }
+    
+  (** If-stm **)
+  {
+    assert (x1_valid : rml_valid_type bool (map fst env) fl x1) 
+    by (inversion x_valid ; subst ; assumption).
+    assert (x2_valid : rml_valid_type A (map fst env) fl x2) 
+    by (inversion x_valid ; subst ; assumption).
+    assert (x3_valid : rml_valid_type A (map fst env) fl x3) 
+    by (inversion x_valid ; subst ; assumption).
+    
+    pose (b' := replace_all_variables_aux_type bool x1 env fl env_valid x1_valid).
+    pose (m1' := replace_all_variables_aux_type A x2 env fl env_valid x2_valid).
+    pose (m2' := replace_all_variables_aux_type A x3 env fl env_valid x3_valid).
+
+    destruct b' as [b'].
+    destruct m1' as [m1'].
+    destruct m2' as [m2'].
+    
+    pose (b'' := sRml_to_rml b').
+    pose (m1'' := sRml_to_rml m1').
+    pose (m2'' := sRml_to_rml m2').
+    
+    refine (rml_to_sRml_l (If_stm b'' m1'' m2'') [seq i.1 | i <- env] fl).
+    constructor ; eauto using sRml_simple.
+    constructor ; eauto using sRml_valid.
+  }
+
+  (** App-stm **)
+  {
+    assert (x1_valid : rml_valid_type (T -> A) (map fst env) fl x1) 
+    by (inversion x_valid ; subst ; assumption).
+        
+    assert (x2_valid : rml_valid_type T (map fst env) fl x2) 
+    by (inversion x_valid ; subst ; assumption).
+    
+    pose (e1' := replace_all_variables_aux_type (T -> A) x1 env fl env_valid x1_valid).
+    pose (e2' := replace_all_variables_aux_type T x2 env fl env_valid x2_valid).
+
+    destruct e1' as [e1'].
+    destruct e2' as [e2'].
+    
+    pose (e1'' := sRml_to_rml e1').
+    pose (e2'' := sRml_to_rml e2').
+    
+    refine (rml_to_sRml_l (App_stm T e1'' e2'') [seq i.1 | i <- env] fl).
+    constructor ; eauto 2 using sRml_simple.
+    constructor ; eauto 2 using sRml_valid.
+  }
+
+  (** Let rec **)
+  {
+    pose (fl_x1 := [:: (n0, T), (n, T -> T0) & fl]).
+    
+    assert (x1_valid : rml_valid_type A [seq i.1 | i <- env] fl_x1 x1) 
+    by (inversion x_valid ; subst ; assumption).
+    
+    assert (x2_valid : rml_valid_type T [seq i.1 | i <- env] fl x2) 
+    by (inversion x_valid ; subst ; assumption).
+
+    
+    assert (env_valid_x1 : valid_env env fl_x1) 
+    by (repeat apply extend_fl_still_valid ; assumption).
+    
+    pose (x1' := replace_all_variables_aux_type A x1 env fl_x1 env_valid_x1 x1_valid).
+    assert (env_valid_x2 : valid_env env fl) by (repeat apply extend_fl_still_valid ; assumption).
+    
+    pose (x2' := replace_all_variables_aux_type T x2 env fl env_valid_x2 x2_valid).
+
+    destruct x1' as [x1'].
+    destruct x2' as [x2'].
+    
+    assert (A = T0) by (inversion x_valid ; subst ; reflexivity) ; subst.
+    
+    exists (sFix T n n0 x1' x2').
+    constructor ; assumption.
+  }
+
+  (** Random **)
+  {
+    assert (inner_x_valid : rml_valid_type nat (map fst env) fl x) 
+    by (inversion x_valid ; assumption).
+
+    pose (x' := replace_all_variables_aux_type nat x env fl env_valid inner_x_valid).
+
+    assert (type_eq : A = nat) by (inversion x_valid ; reflexivity).
+
+    destruct x' as [x' x'_valid].
+    
+    exists (sRandom type_eq x').
+    constructor ; assumption.
+  }
+
+  (** Flip **)
+  {
+    assert (A = bool) by (inversion x_valid ; reflexivity).
+    exists (sFlip H).
+    constructor.
+  }
+Defined.
+
+Definition replace_all_variables_type A (x : Rml)
+           `{x_valid : rml_valid_type A nil nil x} :=
+  @@replace_all_variables_aux_type A x nil nil (env_nil nil) x_valid.
+
+\end{lstlisting}
+  \newpage
   \section{\rmlx\ typing rules}
   \label{appendix:rmltypes}
 \begin{lstlisting}[language=coq]
