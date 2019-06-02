@@ -2,11 +2,12 @@
 % Document setup 
 % -------------------------------------------------------------
 \documentclass[11pt, leqno, titlepage]{article}
-\usepackage{graphicx}
+\usepackage[pdftex]{graphicx}
 %\usepackage[left=30mm,right=30mm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage[toc,page]{appendix}
+\usepackage[noadjust]{cite}
 % -------------------------------------------------------------
 % Notation aids 
 % -------------------------------------------------------------
@@ -193,6 +194,8 @@ literate=
 \newtheorem{thm}{Theorem}
 \newtheorem{defn}[thm]{Definition}
 
+\renewcommand{\thefigure}{\thesection.\arabic{figure}}
+
 \begin{document}
 
 % -------------------------------------------------------------
@@ -226,8 +229,8 @@ literate=
   of such a language in Coq makes it possible to prove facts about the algorithms in
   Coq's proof logic.
 
-  We explore both a functional design, as presented in [...], %\cite{RML paper}
-  and an imperative one, as in [...]. %\cite{EasyCrypt stuff}
+  We explore both a functional design, as presented in \cite{rml-paper},
+  and an imperative one, as in \cite{easy-crypt}.
 }
 \todo[inline, caption={}]
   {Requirements to the reader:
@@ -300,7 +303,7 @@ least upper bound of the sequence, if $n$ is larger than the length of the
 sequence).\\
 \\
 % Standard definition of fixed points
-There is a standard way of defining fixed point iterations on an $\omega$-cpo: % \cite{alea}
+There is a standard way of defining fixed point iterations on an $\omega$-cpo: \cite{rml-paper}
 
 Consider an operator $F~:~X \xrightarrow{m} X$ on some $\omega$-cpo $X$; with this we
 define the monotonic sequence $F_i \mapsto \underbrace{ F(F(\dots F}_{i \text{
@@ -333,7 +336,7 @@ $\omega$-cpo structure as well. Together with the above definition of fixed poin
 can use this structure to interpret general recursive definitions. 
 
 We define a functional, $F$, taking as input a function and ``adding a step to it''.
-Let us look at the example of the factorial function $f(n) = n!$. %\cite{haskell}
+Let us look at the example of the factorial function $f(n) = n!$ \cite{haskell}.
 The recursive definition is well known:
 $$fac(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot fac(n-1)$$
 
@@ -375,7 +378,7 @@ always the least element of the function space $F$ operates on.
 \subsection{Interpreting probabilistic definitions}\label{sec:prob-interp}
 In order to interpret probabilistic definitions, we need a way of expressing
 the distribution of possible results. For this we will use probability measures as
-described in [...].% \cite{rml-paper}
+described in \cite{rml-paper}.
 
 \subsubsection{The concept of measures}
 In layman's terms, we can describe a measure on a set $A$ as exactly that: a way of
@@ -402,7 +405,7 @@ over functions from $A$ to $\mathbb{R}^+$. From this perspective, the above exam
 would consist of the function that given an object in $A$ returns its volume. The
 integral over this function would be the volume of all objects in $A$. Now the
 challenge is to measure only a subset of $A$. We can do this by introducing the
-characteristic function of a subset $X$:%\cite{wikipedia on measures}
+characteristic function of a subset $X$\cite{wiki-measure}:
 
 $$\mathbb{I}_X(x)=
 \begin{cases}
@@ -477,8 +480,7 @@ within the input distribution.
   get rid of it again.}
 \todo[inline]{Add something about how the measure type now is called \texttt{M}.}
 
-The monadic operators presented here have been formerly introduced by
-[...] %\cite{rml-paper}
+The monadic operators presented here have been formerly introduced by \cite{rml-paper}
 and satisfy the usual monadic \todo{Footnote too facetious?} properties\footnote{We
   refer the reader who is unfamiliar with monads (or requires proof of the authors'
   knowledge thereof) to an earlier work by the authors, which can be found at
@@ -544,7 +546,8 @@ with $M$, and lastly transform it with $f$, once that is supplied.
 \subsection{The functional approach: \rml}\label{sec:rml}
 The first language for probabilistic programs implemented in Coq is called \rml
 ('Randomised monadic language')
-and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring. %\cite
+and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring
+(\cite{rml-paper}). 
 \\ \\
 \rml\ could be described as a functional version of the \texttt{while} language with
 an interpretation that allows for probabilistic algorithms. The language itself does
@@ -598,7 +601,7 @@ The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
                            & (\texttt{if $x$ then $[a_n]$ else $[a_2]$})\\
       \hline
     \end{tabular}\\
-    \caption{Monadic interpretation of \rml\ terms as presented in [...]}%\cite{rml-paper}
+    \caption{Monadic interpretation of \rml\ terms as presented in \cite{rml-paper}.}
   \end{center}
 \end{figure}
 
@@ -606,7 +609,7 @@ The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
 % Here we should give a quick description of EasyCrypt and present pwhile
 \textsc{EasyCrypt} is a framework that has been developed in order to help in the
 construction of machine-checkable proofs about cryptographic constructions and
-protocols. %\cite{ https://www.easycrypt.info/documentation/refman.pdf}
+protocols \cite{easy-crypt}.
 A standard approach to this kind of proofs is based on so-called games; in
 \textsc{EasyCrypt} cryptographic algorithms as well as games are modelled as
 \textit{modules} consisting of procedures written in a simple imperative language
@@ -863,7 +866,7 @@ Our development contains an implementation of a language based on \rml, a number
 definitions concerning the correctness of programs in said language, as well as an
 interpreter for such correct programs. Our goal was to implement \rml\ according to
 its specification, but due to a number of wrestling matches with Coq's typechecker,
-we ended up deviating from what was presented in [...].%\cite{rml-paper}
+we ended up deviating from what was presented in \cite{rml-paper}.
 
 We will in the following call the language we actually implemented for \rmlx.
 
@@ -873,7 +876,8 @@ In order to write an interpreter for a language, we need to have a way to repres
 the language's abstract syntax. To this end we define a datatype using the Coq
 keyword \coqe{Inductive}. 
 
-\begin{center}
+\begin{figure}[h]
+  \centering
   \begin{minipage}{0.8\linewidth}
     \begin{lstlisting}[language=coq]
 Inductive Rml :=
@@ -887,7 +891,10 @@ Inductive Rml :=
 | Flip : Rml.
     \end{lstlisting}
   \end{minipage}
-\end{center}
+  \caption{The inductive definition or \rmlx\ abstract syntax.}
+  \label{fig:rmlx}
+\end{figure}
+
 
 The names of the constructors are straightforward and easily recognised from the
 discussion of \rml\ in Section \ref{sec:rml}. The arguments that each constructor
@@ -903,10 +910,9 @@ enables us to check that the value of said variable has the type we expect it to
 have.
 
 The second argument for the construction of a variable is a boolean value. This is
-used to indicate if the variable refers to a function or a
-\todo{but... functions are values too...? } value.
-If it is true, the variable name refers to a function, otherwise it refers to a
-\todo{Do we need this?}value.
+used to indicate if the variable refers to something bound by a previous let binding,
+otherwise it is something we need for type-checking the function body of a recursive
+definition. We will go into more detail about how this is used in Section \ref{sec:srml}.
 
 \paragraph{\coqe{Const}} constructs a constant and is straightforward. The only explicit
 argument it takes is a Coq value; the implicit argument \texttt{A} is the type of
@@ -980,17 +986,19 @@ the result would be equivalent.
 
 
 \subsection{Baby steps: The advent of \srml}
+\label{sec:srml}
 In our first try to interpret \rml\ directly, we were not able to figure out how to
 use environments for the interpretation of let-bindings in a way that Coq would
 accept. So instead of going from \rml\ directly to its interpretation (as was
-suggested in [...])%\cite{rml-paper}
+suggested in \cite{rml-paper})
 we took a step in between. We defined a language of simplified \rml, \srml. The main
 difference between \rml\ and \srml\ is that \srml\ does not have let-bindings; there is,
 however, still a construct that is the same as the previous \coqe{Let_rec} which we
 call \coqe{sFix}, but as mentioned earlier, this construction does not actually bind
 anything to an identifier, so there is no problem with environments here.
 
-\begin{center}
+\begin{figure}[h]
+  \centering
   \begin{minipage}{0.8\linewidth}
     \begin{lstlisting}[language=coq]
       Inductive sRml {A : Type} :=
@@ -1002,14 +1010,13 @@ anything to an identifier, so there is no problem with environments here.
       | sRandom : (A = nat) -> @@sRml nat -> sRml
       | sFlip : (A = bool) -> sRml.
     \end{lstlisting}
+  \caption{The inductive definition or \srml\ abstract syntax.}
   \end{minipage}
-\end{center}
+\end{figure}
 
 Having this definition in place, the next step is to translate \rmlx\ to \srml. This
-is done by the function \coqe{replace_all_variables_type}. \todo{refer to appendix
-  with this? }
-
-\todo[inline]{Why is \srml\ parameterised by a type? }
+is done by the function \coqe{replace_all_variables_type}, which can be found in
+Appendix \ref{app:rml-to-srml}. 
 
 We replace the variables by traversing our abstract syntax tree and building an
 environment that contains the identifier, type, and value of each variable that is
@@ -1044,27 +1051,66 @@ let-binding with the newly extended environment.
 
 
 \subsection{Typing \rmlx}
-\todo[inline]{We need something about what it means for \texttt{Rml} to be well-typed,
-  something about the validity of both translations as well as the translation
-  itself.
-
-  Maybe the stuff about the translation would fit better in the previous section, but
-  we definitely need one for the type-checker and some of our beautiful
-  lemmas/theorems. }
-
 But how can we be sure that the translation from \rmlx\ to \srml\ actually works and
 does not ``go wrong''? 
-Having learned from Robin Milner %\cite{} "A Theory of Type Polymorphism in Programming", 1978
+Having learned from Robin Milner \cite{milner}
 we know that in order to ensure this we must implement some typing rules and a way to
 check that a program is well-typed.
 
+Before we commence the discussion of what it means for \rmlx\ or \srml\ expressions
+to be well-typed, we should mention that we decided on using the axiom of decidable
+equality for types. We could alternatively have defined an 
+\todo{too facetious?} even deeper embedding of \rml\ in Coq by defining a
+datastructure for \rml -types instead of using Coq-types. This, however, would not
+have changed our outcome, so we decided against the additional work.
+
 The rules we implemented are straightforward and can be found in Appendix
-\ref{appendix:rmltypes}.
+\ref{appendix:rmltypes}. 
+
+The attentive reader will have noticed that \srml\ is parameterised by a type
+representing the type of the constructed expression. This is in order to help us (and
+Coq) during the interpretation. The required types are consistent with the specified
+typing rules and are added during the translation from \rmlx\ to \srml. 
+This means that in order to translate, the \rmlx\ expression we are trying to
+translate has to be well-typed; we assure this by our taking as argument a proof of
+the well-typedness of the expression to be translated.
+
+The output of our translation is of type \coqe{forall (A : Type), verified_srml A nil},
+whose definition can be seen in Figure~\ref{fig:verified-srml}. This means that the
+output of our translation effectively is a pair of the resulting \srml\ expression
+and a proof of its well-typedness. This, again, is to help us through the actual
+interpretation. 
+
+\begin{figure}[h]
+  \centering
+\begin{lstlisting}[language=coq]
+  Inductive verified_srml (A : Type) (fl : seq (nat * Type)) : Type :=
+      verified : forall y : sRml, srml_valid_type A fl y -> verified_srml A fl
+\end{lstlisting}
+  \caption{The inductive definition of the type \coqe{verified_srml}.}
+  \label{fig:verified-srml}
+\end{figure}
+
+When defining the translation from \rmlx\ to \srml, we had to define a few helping
+lemmas along the way, in order to be able to prove everything correct. The most
+important one of these is weakening, which we had to prove for both the variable
+environment and the function environment for \rmlx\ as well as for the function
+environment for \srml.
+
+Weakening means that even though we extend our environment (with a let-binding), the
+interpretation of the expression is still well-typed.
+We had a tiny problem along the way here: What if we bind a new variable with the
+same name but of a different type? Then the expression inside the new let-binding
+might be ill-typed.
+
+We fixed this by defining the lookup of a variable to not only refer to its name, but
+also its type (cf. Figure \ref{fig:rmlx} and the subsequent discussion). This way we
+can be sure that the variable we retrieve is of the right type.  
 
 
-\subsection{Something something interpretation}
-\todo[inline]{No, this is not going to be the final title of this subsection, but I
-  needed a placeholder here, in order to have the structure of the section in place.}
+\subsection{But what does it mean? Interpreting \srml}
+
+
 
 \section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages
@@ -1074,12 +1120,16 @@ The rules we implemented are straightforward and can be found in Appendix
 \section{Conclusion (Finished 12.06.)}
 % Goal: 1-2 pages
 
+\newpage
+\bibliographystyle{ieeetr}
+\bibliography{sources}
 
 
 \newpage
 \begin{appendices}
 
   \section{Translating \rmlx\ to \srml}
+  \label{app:rml-to-srml}
   This appendix presents the function translating \rmlx\ abstract syntax to \srml\
   abstract syntax. The auxiliary function, which is the main workhorse, is defined
   recursively and written in the form of a proof. This is possible because Coq-proofs
