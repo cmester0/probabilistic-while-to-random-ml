@@ -246,6 +246,7 @@ literate=
 
 \section{Theory and existing frameworks (DRAFT READY, minor additions needed; should
   be done by 03.06.)} 
+\label{sec:theory}
 % Goal: 6-12 pages
 
 \todo[inline, color=green!40]{As mentioned before we focused our work on developing a
@@ -475,6 +476,7 @@ within the input distribution.
 % $\mu$ has to be applied to a function, but is in reality a measure on A. }
 
 \subsubsection{A monadic interpretation}
+\label{sec:monad-interp}
 \todo[inline, color=green!40]{
   We can represent measures with a monadic structure. This is sensible since once we go
   measure we never go back; once probability is involved in a computation, we will not
@@ -1110,7 +1112,23 @@ can be sure that the variable we retrieve is of the right type.
 
 
 \subsection{But what does it mean? Interpreting \srml}
+After all this talk about how we define well-typedness of \rmlx\ and \srml, we want
+to finally make use of it.
 
+Our interpretation of \srml\ is into the type of
+\coqe{forall (A : Type), distr R (Choice A)}; or with other words: We interpret
+\srml\ expressions of type $\tau$ as distributions over the type of $\tau$. This
+should remind the careful reader of how we presented the interpretations of \rml\ and
+\texttt{pwhile} in Sections \ref{sec:rml} and \ref{sec:pwhile}.
+
+The additional elements of \coqe{R} and \coqe{Choice} are due to the implementation
+of distributions in the Mathematical Components compliant Analysis Library that we
+mentioned in Section \ref{sec:monad-interp}.
+
+Since most of the set-up for the interpretations has been presented throughout
+Section \ref{sec:theory}, we will here only present a formal version of the
+semantics whose implementation can be found in the Coq definitions \coqe{ssem_aux}
+and \coqe{ssem}. 
 
 
 \section{Comparisons and future work (Draft 10.06.)}
@@ -1120,6 +1138,7 @@ can be sure that the variable we retrieve is of the right type.
 
 \section{Conclusion (Finished 12.06.)}
 % Goal: 1-2 pages
+We did good. 
 
 \newpage
 \bibliographystyle{ieeetr}
