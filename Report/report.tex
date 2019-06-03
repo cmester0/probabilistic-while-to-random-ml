@@ -1149,7 +1149,8 @@ can be sure that the variable we retrieve is of the right type.
 After all this talk about how we define well-typedness of \rmlx\ and \srml, we want
 to finally make use of it.
 
-Our interpretation of \srml\ is into the type of
+Our interpretation of \srml\ is based heavily on the previously presented
+interpretations for \texttt{pwhile} and \rml, and hence its result type is
 \coqe{forall (A : Type), distr R (Choice A)}; or with other words: We interpret
 \srml\ expressions of type $\tau$ as distributions over the type of $\tau$. This
 should remind the careful reader of how we presented the interpretations of \rml\ and
@@ -1164,6 +1165,36 @@ Section \ref{sec:theory}, we will here only present a formal version of the
 semantics whose implementation can be found in the Coq definitions \coqe{ssem_aux}
 and \coqe{ssem}. 
 
+\begin{figure}[h]
+  \begin{align*}
+    \llbracket\texttt{sVar }n\rrbracket
+      &=~~ \texttt{env}(n)\\ 
+    \llbracket\texttt{sConst }a\rrbracket
+      &=~~ \texttt{unit }a\\
+    \llbracket\texttt{sIf }b~c_1~c_2\rrbracket
+      &=~~ \texttt{bind }\llbracket b\rrbracket (\lambda x.\texttt{if $x$ then}
+        \llbracket c_1\rrbracket \texttt{ else } \llbracket c_2 \rrbracket)\\
+    \llbracket\texttt{sApp }\tau~f~x\rrbracket
+      &=~~ \texttt{bind }(\lambda t. \texttt{bind }(\lambda u. \texttt{unit }(t~u))
+        ~\llbracket x \rrbracket)
+        \llbracket f \rrbracket\\ 
+    \llbracket\texttt{sFix }\tau~f'~x'~f~x\rrbracket
+      &=~~ \\
+    \llbracket\texttt{sRandom } e\rrbracket
+      &=~~ \texttt{uniform }\llbracket e \rrbracket \\
+    \llbracket\texttt{sFlip }\rrbracket
+      &=~~ \texttt{flip}
+  \end{align*}
+  \caption{Denotational semantics of \srml.}
+  \label{fig:srml-sem}
+\end{figure}
+\todo[inline]{\texttt{uniform} takes a list and gives back the uniform distribution
+  over all elements in said list. We defined a function \texttt{range}, which for any
+  number makes a list of numbers between 0 and said number. In reality we take
+  \texttt{uniform} over that list. }
+\todo[inline]{The interpretation function takes as argument a function environment,
+  \texttt{env}. All values in this environment are already interpreted, so a lookup
+  will yield a distribution.}
 
 \section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages
