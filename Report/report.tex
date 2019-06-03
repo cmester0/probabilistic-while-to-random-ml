@@ -641,9 +641,43 @@ an expression in \texttt{pwhile} can have any Coq type. In the implementation,
 expressions are parameterised by their type.
 
 Most of the above constructs are fairly standard and should be known to most
-readers. We give a full formal semantics in Figure \todo{Insert reference to semantics-figure}.
+readers. In Figure \ref{fig:pwhile-sem} we give a full formal semantics of commands,
+based on the monadic operations presented in Section \ref{sec:monad-interp}.
 
-\todo[inline]{Write the semantics for \texttt{pwhile}.}
+\begin{figure}[h]
+  \begin{align*}
+    \llbracket \texttt{abort} \rrbracket~m
+    &~~= \texttt{dnull}\\
+    \llbracket \texttt{skip} \rrbracket~m
+    &~~= \texttt{unit }m\\
+    \llbracket i;~c \rrbracket~m
+    &~~= \texttt{bind }(\llbracket i \rrbracket~m) ~
+      \llbracket c \rrbracket \\
+    \llbracket x := e \rrbracket~m
+    &~~= \texttt{unit }m [\llbracket e \rrbracket~m / x]\\
+    \llbracket x~\$= d \rrbracket~m
+    &~~= \texttt{bind } (\llbracket d \rrbracket~m) ~(\lambda v.\texttt{unit }m[v/x])
+    \\ 
+    \llbracket \texttt{if $e$ then $c_1$ else $c_2$} \rrbracket~m
+    &~~= \begin{cases} \llbracket c_1 \rrbracket~m\text{ if} \llbracket e
+           \rrbracket~m = \texttt{true}\\ 
+           \llbracket c_2 \rrbracket~m\text{ if} \llbracket e \rrbracket~m =
+           \texttt{false}\\ 
+         \end{cases}\\
+    \llbracket \texttt{while $e$ do $c$} \rrbracket~m
+    &~~= \lambda f.\text{sup}~(\lambda n. \llbracket [\texttt{while $e$ do }c]_n
+      \rrbracket)~ m~f)\\
+    & ~~~~~~ \text{where}\\
+    & ~~~~~~ [\texttt{while $e$ do }c]_0 ~~~ = \texttt{skip}\\
+    & ~~~~~~ [\texttt{while $e$ do }c]_{n+1} = \texttt{if $e$ then $c$;} \\
+    & \hspace{125pt}[\texttt{while $e$ do }c]_n
+  \end{align*}
+  \caption{Denotational semantics of \texttt{pwhile} programs based on the monadic
+    structure presented in Section \ref{sec:monad-interp}. This interpretation is the
+    same as presented in Chapter 2 of \cite{zanella}.}
+  \label{fig:pwhile-sem}
+\end{figure}
+
 
 In addition to the standard expressions and commands, \texttt{pwhile} has the
 expression \texttt{prp $p$}, which we will have a look at here.
