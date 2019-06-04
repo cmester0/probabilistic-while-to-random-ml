@@ -5,10 +5,12 @@ Require Import Coq.Logic.Eqdep_dec.
 
 (* Require Import Eqdep_dec. *)
 
+Axiom dec_eq : (forall x y : Type, {x = y} + {x <> y}).
+
 (* -------------------------------------------------------------------------------- *)
 
 Inductive Rml :=
-| Var : (nat * Type) -> bool -> Rml (* bool = is fun var? *)
+| Var : (nat * Type) -> bool -> Rml (* bool = is fun var *)
 | Const : forall {A : Type}, A -> Rml
 | Let_stm : (nat * Type) -> Rml -> Rml -> Rml
 | If_stm : Rml -> Rml -> Rml -> Rml
@@ -16,48 +18,6 @@ Inductive Rml :=
 | Let_rec : Type -> Type -> nat -> nat -> Rml -> Rml -> Rml
 | Random : Rml -> Rml
 | Flip : Rml.
-
-(* -------------------------------------------------------------------------------- *)
-
-Inductive well_formed (vl : seq (nat * Type)) (fl : seq (nat * Type)) : Rml -> Prop :=
-| well_var : forall p,
-    List.In p vl ->
-    well_formed vl fl (Var p false)
-
-| well_fun_var : forall p,
-    List.In p fl ->
-    well_formed vl fl (Var p true)
-                
-| well_const : forall A c,
-    well_formed vl fl (@Const A c)
-                
-| well_let : forall x (e1 e2 : Rml),
-    well_formed vl fl e1 ->
-    well_formed (x :: vl) fl e2 ->
-    well_formed vl fl (Let_stm x e1 e2)
-                
-| well_if : forall b m1 m2,
-    well_formed vl fl b ->
-    well_formed vl fl m1 ->
-    well_formed vl fl m2 ->
-    well_formed vl fl (If_stm b m1 m2)
-
-| well_app : forall B e1 e2,
-    well_formed vl fl e1 ->
-    well_formed vl fl e2 ->
-    well_formed vl fl (App_stm B e1 e2)
-
-| well_let_rec : forall (B C : Type) nf nx (e1 e2 : Rml),
-    well_formed vl ((nx,B) :: (nf,B -> C) :: fl) e1 ->
-    well_formed vl fl e2 ->
-    well_formed vl fl (Let_rec B C nf nx e1 e2)
-
-| well_random : forall e,
-    well_formed vl fl e ->
-    well_formed vl fl (Random e)
-
-| well_flip :
-    well_formed vl fl Flip.
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -101,311 +61,6 @@ Inductive rml_valid_type : Type -> seq (nat * Type) -> seq (nat * Type) -> Rml -
 | valid_flip : forall vl fl,
     rml_valid_type bool vl fl Flip.
 
-Lemma dec_eq : (forall x y : Type, {x = y} + {x <> y}).
-Proof.
-  (* decide equality. *)
-Admitted.
-
-Fixpoint check_valid (A : Type) (vl : seq (nat * Type)) (fl : seq (nat * Type)) (x : Rml) {struct x} : bool :=
-  match x with
-  | Var p true => List.existsb (fun (a : nat * Type) => (p.1 == a.1) && asbool (p.2 = a.2)) fl && asbool (p.2 = A)
-  | Var p false => List.existsb (fun (a : nat * Type) => (p.1 == a.1) && asbool (p.2 = a.2)) vl && asbool (p.2 = A)
-  | Const A0 a => asbool (A = A0)
-  | Let_stm p x1 x2 => check_valid p.2 vl fl x1 && check_valid A (p :: vl) fl x2
-  | If_stm b m1 m2 => check_valid bool vl fl b && check_valid A vl fl m1 && check_valid A vl fl m2
-  | App_stm T e1 e2 => check_valid (T -> A) vl fl e1 && check_valid T vl fl e2
-  | Let_rec T T0 nf nx e1 e2 => check_valid A vl [:: (nx, T), (nf, T -> T0) & fl] e1 && check_valid T vl fl e2 && asbool (T0 = A)
-  | Random x => check_valid nat vl fl x && asbool ((nat <: Type) = A)
-  | Flip => asbool ((bool <: Type) = A)
-  end.
-
-Theorem type_checker :
-  forall A vl fl x, check_valid A vl fl x = true <-> rml_valid_type A vl fl x.
-Proof.
-  assert (asbool_true : forall (k : Type), `[< k = k >] = true) by (intros ; apply (@asbool_equiv_eqP (k = k) true true) ; constructor ; easy ; easy).
-  
-  intros.
-  split.
-  { intros.
-    generalize dependent fl.
-    generalize dependent vl.
-    generalize dependent A.
-    induction x ; intros.
-    { destruct b.
-      {
-        inversion H.
-        rewrite H1.
-        
-        apply andb_prop in H1.
-        inversion_clear H1.
-        
-        apply List.existsb_exists in H0.
-        destruct H0.
-
-        inversion_clear H0.
-        
-        apply andb_prop in H3.
-        inversion_clear H3.
-
-        apply asboolW in H2.
-        apply asboolW in H4.
-
-        apply PeanoNat.Nat.eqb_eq in H0.        
-        subst.
-        rewrite (surjective_pairing p).
-        rewrite H0.
-        rewrite H4.
-        rewrite <- (surjective_pairing x).
-        apply (valid_fun_var vl fl x).
-        assumption.
-      }
-      {
-        inversion H.
-
-        apply andb_prop in H1.
-        inversion_clear H1.
-
-        apply List.existsb_exists in H0.
-        destruct H0.
-        
-        inversion_clear H0.
-
-        apply andb_prop in H3.
-        inversion_clear H3.
-
-        apply asboolW in H2.
-        apply asboolW in H4.
-
-        apply PeanoNat.Nat.eqb_eq in H0.
-
-        rewrite (surjective_pairing p).
-        rewrite H0.
-        rewrite H4.
-        rewrite <- (surjective_pairing x).
-
-        subst.
-        rewrite H4.
-
-        apply (valid_var vl fl x).
-        assumption.
-      }  
-    }
-    {
-      inversion H.
-      apply asboolW in H1.
-      subst.
-      constructor.
-    }
-    {
-      inversion H.
-      apply andb_prop in H1.
-      inversion_clear H1.
-      apply IHx1 in H0.
-      apply IHx2 in H2.
-      constructor ; assumption.
-    }
-    {
-      inversion H.
-      apply andb_prop in H1.
-      inversion_clear H1.
-      apply andb_prop in H0.
-      inversion_clear H0.
-      apply IHx1 in H1.
-      apply IHx2 in H3.
-      apply IHx3 in H2.
-      constructor ; assumption.
-    }
-    {
-      inversion H.
-      apply andb_prop in H1.
-      inversion_clear H1.
-      apply IHx1 in H0.
-      apply IHx2 in H2.
-      constructor ; assumption.
-    }
-    {
-      inversion H.
-      apply andb_prop in H1.
-      inversion_clear H1.
-      apply andb_prop in H0.
-      inversion_clear H0.
-      apply asboolW in H2.
-      apply IHx1 in H1.
-      apply IHx2 in H3.
-      subst.
-      constructor ; assumption.
-    }
-    {
-      inversion H.
-      apply andb_prop in H1.
-      inversion_clear H1.
-      apply asboolW in H2.
-      apply IHx in H0.
-      subst.
-      constructor ; assumption.
-    }
-    {
-      inversion H.
-      apply asboolW in H1.
-      subst.
-      constructor.
-    }
-  }
-  {
-    intros.
-    generalize dependent fl.
-    generalize dependent vl.
-    generalize dependent A.
-    induction x ; intros.
-    {
-      inversion H ; subst.
-      {
-        simpl.
-        apply andb_true_intro.
-        split.
-        
-        apply List.existsb_exists.
-        exists p.
-        split.
-
-        assumption.
-
-        apply andb_true_intro.
-        split.
-          
-        apply eq_refl.
-        apply (asbool_true p.2).
-
-        apply (asbool_true p.2).
-      }
-      {
-        simpl.
-        apply andb_true_intro.
-        split.
-        
-        apply List.existsb_exists.
-        exists p.
-        split.
-
-        assumption.
-        apply andb_true_intro.
-          
-        split.
-        apply eq_refl.
-        apply (asbool_true p.2).
-        
-        apply (asbool_true p.2).
-      }
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply (asbool_true A).
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply andb_true_intro.
-      split.
-
-      apply IHx1.
-      assumption.
-      apply IHx2.
-      assumption.
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply andb_true_intro.
-      split.
-
-      apply andb_true_intro.
-      split.
-
-      apply IHx1.
-      assumption.
-      apply IHx2.
-      assumption.
-      apply IHx3.
-      assumption.
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply andb_true_intro.
-      split.
-
-      apply IHx1.
-      assumption.
-      apply IHx2.
-      assumption.
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply andb_true_intro.
-      split.
-
-      apply andb_true_intro.
-      split.
-
-      apply IHx1 ; assumption.
-      apply IHx2 ; assumption.
-      apply (asbool_true T0).
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply andb_true_intro.
-      split.
-      
-      apply IHx ; assumption.
-      apply (asbool_true nat).
-    }
-    {
-      inversion H ; subst.
-      simpl.
-      apply (asbool_true bool).
-    }
-  }
-Defined.
-
-(* -------------------------------------------------------------------------------- *)
-
-Definition p_in_list (p : nat*Type) (l : seq (nat * Type)) : bool.
-Proof.
-  induction l.
-  - refine false.
-  - refine (if (asbool (a = p))
-            then true
-            else IHl).  
-Defined.
-
-Theorem in_list_func :
-  forall p l,
-    p_in_list p l -> List.In p l.
-Proof.
-  intros.
-  induction l.
-  - inversion H. (* false *)
-  - simpl in *.
-    destruct `[< a = p >] eqn : eq.
-    left.
-    destruct eq.
-    apply asboolW in H.
-    assumption.
-    right.
-    apply IHl.
-    assumption.
-Qed.
-
-Definition ob :=
-  fun {A B} (x : option A) (f : A -> option B) =>
-    match x with
-    | Some y => f y
-    | None => None
-    end.
-
 (** * Simple Rml *) 
 (* -------------------------------------------------------------------------------- *)
 
@@ -422,7 +77,8 @@ Inductive sRml {A : Type} :=
 
 Inductive rml_is_simple {l : seq (nat * Type)} : Rml -> Prop :=
 | is_fun_var : forall (p : nat * Type),
-    List.In p l -> rml_is_simple (Var p true)
+    List.In p l ->
+    rml_is_simple (Var p true)
                                                              
 | is_const : forall (A : Type) c,
     rml_is_simple (@Const A c)
@@ -502,7 +158,8 @@ Inductive srml_valid_type (A : Type) : seq (nat * Type) -> @sRml A -> Prop :=
 (* -------------------------------------------------------------------------------- *)
 
 Lemma helper :
-  forall T A x1 x2 l, srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
+  forall T A x1 x2 l,
+    srml_valid_type A l (sApp T x1 x2) -> srml_valid_type (T -> A) l x1 /\ srml_valid_type T l x2.
   intros.
   inversion H.
 
@@ -531,7 +188,8 @@ Lemma helper2 :
 Qed.                                                              
 
 Lemma srml_valid_weakening:
-  forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3, srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
+  forall (p : nat * Type) (x : @sRml p.2) l1 l2 l3,
+    srml_valid_type p.2 (l1 ++ l3) x -> srml_valid_type p.2 (l1 ++ l2 ++ l3) x.
 Proof.
   intros.
   generalize dependent l1.
@@ -697,7 +355,9 @@ Inductive valid_env : seq (nat * Type * Rml) -> seq (nat * Type) -> Prop :=
     valid_env (x :: xs) l.
                 
 Lemma valid_weakening:
-  forall (a : nat * Type * Rml) l1 l2 l3 fl, rml_valid_type a.1.2 (l1 ++ l3) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
+  forall (a : nat * Type * Rml) l1 l2 l3 fl,
+    rml_valid_type a.1.2 (l1 ++ l3) fl a.2 ->
+    rml_valid_type a.1.2 (l1 ++ l2 ++ l3) fl a.2.
 Proof.
   intros.
   destruct a.
@@ -775,7 +435,9 @@ Proof.
 Qed.
 
 Corollary valid_weakening_nil :
-  forall (a : nat * Type * Rml) l1 l2 fl, rml_valid_type a.1.2 (l1) fl a.2 -> rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
+  forall (a : nat * Type * Rml) l1 l2 fl,
+    rml_valid_type a.1.2 (l1) fl a.2 ->
+    rml_valid_type a.1.2 (l1 ++ l2) fl a.2.
 Proof.
   intros.
   pose (valid_weakening a l1 l2 nil%SEQ).
@@ -787,7 +449,9 @@ Proof.
 Qed.
 
 Lemma valid_weakening_fl :
-  forall (a : nat * Type * Rml) l1 l2 l3 vl, rml_valid_type a.1.2 vl (l1 ++ l3) a.2 -> rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
+  forall (a : nat * Type * Rml) l1 l2 l3 vl,
+    rml_valid_type a.1.2 vl (l1 ++ l3) a.2 ->
+    rml_valid_type a.1.2 vl (l1 ++ l2 ++ l3) a.2.
 Proof.
   intros.
   destruct a.
@@ -866,7 +530,6 @@ Proof.
     constructor.
   }
 Qed.
-
 
 (* -------------------------------------------------------------------------------- *)
 
@@ -1083,7 +746,8 @@ Proof.
 Qed.
 
 Lemma extend_fl_still_valid :
-  forall p env fl, valid_env env fl -> valid_env env (p :: fl).
+  forall p env fl, valid_env env fl ->
+              valid_env env (p :: fl).
 Proof.
   intros.
   induction env.
@@ -1097,16 +761,6 @@ Proof.
     + apply IHenv.
       assumption.
 Qed.
-
-Fixpoint count_let (x : Rml) : nat :=
-  match x with
-  | Var _ _ | @Const _ _ | Flip => 0
-  | Let_stm _ a b => 1 + count_let a + count_let b
-  | If_stm a b c => count_let a + count_let b + count_let c
-  | App_stm _ a b => count_let a + count_let b
-  | Let_rec _ _ _ _ a b => count_let a + count_let b
-  | Random a => count_let a
-  end.
 
 Fixpoint replace_all_variables_aux_type
          A (x : Rml) (env : seq (nat * Type * Rml))
@@ -1150,8 +804,6 @@ Proof.
     apply sRml_valid.
     assumption.
     
-    pose (@rml_to_sRml_l p.2 x1'' (map fst env) fl).
-        
     assert (x2_valid : rml_valid_type A (p :: [seq i.1 | i <- env]) fl x2) by (inversion x_valid ; subst ; assumption).
 
     assert (env_valid' : valid_env ((p,x1'') :: env) fl) by (constructor ; assumption).
@@ -1214,10 +866,9 @@ Proof.
     assert (env_valid_x1 : valid_env env fl_x1) by (repeat apply extend_fl_still_valid ; assumption).
     
     pose (x1' := replace_all_variables_aux_type A x1 env fl_x1 env_valid_x1 x1_valid).
-    assert (env_valid_x2 : valid_env env fl) by (repeat apply extend_fl_still_valid ; assumption).
     
-    pose (x2' := replace_all_variables_aux_type T x2 env fl env_valid_x2 x2_valid).
-
+    pose (x2' := replace_all_variables_aux_type T x2 env fl env_valid x2_valid).
+            
     destruct x1' as [x1'].
     destruct x2' as [x2'].
     
@@ -1251,21 +902,5 @@ Defined.
 
 Definition replace_all_variables_type A (x : Rml) `{x_valid : rml_valid_type A nil nil x} :=
   @replace_all_variables_aux_type A x nil nil (env_nil nil) x_valid.
-
-(* -------------------------------------------------------------------------------- *)
-
-Theorem valid_is_well :
-  forall (x : Rml) A vl fl `{x_valid : rml_valid_type A vl fl x},
-    well_formed vl fl x.
-Proof.
-  induction x ; intros.
-
-  6: {
-    inversion x_valid ; subst.
-    constructor ; eauto.
-  }
-
-  all: inversion x_valid ; subst ; try (apply well_fun_var ; assumption) ; try (constructor ; eauto).
-Qed.
 
 (* -------------------------------------------------------------------------------- *)

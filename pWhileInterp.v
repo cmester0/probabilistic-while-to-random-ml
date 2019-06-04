@@ -1,8 +1,8 @@
 From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp.analysis Require Import boolp reals distr.
+
 From xhl Require Import pwhile.pwhile.
 From xhl Require Import inhabited notations.
-
-From mathcomp.analysis Require Import boolp reals distr.
 
 Require Import Rml.
 
@@ -28,7 +28,7 @@ Proof.
   assert (ret_env : ret_env ret env) by apply (to_ret_env ret env).
   induction env.
   - refine (ret.1).
-  - destruct (pselect (a.2 = x)).
+  - destruct (asbool (a.2 = x)).
     + refine a.1.
     + apply IHenv.
       inversion ret_env ; subst.
@@ -104,3 +104,41 @@ Fixpoint make_env (mem : cmem) (all_vars : seq (ihbType * ident)) (counter : nat
   end.
   
 (* -------------------------------------------------------------------------------- *)
+
+Check expr.
+Check translate_pWhile_expr_to_rml _ _ _.
+
+Lemma translate_pWhile_expr_to_rml_valid :
+  forall T (x : expr T) ret env,
+    rml_valid_type T nil nil (translate_pWhile_expr_to_rml x ret env).
+Admitted.
+
+Check (If _ then _ else _)%S.
+Locate "If _ then _ else _".
+
+Inductive pwhile_valid {t mem} : cmd_ t mem -> Prop :=
+| abort_valid : pwhile_valid (@abort t mem)
+| skip_valid : pwhile_valid (@skip t mem)
+| assign_valid : forall t0 v e, pwhile_valid (@assign t mem t0 v e)
+| random_valid : forall t0 v e, pwhile_valid (@random t mem t0 v e)
+| if_valid : forall b m1 m2, pwhile_valid (cond b m1 m2)
+| while_valid : forall b e, pwhile_valid (while b e)
+| seq_valid : forall e1 e2, pwhile_valid (e1 ;; e2)%S.
+
+Lemma translate_pWhile_cmd_to_rml_valid :
+  forall T (x : cmd) reti env (x_valid : pwhile_valid x),
+    rml_valid_type T nil (map fst (env ++ [:: (0,T,reti)])) (@translate_pWhile_cmd_to_rml x T (0,T,reti) (env ++ [:: (0,T,reti)])).
+Proof.
+  intros.
+  induction x.
+  - simpl.
+    induction env.
+    + simpl.
+      rewrite asboolT.
+      apply (valid_fun_var nil [:: (0,T)] (0,T)).
+      left.
+      reflexivity.
+      reflexivity.
+    + 
+    
+    
