@@ -294,6 +294,7 @@ order to interpret general recursion and probabilistic programs.
 
 
 \subsubsection{Recursive definitions as fixed point iterations}
+\label{sec:fixp-iter}
 % Describe the fixpoint interpretation of recursive/iterative definitions
 
 Before using $\omega$-cpos to interpret recursion, let us first have a look at some
@@ -567,7 +568,7 @@ recall that it is a functional language, so there are only expressions, no
 statements) are as follows:
 
 \begin{align*}
-  exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else} e_2~
+  exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else } e_2~
   \vert ~ \texttt{let }x = e_1 \texttt{ in }e_2~\vert ~ f~e_1~\dots~e_n
 \end{align*}
 
@@ -748,20 +749,25 @@ In order to do the translations properly, let us first have a look at a translat
 from the simple, widely known \texttt{while} language to a simple functional language
 resembling \rml. The thought behind this is that once this translation is in place,
 all we have to do to translate \texttt{pwhile} to \rml\ is to add probability.
-
-\begin{align}
-  \label{eq:while}
+\begin{align*}
   exp~  ::=~~ & x \vert n \vert \texttt{true} \vert \texttt{false} \vert f~x \\
   stm~  ::=~~ & \texttt{skip} \vert x := e
                \vert \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
                \vert \texttt{while } e \texttt{ do } s \vert s_1;s_2
-\end{align}
+\end{align*}
 
 The syntax of our functional language is the same as \rml\ modulo the pre-defined
-probabilistic functions.
+probabilistic functions and our repeating it here is solely for the reader's
+convenience, not in order to introduce anything new. 
+\begin{align*}
+  exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else } e_2~
+  \vert ~ \texttt{let }x = e_1 \texttt{ in }e_2~\vert ~ f~e_1~\dots~e_n
+\end{align*}
+
 
 The translation of expressions is completely straightforward: variables are mapped to
-variables, constants to constants, and function applications to function applications. 
+variables, constants to constants, and function applications to function
+applications.
 
 In order to translate statements we choose a set of SML-style matching rules; this
 choice is due to the translation of sequences being dependent on what the first
@@ -775,7 +781,6 @@ difference is by choosing a variable name that is designated the return variable
 encapsulates the information we are interested in after the computation. This is the
 result of a program translated from \texttt{while} to our functional language; in the
 following we choose $x_r$ as the symbol for the chosen return variable. 
-
 \begin{align}
   \label{eq:transwhile}
   \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket\\
@@ -797,9 +802,7 @@ following we choose $x_r$ as the symbol for the chosen return variable.
                     ~\mapsto~ & \texttt{if } e
                                   \texttt{ then } \llbracket s_1 \rrbracket
                                   \texttt{ else } \llbracket s_2 \rrbracket \\
-  \notag
-\end{align}
-\begin{align}
+  \notag\\
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
                     ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e \label{eq:while1}\\
@@ -827,53 +830,43 @@ argument. This is because they act as procedures, but since our syntax requires 
 argument for recursive definitions, we give a dummy argument.
 
 
-\subsection{Translation from Rml to typed
-  $\mathbf{\lambda}$-calculus}\label{sec:fun-to-lambda}  
-\todo[inline, color=red]{This section is preliminary and needs either huge changes or deletion
-  before the report is finalised. }
-\begin{center}
-  \begin{tabular}{|c|c|}
-    \hline
-    Rml & @sRml A \\ \hline
-    Var $(x,A)$ & sVar $x$ \\
-    Const $A$ $c$ & sConst c \\
-    Let $(x,T)$ $e_1$ $e_2$ & $e_2'$ \\
-    If $b$ $e_1$ $e_2$ & sIf $b'$ $e_1'$ $e_2'$ \\
-    Fun $(x,T)$ $e$ & sFun $S$ $(x,T)$ $e'$ \\
-    App $T$ $e_1$ $e_2$ & sApp $T$ $e_1'$ $e_2'$ \\
-    Let rec $T$ $S$ $f$ $x$ $e_1$ $e_2$ & sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ \\ \hline
-  \end{tabular}
-\end{center}
+\subsection{Towards the $\mathbf{\lambda}$-calculus}\label{sec:fun-to-lambda}  
 
-\begin{center}
-  \begin{tabular}{|c|c|c|}
-    \hline
-    @sRml A & typed $\lambda$-calculus & distr \\ \hline
-    sVar $x$ & $x : A$ & dunit (lookup x) \\
-    sConst c & $c : A$ & dunit c \\
-    sFun $S$ $(x,T)$ $e'$ & $(\lambda x : T, e : S) : T \rightarrow S$ & $\backslash x \rightarrow \text{dunit}~e$  \\
-    sApp $T$ $e_1'$ $e_2'$ & $(e_1 : T \rightarrow A)~(e_2 : T) : A$ & $e_1' \bind \backslash e_1'' \rightarrow e_2' \bind \backslash e_2'' \rightarrow \text{dunit}~(e_1''~e_2'')$ \\
-    sFix $T$ $S$ $f$ $x$ $e_1'$ $e_2'$ & $(\lambda f : T \rightarrow S, e_2)~(Y~(\lambda f : T \rightarrow S, (\lambda x : T, e_1~x))) : A$ & $(\backslash f \rightarrow e_2) (\backslash x \rightarrow \text{dlim}~(\text{ubn}~e_1~x))$ \\ \hline
-  \end{tabular}
-\end{center}
+In order to make the interpretation of programs easier for ourselves, we decided to
+take an extra step in between the functional language and its interpretation: We use
+the lambda calculus with the \texttt{Y}-combinator.
 
-\subsection{Example: Fact}
-Expression:
-\begin{align*}
-\mathtt{Let\_rec}&~(f,\mathbb{N} \rightarrow \mathbb{N})~(x,\mathbb{N})~\\
-  (&\mathtt{If}~(x = 0)~(1)~(x * f~(x-1)))\\
-  (&f~3)
-\end{align*}
-Simple form:
-\begin{align*}
-  & \mathtt{sFix}~f~x \\
-  & \quad (\mathtt{sIf}~(x = 0)~1~(x * f~(x - 1)))\\
-  & \quad (f~3)
-\end{align*}
-Typed lambda expressions:
-\[(\lambda f : \mathbb{N} \rightarrow \mathbb{N}, f~3)~(Y (\lambda f : \mathbb{N} \rightarrow \mathbb{N}, \lambda x : \mathbb{N}, (x = 0)~(1)~(x * f~(x-1))))\]
-Distribution:
-\[\backslash\mathtt{dlet}\_(f \leftarrow \mathtt{dunit}~(\lambda x, \backslash\mathtt{dlim} (\backslash\mathtt{ubn}~(\lambda f, (x = 0)~(1)~(x * f~(x-1))))))~(f~3)\]
+The translation is straightforward in most cases, the only thing that is a bit tricky
+is the translation of recursive let-bindings. This is because the
+\texttt{Y}-combinator may look confusing at first, but when we take a closer look at
+it, we realise that it looks a lot like the fixed point iteration we presented in
+Section \ref{sec:fixp-iter}.
+
+\begin{align}
+  \label{fig:fun-to-lambda}
+  x~\mapsto~ & x\\
+  c~\mapsto~ & c\\
+  \texttt{let }x := e_1\texttt{ in }e_2 ~\mapsto~
+             & (\lambda x.e_2)~e_1 \\
+  \texttt{if $b$ then $e_1$ else }e_2~\mapsto~
+             & b~e_1~e_2 \label{eq:lambda-if}\\
+  f~e_1\dots e_n ~\mapsto~
+             & f~e_1\dots e_n\\
+  \texttt{let rec }f~x:= e_1 \texttt{ in } e_2 ~\mapsto~
+             & (\lambda f.e_2)~(\texttt{Y}~(\lambda f.\lambda x. (e_1~x)))
+\end{align}
+
+In \ref{eq:lambda-if} we encode an if-expression as the application of a boolean
+value to the two branches. This just means that we assume Church-encoding of
+booleans.
+
+Now for the \texttt{Y}-combinator: It is a so-called \emph{fixed-point combinator},
+this means it is a lambda-expression without any free variables which we can use to
+find the fixed point of the application of a recursive definition. The expansion of
+using the \texttt{Y}-combinator is, as mentioned before, substantially similar to the
+fixed-point iteration we presented, so we will not discuss it in detail here but
+refer any interested reader to \cite{y-combinator}. 
+
 
 
 \subsection{Interpreting $\lambda$-calculus in the space of
@@ -1198,7 +1191,19 @@ and \coqe{ssem}.
 
 \section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages
-% What the section header says
+
+\todo[inline, color=green!40]{We had a brief look at FCF, a Foundational Proof
+  Framework for Cryptography \cite{fcf}, in the beginning of the project, but decided
+  that  it would be more interesting to work on the basis of Paulin-Mohring's and
+  Audebaud's ALEA library \cite{rml-paper}. This is because \rml\ seemed like more of
+  a complete language than FCF.
+
+  In the beginning of the project we were aware of \textsc{EasyCrypt} and the
+  \texttt{xhl} implementation of \texttt{pwhile} and found this interesting and worth
+  exploring, in the hope of making a contribution to the development.
+
+  Instead our work compares \rml\ and \texttt{pwhile} and shows that their semantics
+  are equivalent. }
 
 
 \section{Conclusion (Finished 12.06.)}
