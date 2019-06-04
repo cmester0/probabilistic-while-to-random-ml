@@ -33,7 +33,7 @@ Qed.
 (* -------------------------------------------------------------------------------- *)
 
 Definition mem_type {R} := forall A, distr R (Choice A).
-Definition new_element {R A} (x : distr R (Choice A)) : @mem_type R.
+Definition new_element {R} A (x : distr R (Choice A)) : @mem_type R.
 Proof.
   refine (fun (B : Type) => _).
   destruct (pselect (A = B)).
@@ -42,9 +42,8 @@ Proof.
   - exact (@dnull R (Choice B)).
 Defined.
 
-Fixpoint lookup {R} (env : seq (nat * Type * @mem_type R))
-         (p : nat * Type) `(_ : List.In p (map fst env)) {struct env} :
-  @mem_type R.
+Fixpoint lookup {A : Type} (env : seq (nat * Type * A))
+         (p : nat * Type) `(_ : List.In p (map fst env)) {struct env} : A.
 Proof.
   induction env.
   - contradiction.
@@ -150,8 +149,17 @@ Proof.
     apply helper2 in x_valid.
     inversion_clear x_valid.
 
+    (* pose (fun (k1 : B -> distr R (Choice T)) k2 => *)
+    (* @ssem_aux R T x1 ((nx,B,new_element (dunit k2))  *)
+    (*                     :: (nf,B -> T,new_element (k1 k2))  *)
+    (*                     :: env) H). *)
+
     pose (fun (k1 : B -> distr R (Choice T)) k2 =>
-    @ssem_aux R T x1 ((nx,B,new_element (dunit k2)) :: (nf,B -> T,new_element (k1 k2)) :: env) H).
+    @ssem_aux R T x1 ((nx,B,new_element B (dunit k2)) 
+                        :: (nf,B -> T, new_element (B -> (distr R (Choice T))) 
+                                                   (@dunit R (Choice (B -> distr R (Choice T)))
+                                                           (fun x => @dlet R (Choice B) (Choice T) k1 (@dunit R (Choice B) x))))
+                        :: env) H).
 
     apply (@dlet R (Choice B) (Choice T) (fun b => dlim (ubn' d b)) (ssem_aux R B x2 env H0)).
   }
