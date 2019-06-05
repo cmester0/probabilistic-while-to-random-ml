@@ -892,6 +892,79 @@ with the interpretation of their translations to the $\lambda$-calculus.
   stuff. This is the same thing as the supremum of unrolling the \texttt{while}-loops
   a whole lot of times. }
 
+We prove that the triangle commutes by induction. The base cases are the expressions;
+since these are the same in all languages and evaluated in the same way, they are
+trivially true.
+
+For the proof we will allow ourselves to be sloppy with environments and instead of
+looking up variables simply replace occurrences of variable $x$ in statement $s$ by
+the value of $x$ before interpreting $s$.
+
+Our induction hypothesis is that the interpretation of any sub-term is equivalent for
+direct interpretation (which we will write as $\mapsto^{\texttt{w}}$) and translation
+to $\lambda$-calculus (which we will write as $\mapsto^\lambda$) with subsequent
+interpretation. 
+
+\begin{align}
+  \texttt{skip} ~;~s ~\mapsto^{\texttt{w}}~ & \llbracket s \rrbracket\\
+  \texttt{skip} ~;~s ~\mapsto^\lambda~ & \llbracket s \rrbracket\notag
+\end{align}
+\begin{align}
+  \texttt{skip}     ~\mapsto^{\texttt{w}}~ & x_r\\
+  \texttt{skip}     ~\mapsto^\lambda~ & x_r\notag
+\end{align}
+\begin{align}
+  x := e~;~s        ~\mapsto^{\texttt{w}}~ & \llbracket s\rrbracket[e / x]\notag\\
+  x := e~;~s        ~\mapsto^\lambda~ & (\lambda x.\llbracket s \rrbracket)~e
+\end{align}
+\begin{align}
+  x_r := e          ~\mapsto^{\texttt{w}}~ & e \\
+  x_r := e          ~\mapsto^\lambda~ & e \notag
+\end{align}
+\begin{align}
+  x := e            ~\mapsto^{\texttt{w}}~ & x_r \\
+  x := e            ~\mapsto^\lambda~ & x_r \notag
+\end{align}
+\begin{align}
+  (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
+                    ~\mapsto^{\texttt{w}}~ & \texttt{if } e \\
+                    &  \texttt{then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
+                    & \texttt{else } \llbracket s_2 ~;~ s_3 \rrbracket \notag\\
+  (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
+                    ~\mapsto^\lambda~ &  e ~\llbracket s_1 ~;~ s_3 \rrbracket 
+                                             ~\llbracket s_2 ~;~ s_3 \rrbracket \notag
+\end{align}
+\begin{align}
+  \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+                    ~\mapsto^{\texttt{w}}~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+  \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
+                    ~\mapsto^\lambda~ & e~ \llbracket s_1 \rrbracket
+                                             ~ \llbracket s_2 \rrbracket \notag
+\end{align}
+\begin{align}
+  (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
+  ~\mapsto^{\texttt{w}}~ & sup_n(\texttt{unfold-while-n-times }e~s_1)~;~s_2 \\
+  (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
+  ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
+                         &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
+                           s_1~;~f~x\rrbracket) ~(\llbracket s_2\rrbracket )))\notag
+\end{align}
+\begin{align}
+  \texttt{while } e \texttt{ do } s_1
+  ~\mapsto^{\texttt{w}}~ & sup_n(\texttt{unfold-while-n-times }e~s_1)\\
+  \texttt{while } e \texttt{ do } s_1
+  ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
+                         &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
+                           s_1~;~f~x\rrbracket) ~(x_r)))\notag
+\end{align}
+\todo[inline]{explain $sup_n$. }
+Most of the cases follow directly from the induction hypothesis, the base cases, or
+$\beta$-reduction of the $\lambda$-term in combination with the base cases and the
+induction hypothesis. We will leave it to the reader to convince himself of this.
+
+    The interesting cases are those with a looping construct. 
 
 
 \subsection{Adding probabilistic definitions}\label{sec:probab}
@@ -1191,7 +1264,7 @@ and \coqe{ssem}.
       & \hspace{100pt} \llbracket x \rrbracket_{\texttt{env}})\\
       & \hspace{52pt}\llbracket f \rrbracket_{\texttt{env}}\\ 
     \llbracket\texttt{sFix }\tau~f~x~e_1~e_2\rrbracket_{\texttt{env}}
-      &=~~ \texttt{bind $($sup }F^n)~ \llbracket e_2 \rrbracket _{\texttt{env}}\\
+      &=~~ \texttt{bind $($dlim }F^n)~ \llbracket e_2 \rrbracket _{\texttt{env}}\\
       & \hspace{22pt} \text{where}\\
       & \hspace{22pt}F^0 \hspace{11pt} ~=~ \texttt{dnull}\\
       & \hspace{22pt}F^{n+1} ~=~  (\lambda f'.\lambda x'. \llbracket e_1 \rrbracket
@@ -1205,7 +1278,6 @@ and \coqe{ssem}.
   \caption{Denotational semantics of \srml.}
   \label{fig:srml-sem}
 \end{figure}
-
 
 \texttt{uniform} and \texttt{flip} are functions defined by the \texttt{mathcomp}
 library that return probabilistic distributions represented in the same way as we
@@ -1226,7 +1298,7 @@ will always yield a distribution, just what we expect the interpretation of an
 expression to be. \\
 \\
 For the supremum in the interpretation of \coqe{sFix}, we rely on the
-\texttt{mathcomp} function \texttt{dlim}. This takes the limit over a monotonic
+\texttt{mathcomp} function \texttt{dlim}. This takes the limit of a monotonic
 sequence of distributions. Since the result of a recursive definition is either
 \texttt{dnull} or the result, the sequence will look something like \texttt{dnull,
   dnull, dnull, $\dots$ result, result, result, $\dots$}; this means that the
