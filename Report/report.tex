@@ -734,9 +734,9 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
   translation between \texttt{pwhile} and \rml, as well as their respective
   interpretations.  We will first have a look at deterministic versions of both in
   order to define the main part of the translations (Sections \ref{sec:while-to-fun},
-  \ref{sec:fun-to-lambda}, \ref{sec:lambda-interp}, and \ref{sec:while-interp}), and
-  afterwards we will have a look at how to add probabilistic constructs into all
-  translations (Section \ref{sec:probab}).
+  \ref{sec:fun-to-lambda}) and show that the triangle in Figure %todo: insert fig ref
+  commutes (Section \ref{sec:lambda-interp}). Finally we will have a look at how to
+  add probabilistic constructs to the whole thing (Section \ref{sec:probab}).
 
   The current section is fully theoretic, for a discussion of our implementation, we
   refer the reader to Section \ref{sec:contrib}. }
@@ -844,16 +844,20 @@ Section \ref{sec:fixp-iter}.
 
 \begin{align}
   \label{fig:fun-to-lambda}
-  x~\mapsto~ & x\\
-  c~\mapsto~ & c\\
-  \texttt{let }x := e_1\texttt{ in }e_2 ~\mapsto~
-             & (\lambda x.e_2)~e_1 \\
-  \texttt{if $b$ then $e_1$ else }e_2~\mapsto~
-             & b~e_1~e_2 \label{eq:lambda-if}\\
-  f~e_1\dots e_n ~\mapsto~
-             & f~e_1\dots e_n\\
-  \texttt{let rec }f~x:= e_1 \texttt{ in } e_2 ~\mapsto~
-             & (\lambda f.e_2)~(\texttt{Y}~(\lambda f.\lambda x. (e_1~x)))
+  \llbracket x \rrbracket~\mapsto~
+  & x\\
+  \llbracket c\rrbracket~\mapsto~
+  & c\\
+  \llbracket\texttt{let }x := e_1\texttt{ in }e_2 \rrbracket~\mapsto~
+  & (\lambda x.\llbracket e_2\rrbracket)~\llbracket e_1\rrbracket \\
+  \llbracket \texttt{if $b$ then $e_1$ else }e_2 \rrbracket~\mapsto~
+  & \llbracket b\rrbracket~\llbracket e_1\rrbracket~
+    \llbracket e_2\rrbracket \label{eq:lambda-if}\\
+ \llbracket f~e_1\dots e_n \rrbracket~\mapsto~
+  & \llbracket f\rrbracket~\llbracket e_1\rrbracket \dots \llbracket e_n\rrbracket\\
+  \llbracket \texttt{let rec }f~x:= e_1 \texttt{ in } e_2\rrbracket ~\mapsto~
+  & (\lambda f.\llbracket e_2\rrbracket)~(\texttt{Y}~
+    (\lambda f.\lambda x. \llbracket e_1\rrbracket))
 \end{align}
 
 In \ref{eq:lambda-if} we encode an if-expression as the application of a boolean
@@ -867,16 +871,28 @@ using the \texttt{Y}-combinator is, as mentioned before, substantially similar t
 fixed-point iteration we presented, so we will not discuss it in detail here but
 refer any interested reader to \cite{y-combinator}. 
 
+$\beta$-reduction of function application in the $\lambda$-calculus is to insert the
+bound value instead of its identifier everywhere in the expression. In Sections
+\ref{sec:rmlx} and \ref{sec:srml}, we will use this fact in order to rewrite \rml\
+expressions into something that is easier for us to interpret. 
+
+\subsection{Interpreting it both ways}\label{sec:lambda-interp} 
+Finally, after having defined the translations, we would like to look at the
+interpretations of both the $\lambda$-calculus and \texttt{while} and see that the
+triangle shown in Figure \todo{Reference triangle figure} [Triangle Figure]
+actually commutes.
+
+To this end we will look at all the statements we have looked at for the translation
+from \texttt{while} to a functional language, and compare their direct interpretation
+with the interpretation of their translations to the $\lambda$-calculus. 
+
+\todo[inline, color=green!40]{The \texttt{Y}-combinator will find the fixed point of
+  its function. Since things are constantly getting more defined throughout its
+  unrolling, the fixed point will be the supremum of the sequence of unrolling the
+  stuff. This is the same thing as the supremum of unrolling the \texttt{while}-loops
+  a whole lot of times. }
 
 
-\subsection{Interpreting $\lambda$-calculus in the space of
-  $\omega$-cpos}\label{sec:lambda-interp} 
-\todo[inline]{What do $\omega$-cpos have to do with this?}
-
-
-\subsection{Interpreting \texttt{while} directly}\label{sec:while-interp}
-\todo[inline]{This should probably mainly refer back to the interpretation of
-  \texttt{pwhile}.}
 
 \subsection{Adding probabilistic definitions}\label{sec:probab}
 
@@ -901,6 +917,7 @@ we ended up deviating from what was presented in \cite{rml-paper}.
 We will in the following call the language we actually implemented for \rmlx.
 
 \subsection{The definition of \rmlx}
+\label{sec:rmlx}
 
 In order to write an interpreter for a language, we need to have a way to represent
 the language's abstract syntax. To this end we define a datatype using the Coq
@@ -1160,34 +1177,62 @@ and \coqe{ssem}.
 
 \begin{figure}[h]
   \begin{align*}
-    \llbracket\texttt{sVar }n\rrbracket
+    \llbracket\texttt{sVar }n\rrbracket _{\texttt{env}}
       &=~~ \texttt{env}(n)\\ 
-    \llbracket\texttt{sConst }a\rrbracket
+    \llbracket\texttt{sConst }a\rrbracket_{\texttt{env}}
       &=~~ \texttt{unit }a\\
-    \llbracket\texttt{sIf }b~c_1~c_2\rrbracket
-      &=~~ \texttt{bind }\llbracket b\rrbracket (\lambda x.\texttt{if $x$ then}
-        \llbracket c_1\rrbracket \texttt{ else } \llbracket c_2 \rrbracket)\\
-    \llbracket\texttt{sApp }\tau~f~x\rrbracket
-      &=~~ \texttt{bind }(\lambda t. \texttt{bind }(\lambda u. \texttt{unit }(t~u))
-        ~\llbracket x \rrbracket)
-        \llbracket f \rrbracket\\ 
-    \llbracket\texttt{sFix }\tau~f'~x'~f~x\rrbracket
-      &=~~ \\
-    \llbracket\texttt{sRandom } e\rrbracket
-      &=~~ \texttt{uniform }\llbracket e \rrbracket \\
-    \llbracket\texttt{sFlip }\rrbracket
+    \llbracket\texttt{sIf }b~c_1~c_2\rrbracket_{\texttt{env}}
+      &=~~ \texttt{bind }\llbracket b\rrbracket\texttt{env }(\lambda x.\texttt{if $x$}\\ 
+      & \hspace{110pt}\texttt{then } \llbracket c_1\rrbracket_{\texttt{env}} \\
+      & \hspace{110pt}\texttt{else } \llbracket c_2
+        \rrbracket_{\texttt{env}})\\
+    \llbracket\texttt{sApp }\tau~f~x\rrbracket_{\texttt{env}}
+      &=~~ \texttt{bind }(\lambda t. \texttt{bind }(\lambda u. \texttt{unit }(t~u))\\
+      & \hspace{100pt} \llbracket x \rrbracket_{\texttt{env}})\\
+      & \hspace{52pt}\llbracket f \rrbracket_{\texttt{env}}\\ 
+    \llbracket\texttt{sFix }\tau~f~x~e_1~e_2\rrbracket_{\texttt{env}}
+      &=~~ \texttt{bind $($sup }F^n)~ \llbracket e_2 \rrbracket _{\texttt{env}}\\
+      & \hspace{22pt} \text{where}\\
+      & \hspace{22pt}F^0 \hspace{11pt} ~=~ \texttt{dnull}\\
+      & \hspace{22pt}F^{n+1} ~=~  (\lambda f'.\lambda x'. \llbracket e_1 \rrbracket
+        _{\texttt{env}}[x'/x][f'/f])~F^n\\
+    \llbracket\texttt{sRandom } e\rrbracket_{\texttt{env}}
+      &=~~\texttt{bind }(\lambda x.\texttt{uniform $($range } x))
+        ~\llbracket e \rrbracket _{\texttt{env}}\\
+    \llbracket\texttt{sFlip }\rrbracket_{\texttt{env}}
       &=~~ \texttt{flip}
   \end{align*}
   \caption{Denotational semantics of \srml.}
   \label{fig:srml-sem}
 \end{figure}
-\todo[inline]{\texttt{uniform} takes a list and gives back the uniform distribution
-  over all elements in said list. We defined a function \texttt{range}, which for any
-  number makes a list of numbers between 0 and said number. In reality we take
-  \texttt{uniform} over that list. }
-\todo[inline]{The interpretation function takes as argument a function environment,
-  \texttt{env}. All values in this environment are already interpreted, so a lookup
-  will yield a distribution.}
+
+
+\texttt{uniform} and \texttt{flip} are functions defined by the \texttt{mathcomp}
+library that return probabilistic distributions represented in the same way as we
+represent them in our development.
+
+\texttt{uniform} takes as input a list and outputs a uniform distribution over the
+elements in this list. Since $\llbracket e\rrbracket_{\texttt{env}}$ is a number and
+not a list, we defined the function \texttt{range}, which takes as input a natural
+number $x$ and returns a list of all numbers from 0 to $x$.
+
+\texttt{flip} simply returns a uniform distribution of \texttt{true} and
+\texttt{false}. \\
+\\
+Our interpretation relies on an environment that is used in order to interpret
+recursive definitions. This environment is empty to begin with and the values we
+store in it are of distribution type, so a lookup (the interpretation of a variable)
+will always yield a distribution, just what we expect the interpretation of an
+expression to be. \\
+\\
+For the supremum in the interpretation of \coqe{sFix}, we rely on the
+\texttt{mathcomp} function \texttt{dlim}. This takes the limit over a monotonic
+sequence of distributions. Since the result of a recursive definition is either
+\texttt{dnull} or the result, the sequence will look something like \texttt{dnull,
+  dnull, dnull, $\dots$ result, result, result, $\dots$}; this means that the
+supremum of the sequence will be the result of the computation. When a function
+diverges, the sequence will consist solely of \texttt{dnull}s  and hence the all-zero
+distribution is going to be the supremum. 
 
 \section{Comparisons and future work (Draft 10.06.)}
 % Goal: 2-4 pages

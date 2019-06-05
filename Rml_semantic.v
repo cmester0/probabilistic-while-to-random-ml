@@ -112,11 +112,6 @@ Proof.
     apply helper2 in x_valid.
     inversion_clear x_valid.
 
-    (* pose (fun (k1 : B -> distr R (Choice T)) k2 => *)
-    (* @ssem_aux R T x1 ((nx,B,new_element (dunit k2))  *)
-    (*                     :: (nf,B -> T,new_element (k1 k2))  *)
-    (*                     :: env) H). *)
-
     pose (fun (k1 : B -> distr R (Choice T)) k2 =>
     @ssem_aux R T x1 ((nx,B,new_element B (dunit k2)) 
                         :: (nf,B -> T, new_element (B -> (distr R (Choice T))) 
