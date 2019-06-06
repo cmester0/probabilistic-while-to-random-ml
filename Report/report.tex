@@ -945,7 +945,8 @@ interpretation.
 \end{align}
 \begin{align}
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
-  ~\mapsto^{\texttt{w}}~ & sup_n(\texttt{unfold-while-n-times }e~s_1)~;~s_2 \\
+  ~\mapsto^{\texttt{w}}~ & sup_n(\llbracket \texttt{unfold-while-n-times }e~s_1
+                \rrbracket) ~;~\llbracket s_2\rrbracket \\
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
   ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
                          &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
@@ -953,18 +954,49 @@ interpretation.
 \end{align}
 \begin{align}
   \texttt{while } e \texttt{ do } s_1
-  ~\mapsto^{\texttt{w}}~ & sup_n(\texttt{unfold-while-n-times }e~s_1)\\
+  ~\mapsto^{\texttt{w}}~ & sup_n(\llbracket \texttt{unfold-while-n-times }e~s_1 \rrbracket)\\
   \texttt{while } e \texttt{ do } s_1
   ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
                          &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
                            s_1~;~f~x\rrbracket) ~(x_r)))\notag
 \end{align}
-\todo[inline]{explain $sup_n$. }
 Most of the cases follow directly from the induction hypothesis, the base cases, or
 $\beta$-reduction of the $\lambda$-term in combination with the base cases and the
 induction hypothesis. We will leave it to the reader to convince himself of this.
 
-    The interesting cases are those with a looping construct. 
+The interesting cases are those with a looping construct, so let us have a look at
+those.\\
+\\
+For the interpretation of \texttt{while}, we introduced two new constructs in the
+meta language: $sup_n$ and \texttt{unfold-while-n-times}.
+
+The first one is obvious after reading Section \ref{sec:fixp-iter}: $sup_n$ takes a
+monotonic sequence (so a monotonic function of the natural numbers) and finds its
+supremum.
+
+\texttt{unfold-while-n-times} does exactly what its name says. It takes a loop
+condition, $e$, a loop body, $s_1$, and a numeric argument, $n$, and computes
+$\underbrace{\texttt{if $e$ then $s_1$ else skip ; $\dots$ ; if $e$ then $s_1$ else
+    skip}}_{n\text{ times}}$. It is worth noting, that this way of unfolding the loop
+saves us the trouble of introducing an environment for the interpretation. Since we
+assumed the environment to be properly updated after each statement, and all we do is
+produce a number of subsequent statements, this lies implicitly in the calculation. 
+
+The supremum of this sequence is the result of the \texttt{while} loop after it has
+terminated. It may not seem to the reader as if this sequence of unfolding
+\texttt{while} a number of times is monotonic, since the result may change both up
+and down, but this is not what we consider when we talk of a monotonic sequence in
+this case. The sequence is monotonic in how defined it is. When it is fully defined,
+the result will stay the same, no matter how many more times we unfold, since at that
+point the looping condition will be false in the environment. Because of this, we can
+also talk about the supremum as the fixed point of the \texttt{while}-loop.\\
+\\
+So far so good, now what about the equivalence with the $\lambda$-term?
+\todo[inline, color=green!40]{Y-combinator basically does the same unfolding
+  shenanigans. It just has another else-branch. We need to argue that \texttt{(if $e$
+    then $s_1$ else skip) ; $s_2$} is the same as \texttt{if $e$ then $s_1$ else
+    (skip ; $s_2$)}. The Y-combintor also finds the fixed point of a number of
+  unfoldings. }
 
 
 \subsection{Adding probabilistic definitions}\label{sec:probab}
