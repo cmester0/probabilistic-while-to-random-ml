@@ -173,14 +173,13 @@ literate=
 \usepackage{xcolor}
 % -------------------------------------------------------------
 
-\author{Lasse Letager Hansen %201508114
-  \\ Kira Kutscher %201509720
+\author{Kira Kutscher - 201509720 \\
+  Lasse Letager Hansen - 201508114
 }
-\date{June 2019}
-\title{Interpreting probabilistic definitions in Coq\\
-  using \\measure theory \\and \\$\omega$-complete partial orders}
+\date{17th of June 2019}
 \title{Exploring interpretations \\of\\ probabilistic algorithms\\
   using measure theory \\in Coq}
+%
 
 \newcommand{\set}[1]{\{#1\}}
 
@@ -244,8 +243,7 @@ literate=
   \end{itemize}}
 
 
-\section{Theory and existing frameworks (DRAFT READY, minor additions needed; should
-  be done by 03.06.)} 
+\section{Theory and existing frameworks (2 TODOS LEFT)} 
 \label{sec:theory}
 % Goal: 6-12 pages
 
@@ -403,7 +401,7 @@ object:
 An example might be to choose $A$ to be a set of 3-dimensional objects and a possible
 measure would be the total volume of objects in a subset. 
 
-\todo{Is this understood correctly?} We can understand a measure on $A$ as integral
+We can understand a measure on $A$ as integral
 over functions from $A$ to $\mathbb{R}^+$. From this perspective, the above example
 would consist of the function that given an object in $A$ returns its volume. The
 integral over this function would be the volume of all objects in $A$. Now the
@@ -485,11 +483,11 @@ within the input distribution.
 \todo[inline]{Add something about how the measure type now is called \texttt{M}.}
 
 The monadic operators presented here have been formerly introduced by \cite{rml-paper}
-and satisfy the usual monadic \todo{Footnote too facetious?} properties\footnote{We
-  refer the reader who is unfamiliar with monads (or requires proof of the authors'
-  knowledge thereof) to an earlier work by the authors, which can be found at
-  \url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}.
-They are also used by the Mathematical Components compliant Analysis Library\footnote
+and satisfy the usual monadic properties\footnote{There are many introduction to the
+theory of monads. One example is our previous development in Coq, which can be found
+at
+\url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}. They
+are also used by the Mathematical Components compliant Analysis Library\footnote
 {\url{https://github.com/math-comp/analysis/tree/master/}} in their representation of
 distributions.
 
@@ -507,12 +505,11 @@ distributions.
 These definitions look big and scary, so let's break them down.
 \\ \\
 The \texttt{unit} function could be described as the ``wrapper'' that takes a value
-and wraps the monad around it. The outermost \todo{Is this the right word for the
-\texttt{fun}-keyword)}function binding
-takes the value that we want to produce the measure of and remembers it. The second
-function binding is to match the type of measures; this is where the probability
-distribution is received as input, and where we then give the output of said
-distribution function applied to our initial value.
+and wraps the monad around it. The outermost lambda-abstraction takes the value that
+we want to produce the measure of and remembers it. The second function binding is to
+match the type of measures; this is where the probability distribution is received as
+input, and where we then give the output of said distribution function applied to our
+initial value.
 
 A simple example could be \texttt{unit 5} applied to the uniform distributions of
 numbers between 1 and 5. The result would then be 0.2, since that is the probability
@@ -563,9 +560,8 @@ Since calling either function would be considered a valid \rml\ term, the result
 to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
 booleans (in the case of \texttt{flip}).\\
 \\
-The expressions that our language consists of \todo{Is this parenthetical needed?}(we
-recall that it is a functional language, so there are only expressions, no
-statements) are as follows:
+The expressions that our language consists of (we recall that it is a functional
+language, so there are only expressions, no statements) are as follows:
 
 \begin{align*}
   exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else } e_2~
@@ -577,7 +573,7 @@ to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
 definition of what a constant can be, it makes sense to assume, that it can be any
 Coq term.
 
-The $f$ in function application can be a \todo{quote}``primitive or a user-defined
+The $f$ in function application can be a \todo{cite}``primitive or a user-defined
 function'', where primitive would be \texttt{random($n$)} or \texttt{flip}, and a
 user-defined function should be specified by \texttt{let }$f~x_1~\dots~ x_n= e$,
 according to the language specification. Recursive functions can be defined with the
@@ -708,7 +704,7 @@ interpreting a ``crash'' is by simply returning the \todo{is this the right word
 \\
 
 
-\section{Our approach (Ready draft: 07.06.)}\label{sec:approach}
+\section{Our approach (2 TODOS LEFT)}\label{sec:approach}
 % Goal: 6-12 pages
 
 % Describe the translation from while to functional (+recursion), to lambda-calculus,
@@ -1006,8 +1002,14 @@ So far so good, now what about the equivalence with the $\lambda$-term?
   instead of a decisive value, and add some probabilistic function definitions,
   right? }
 
+\todo[inline, color=green!40]{We now interpret in another space (the monad, y'know),
+  so we have to argue that all we did before still works. This is where the argument
+  that the monad has w-cpo structure becomes important. Make sure you explain very
+  well what the issues are with adding probabiliyt. Specifiy the exact tasks we'd
+  have to do to implement the whole thing.}
 
-\section{Our contribution (Draft 31.05; Finished 03.06)}\label{sec:contrib}
+
+\section{Our contribution (READY)}\label{sec:contrib}
 % Goal: 6-12 pages
 \todo[inline]{Need to fix the colour scheme for Coq-blocks.}
 
@@ -1216,10 +1218,10 @@ check that a program is well-typed.
 
 Before we commence the discussion of what it means for \rmlx\ or \srml\ expressions
 to be well-typed, we should mention that we decided on using the axiom of decidable
-equality for types. We could alternatively have defined an 
-\todo{too facetious?} even deeper embedding of \rml\ in Coq by defining a
-datastructure for \rml -types instead of using Coq-types. This, however, would not
-have changed our outcome, so we decided against the additional work.
+equality for types. We could alternatively have defined an even deeper embedding of
+\rml\ in Coq by defining a datastructure for \rml -types instead of using
+Coq-types. This, however, would not have changed our outcome, so we decided against
+the additional work.
 
 The rules we implemented are straightforward and can be found in Appendix
 \ref{appendix:rmltypes}. 
