@@ -243,33 +243,33 @@ literate=
   \end{itemize}}
 
 
-\section{Theory and existing frameworks (2 TODOS LEFT)} 
+\section{Theory and existing frameworks (READY(?))} 
 \label{sec:theory}
 % Goal: 6-12 pages
 
-\todo[inline, color=green!40]{As mentioned before we focused our work on developing a
-  framework for proofs of randomised algorithms in the proof assistant Coq. Coq is
-  known to be a reliable tool and proofs formalised with it are widely trusted. Coq
-  is, however, also known to be notoriously difficult to code things in due to a
-  strict type system that requires determinism and certain termination of all
-  programs written in it. Obviously these two are not the optimal conditions for the
-  encoding of randomised algorithms that may not terminate.
+As mentioned before we focused our work on developing a framework for proofs of
+randomised algorithms in the proof assistant Coq. Coq is known to be a reliable tool
+and proofs formalised with it are widely trusted. Coq is, however, also known to be
+notoriously difficult to code things in due to a strict type system that requires
+determinism and certain termination of all programs written in it. Obviously these
+two are not the optimal conditions for the encoding of randomised algorithms that may
+not terminate.
 
-  This means that we need a way to encode an interpretation general recursion (or
-  iteration) as well as randomness in such a way that we can still reason about our
-  programs in the proof system of Coq without having to run them.
+This means that we need a way to encode an interpretation general recursion (or
+iteration) as well as randomness in such a way that we can still reason about our
+programs in the proof system of Coq without having to run them.
 
-  We will in this section present a monadic interpretation into probability
-  distribution over the outcome of a randomised program as well as a way of
-  interpreting general recursion.}
+We will in this section present a monadic interpretation into probability
+distribution over the outcome of a randomised program as well as a way of
+interpreting general recursion.
 
-\todo[inline, color=green!40]{In this section we will have a look at how to use
-  complete partial orders to interpret general recursion (Section \ref{sec:cpos}), and
-  how we can represent the result of a probabilistic computation using a monadic
-  interpretation of probability measures (Section \ref{sec:prob-interp}. Afterwards we
-  will move on to presenting two different developments that have worked with
-  probabilistic languages in Coq: the functional \rml\ (Section \ref{sec:rml}) and the
-  imperative \texttt{pwhile} (Section \ref{sec:pwhile}).}
+In this section we will have a look at how to use complete partial orders to
+interpret general recursion (Section \ref{sec:cpos}), and how we can represent the
+result of a probabilistic computation using a monadic interpretation of probability
+measures (Section \ref{sec:prob-interp}. Afterwards we will move on to presenting two
+different developments that have worked with probabilistic languages in Coq: the
+functional \rml\ (Section \ref{sec:rml}) and the imperative \texttt{pwhile} (Section
+\ref{sec:pwhile}).
 
 \subsection{Complete partial orders}\label{sec:cpos}
 % Describe cpos, omega-cpos, and dcpos
@@ -289,7 +289,6 @@ order to interpret general recursion and probabilistic programs.
   An $\omega$-cpo is a partially ordered set that, additionally, has a distinct least
   element and where there exist least upper bounds on all monotonic sequences. 
 \end{defn}
-
 
 \subsubsection{Recursive definitions as fixed point iterations}
 \label{sec:fixp-iter}
@@ -434,54 +433,40 @@ $\tau$ can now be understood as a measure on type $\tau$, or equivalently as a
 transformation of a probability distribution.
 
 Something of type $\tau\to[0,1]$ can be understood as the function that returns the
-probability of its input happening, or in other words, we can understand it as a
-probability density function. We can view our programs as a transformation of a
-distribution: If we input an initial distribution (this might also just be the
-characteristic function of a single value), we will as output receive the integral
-over the transformed distribution; with other words, we will receive the probability
-of the result of an actual pseudorandomised run of our program producing a result
-within the input distribution.
-\todo[inline]{Or something like that... I am very unsure about what exactly we get
-  when we input an initial distribution... help?\\
-  It seems we get the integral over the joint distribution (given that both
-  distributions are independent, which we will have to assume).}
-\todo[inline]{Geistesblitz! The input is a function that expresses the probability of
-  something being memeber of some set. The characteristic function of a set is
-  non-probabilistic and hence the result of inputting this will give the exact
-  probability of our result being part of that set. If we, for example, have a set
-  where both \texttt{true} and \texttt{false} are memebers with probability
-  $\frac{1}{2}$, the result of inputting this into, e.g., \texttt{unit true} would be
-  the probability of the value (\texttt{true}) being a member of said set. }
+probability of its input being part of a specified set, or in other words, we can
+understand it as a probability density function. We can view our programs as a
+transformation of a distribution: If we input an initial distribution (this might
+also just be the characteristic function of a single value), we will as output
+receive the integral over the transformed distribution; with other words, we will
+receive the probability distribution specifying the result of an actual
+pseudorandomised run of our program producing a result within the input distribution.
 
+As an example we might consider the value \texttt{flip}, which returns a uniform
+distribution of \texttt{false} and \texttt{true}. If now we supply the measure
+representation of this value with the characteristic function of \texttt{true}, the
+result will be 0.5, since this is the probability of \texttt{true} being the
+outcome.
 
-% \todo[inline, color=green!40]{A measure is a linear function $\mu$ from a set A to
-%   non-negative real numbers. It also preserves least upper bounds. \\
-
-% Mß = (ß$\to$[0,1])$\to$[0,1]
-% The (ß$\to$[0,1]) part describes a probability distribution. 
-% We can view our programs as transformations of probability distributions.\\
-
-% "a term e of type ß is translated to a purely functional one [e] which is
-% understood as a measure on the same type."}
-
-% \todo[inline]{The w-cpo structure on [0,1]; why is it an w-cpo?\\
-% @Bas: What do we need the structure for? \\
-% Answer: We just need the w-cpo structur on [0,1] in order to interpret fixed points
-% and while loops in the functions to [0,1].}
-% \todo[inline]{I am confused by what it says on page 574: First we talk about $\mu$(f)
-% for f:A$\to$[0,1] and then we say that $\mu$ is a measure on A. Shouldn't it be on
-% probability distributions over A (so A$\to$[0,1])?\\
-% Answer: The measure $\mu$ over A is the same as the integral of f. This means that
-% $\mu$ has to be applied to a function, but is in reality a measure on A. }
+We could even go further and say: If we have a set that contains \texttt{true} with
+probability $p$ and \texttt{false} with probability $q$, what would the probability
+be of the result of evaluating \texttt{flip} being in this set. The answer to this is
+simply applying the measure representation of \texttt{flip} with the function that
+returns $p$ on \texttt{true} and $q$ on \texttt{false}. With other words, the outcome
+would be the joint probability distribution between the input distribution and the
+one represented by the measure, assuming that both are independent. 
 
 \subsubsection{A monadic interpretation}
 \label{sec:monad-interp}
-\todo[inline, color=green!40]{
-  We can represent measures with a monadic structure. This is sensible since once we go
-  measure we never go back; once probability is involved in a computation, we will not
-  get rid of it again.}
-\todo[inline]{Add something about how the measure type now is called \texttt{M}.}
+We can represent measures with a monadic structure. This is sensible, since
+probabilistic programs are inherently not functional and once probability is involved
+in a computation we can not get rid of it again; this fits with a monad where we can
+not get a value back out of the monad once it is in the monad, unless we work with
+the representation of the monad in our language.
 
+Since we are using a monad over the type $\tau$ to represent a measure on $\tau$, we
+will for simplicity of notation introduce the notation \texttt{M}$\tau$ to mean 
+$(\tau\to[0,1])\to[0,1]$.\\ 
+\\
 The monadic operators presented here have been formerly introduced by \cite{rml-paper}
 and satisfy the usual monadic properties\footnote{There are many introduction to the
 theory of monads. One example is our previous development in Coq, which can be found
@@ -534,13 +519,45 @@ sense to use its input on something of type $\sigma$ to get something in [0,1], 
 would satisfy the output type for the function we apply $\mu$ to.
 
 The final function takes the input of type $\tau$, that $\mu$ will give it,
-uses $M$ on it to transform it to something of type \texttt{M}$\sigma$, and then
+applies $M$ to it to transform it to something of type \texttt{M}$\sigma$, and then
 supplies it with the last piece of the computation, $f$.
 
 This way we retain all of the information that is contained in $\mu$, transform it
-with $M$, and lastly transform it with $f$, once that is supplied.
+with $M$, and lastly transform it with $f$, once that is supplied.\\
+\\
+An example of the use of \texttt{bind} could be the following: We have a distribution
+of natural numbers, $\mu$, and we want to figure out what the probability is that a
+number drawn from this distribution is even. To this end, we use the function $M$,
+that takes a natural number and returns the probability of it being even. If now we
+apply the result of \texttt{bind $\mu$ $M$} to, let's say, the characteristic
+function of \texttt{false}, the following computation will be carried out:
 
-\todo[inline]{Add an example.}
+$\texttt{fun }(x~:~\tau)\Rightarrow M~x~f$ is now the function that takes a natural
+number and returns the probability of it being odd. Applying $\mu$ to this function
+yields the probability of a pseudorandom interpretation of $\mu$ being an odd
+number; and this is exactly the meaning of
+
+(\texttt{bind $\mu$ $M$}) (\texttt{fun
+  ($x$ : bool) $\Rightarrow$ if $x$ then 0 else 1}).
+
+\subsection{Putting together recursion and probability}
+\todo[inline]{This section just needs some fact-checking.}
+What now if we want both probability and a way of interpreting general recursion?
+Then we need the $\omega$-cpo structure on our functions even though they are wrapped
+in an additional abstraction.
+
+In order to show this, we use the fact that monotonic functions from an ordered set
+to an $\omega$-cpo also have an $\omega$-cpo structure \cite[p.~584]{rml-paper}. 
+
+It is easy to see that, because a measure is an integral over strictly positive
+functions, it is a monotonic function. It is a function to [0,1], which clearly is an
+$\omega$-cpo with zero-element being zero, the ordering relation being $\le$ as we
+know it for real numbers, and the least upper bound operation simply being the
+largest number of a monotonic sequence.
+
+Now we have that a measure is a monotonic function to an $\omega$-cpo, which is
+exactly what we needed to be sure of, before we go ahead and combine probability and
+recursion. 
 
 
 % Packages: comment
@@ -552,9 +569,10 @@ and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring
 \\ \\
 \rml\ could be described as a functional version of the \texttt{while} language with
 an interpretation that allows for probabilistic algorithms. The language itself does
-not contain probabilistic expressions, but rather makes use of a \texttt{random($n$)}
-or \texttt{flip} function giving a uniform distribution of natural numbers between 0
-and $n$, and \texttt{true} and \texttt{false}, \todo{check this sentence}respectively.
+not contain probabilistic expressions, but rather makes use of the functions
+\texttt{random($n$)} and flip \texttt{flip}, which give a uniform distribution of
+natural numbers between 0 and $n$, and \texttt{true} and \texttt{false},
+respectively.
 
 Since calling either function would be considered a valid \rml\ term, the result has
 to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
@@ -573,17 +591,16 @@ to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
 definition of what a constant can be, it makes sense to assume, that it can be any
 Coq term.
 
-The $f$ in function application can be a \todo{cite}``primitive or a user-defined
-function'', where primitive would be \texttt{random($n$)} or \texttt{flip}, and a
-user-defined function should be specified by \texttt{let }$f~x_1~\dots~ x_n= e$,
-according to the language specification. Recursive functions can be defined with the
-keyword \texttt{let rec}.
+According to \cite{rml-paper}, the $f$ in function application can be a ``primitive
+or a user-defined function'', where primitive would be \texttt{random($n$)} or
+\texttt{flip}, and a user-defined function should be specified by \texttt{let
+}$f~x_1~\dots~ x_n= e$, according to the language specification. Recursive functions
+can be defined with the keyword \texttt{let rec}.
 
 The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
-\todo{What the hell is wrong with figure numbering?}figure \ref{fig:rml-monad}.
+Figure \ref{fig:rml-monad}.
 
 \begin{figure}[h]
-  \label{fig:rml-monad}
   \begin{center}
     \begin{tabular}{|c|c|}
       \hline
@@ -602,6 +619,7 @@ The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
       \hline
     \end{tabular}\\
     \caption{Monadic interpretation of \rml\ terms as presented in \cite{rml-paper}.}
+    \label{fig:rml-monad}
   \end{center}
 \end{figure}
 
@@ -698,13 +716,10 @@ ways in which a program can lead to an undefined result: encountering undefined
 behaviour, non-termination, and the \texttt{abort} command. The interpretation of all
 of these is the same: We recall that the result of interpreting a \texttt{pwhile}
 program in Coq is a probability distribution over memories; now the result of
-interpreting a ``crash'' is by simply returning the \todo{is this the right word
-  choice? It doesn't seem that that's what a null distribution is. But the keyword
-  use is \texttt{dnull}.}null-distribution over memories.\\
-\\
+interpreting a ``crash'' is by simply returning the null-distribution over memories.
 
 
-\section{Our approach (2 TODOS LEFT)}\label{sec:approach}
+\section{Equivalence of \rml\ and \texttt{pwhile} (2 TODOS LEFT)}\label{sec:approach}
 % Goal: 6-12 pages
 
 % Describe the translation from while to functional (+recursion), to lambda-calculus,
@@ -1009,7 +1024,7 @@ So far so good, now what about the equivalence with the $\lambda$-term?
   have to do to implement the whole thing.}
 
 
-\section{Our contribution (READY)}\label{sec:contrib}
+\section{The Coq development (READY)}\label{sec:contrib}
 % Goal: 6-12 pages
 \todo[inline]{Need to fix the colour scheme for Coq-blocks.}
 
