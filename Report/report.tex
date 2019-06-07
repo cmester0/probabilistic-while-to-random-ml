@@ -17,6 +17,8 @@
 \usepackage{amsthm}  % For good looking definitions and theorems
 \usepackage{stmaryrd} % For interpretation bracket (and maybe other stuff)
 \usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{cd}
 
 % -------------------------------------------------------------
 % For convenient development
@@ -541,6 +543,7 @@ number; and this is exactly the meaning of
   ($x$ : bool) $\Rightarrow$ if $x$ then 0 else 1}).
 
 \subsection{Putting together recursion and probability}
+\label{sec:prob-rec}
 \todo[inline]{This section just needs some fact-checking.}
 What now if we want both probability and a way of interpreting general recursion?
 Then we need the $\omega$-cpo structure on our functions even though they are wrapped
@@ -719,7 +722,7 @@ program in Coq is a probability distribution over memories; now the result of
 interpreting a ``crash'' is by simply returning the null-distribution over memories.
 
 
-\section{Equivalence of \rml\ and \texttt{pwhile} (2 TODOS LEFT)}\label{sec:approach}
+\section{Equivalence of \rml\ and \texttt{pwhile} (READY)}\label{sec:approach}
 % Goal: 6-12 pages
 
 % Describe the translation from while to functional (+recursion), to lambda-calculus,
@@ -728,29 +731,58 @@ interpreting a ``crash'' is by simply returning the null-distribution over memor
 % We planned on making an interpretation of Rml in Coq and then translating the xhl
 % implementation of pwhile to our abstract syntax. 
 
-\todo[inline, color=green!40]{The goal of the present project was to gain an
-  actionable understanding of \rml\ and \texttt{pwhile}, their respective
-  interpretations, theoretic background, and similarities and differences between
-  them. Our approach was to define a translation between \texttt{pwhile} and \rml\ as
-  well as an interpretation of \rml, and subsequently show that translating from
-  \texttt{pwhile} to \rml\ and interpreting the resulting program would lead to the
-  same interpretation as interpreting the \texttt{pwhile} program directly.
+The goal of the present project was to gain an actionable understanding of \rml\ and
+\texttt{pwhile}, their respective interpretations, theoretic background, and
+similarities and differences between them. Our approach was to define a translation
+between \texttt{pwhile} and \rml\ as well as an interpretation of \rml, and
+subsequently show that translating from \texttt{pwhile} to \rml\ and interpreting the
+resulting program would lead to the same interpretation as interpreting the
+\texttt{pwhile} program directly.
 
-  This approach allowed us to get acquainted with both languages as well as the
-  difficulties in interpretation that both of them share.}
+This approach allowed us to get acquainted with both languages as well as the
+difficulties in interpretation that both of them share.
 
-\todo[inline]{Triangle figure.}
+\begin{figure}[h]
+  \centering
+  \begin{tikzcd}
+    \texttt{pwhile} \arrow[rr] \arrow[d] &  & \omega\text{-cpos} \\
+    \text{\rml} \arrow[rru]              &  &                   
+  \end{tikzcd}
+  \caption{The languages we work with and the direction of the translations between
+    them. }
+  \label{fig:triangle}
+\end{figure}
 
-\todo[inline, color=green!40]{In this section we will concern ourselves with the
-  translation between \texttt{pwhile} and \rml, as well as their respective
-  interpretations.  We will first have a look at deterministic versions of both in
-  order to define the main part of the translations (Sections \ref{sec:while-to-fun},
-  \ref{sec:fun-to-lambda}) and show that the triangle in Figure %todo: insert fig ref
-  commutes (Section \ref{sec:lambda-interp}). Finally we will have a look at how to
-  add probabilistic constructs to the whole thing (Section \ref{sec:probab}).
+In this section we will concern ourselves with the translation between
+\texttt{pwhile} and \rml, as well as their respective interpretations. Throughout
+this section we will disregard all typing rules. Adding types to the expressions
+should not influence the semantics of the translations we present and is
+straightforward. 
 
-  The current section is fully theoretic, for a discussion of our implementation, we
-  refer the reader to Section \ref{sec:contrib}. }
+For the translations, we will first have a look at deterministic versions of both in
+order to define the main part of the translations (Sections \ref{sec:while-to-fun},
+\ref{sec:fun-to-lambda}). This means in order to show that the diagram of Figure
+\ref{fig:triangle} commutes, we will first show that the following diagram commutes
+(Section \ref{sec:lambda-interp}):
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzcd}
+    \texttt{while} \arrow[rrr] \arrow[rd] & & & \omega\text{-cpos} \\
+    & \text{fun}_{\texttt{Fix}} \arrow[r] & \lambda_\texttt{Y} \arrow[ru] &                   
+  \end{tikzcd}
+  \caption{A deterministic version of Figure \ref{fig:triangle} with an extra step
+    added. }
+  \label{fig:triangle-det}
+\end{figure}
+  
+To round off the theoretic part, we will have a look at how to add probabilistic
+constructs to all languages we use (Section \ref{sec:probab}).
+
+We will briefly discuss how we would go about implementing the theory developed in
+the current section in Coq (Section \ref{sec:howto-coq}), before we move on to
+discussion our own Coq development in the following Section (Section
+\ref{sec:contrib}).
 
 
 \subsection{Translating \texttt{while} to a functional
@@ -793,34 +825,41 @@ encapsulates the information we are interested in after the computation. This is
 result of a program translated from \texttt{while} to our functional language; in the
 following we choose $x_r$ as the symbol for the chosen return variable. 
 \begin{align}
-  \label{eq:transwhile}
-  \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket\\
-  \notag\\
-  \texttt{skip}     ~\mapsto~ & x_r\\
-  \notag\\
-  x := e~;~s        ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
-  \notag\\
-  x_r := e          ~\mapsto~ & e \\
-  \notag\\
-  x := e            ~\mapsto~ & x_r \\
-  \notag\\
+  \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket
+\end{align}
+\begin{align}
+  \texttt{skip}     ~\mapsto~ & x_r
+\end{align}
+\begin{align}
+  x := e~;~s        ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket
+\end{align}
+\begin{align}
+  x_r := e          ~\mapsto~ & e 
+\end{align}
+\begin{align}
+  x := e            ~\mapsto~ & x_r
+\end{align}
+\begin{align}
   (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
                     ~\mapsto~ & \texttt{if } e \\
                     &  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
-                    & \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \notag\\
-  \notag\\
+                    & \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \notag
+\end{align}
+\begin{align}
   \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
                     ~\mapsto~ & \texttt{if } e
                                   \texttt{ then } \llbracket s_1 \rrbracket
-                                  \texttt{ else } \llbracket s_2 \rrbracket \\
-  \notag\\
+                                  \texttt{ else } \llbracket s_2 \rrbracket 
+\end{align}
+\begin{align}
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
                     ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e \label{eq:while1}\\
                     & \phantom{{}=11111111111} \texttt{ then } \llbracket s_1 ~;~ f~x \rrbracket \notag\\
                     &\phantom{{}=11111111111}\texttt{ else } \llbracket s_2 \rrbracket\notag\\
-                    & \texttt{ in } f~0 \notag \\
-  \notag\\
+                    & \texttt{ in } f~0 \notag 
+\end{align}
+\begin{align}
   \texttt{while } e \texttt{ do } s_1
                     ~\mapsto~ & \texttt{let rec } f~x :=
                                  \texttt{if } e \label{eq:while2}\\
@@ -890,18 +929,11 @@ expressions into something that is easier for us to interpret.
 \subsection{Interpreting it both ways}\label{sec:lambda-interp} 
 Finally, after having defined the translations, we would like to look at the
 interpretations of both the $\lambda$-calculus and \texttt{while} and see that the
-triangle shown in Figure \todo{Reference triangle figure} [Triangle Figure]
-actually commutes.
+triangle shown in Figure \ref{fig:triangle-det} actually commutes.
 
 To this end we will look at all the statements we have looked at for the translation
 from \texttt{while} to a functional language, and compare their direct interpretation
 with the interpretation of their translations to the $\lambda$-calculus. 
-
-\todo[inline, color=green!40]{The \texttt{Y}-combinator will find the fixed point of
-  its function. Since things are constantly getting more defined throughout its
-  unrolling, the fixed point will be the supremum of the sequence of unrolling the
-  stuff. This is the same thing as the supremum of unrolling the \texttt{while}-loops
-  a whole lot of times. }
 
 We prove that the triangle commutes by induction. The base cases are the expressions;
 since these are the same in all languages and evaluated in the same way, they are
@@ -957,7 +989,7 @@ interpretation.
 \begin{align}
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
   ~\mapsto^{\texttt{w}}~ & sup_n(\llbracket \texttt{unfold-while-n-times }e~s_1
-                \rrbracket) ~;~\llbracket s_2\rrbracket \\
+                \rrbracket) ~;~\llbracket s_2\rrbracket \label{eq:while-sec-both}\\
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
   ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
                          &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
@@ -965,7 +997,8 @@ interpretation.
 \end{align}
 \begin{align}
   \texttt{while } e \texttt{ do } s_1
-  ~\mapsto^{\texttt{w}}~ & sup_n(\llbracket \texttt{unfold-while-n-times }e~s_1 \rrbracket)\\
+  ~\mapsto^{\texttt{w}}~ & sup_n(\llbracket \texttt{unfold-while-n-times }e~s_1
+                           \rrbracket)\label{eq:while-both} \\
   \texttt{while } e \texttt{ do } s_1
   ~\mapsto^\lambda~ & (\lambda f. f~0)\notag\\
                          &(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
@@ -994,34 +1027,109 @@ assumed the environment to be properly updated after each statement, and all we 
 produce a number of subsequent statements, this lies implicitly in the calculation. 
 
 The supremum of this sequence is the result of the \texttt{while} loop after it has
-terminated. It may not seem to the reader as if this sequence of unfolding
-\texttt{while} a number of times is monotonic, since the result may change both up
-and down, but this is not what we consider when we talk of a monotonic sequence in
-this case. The sequence is monotonic in how defined it is. When it is fully defined,
-the result will stay the same, no matter how many more times we unfold, since at that
-point the looping condition will be false in the environment. Because of this, we can
-also talk about the supremum as the fixed point of the \texttt{while}-loop.\\
+terminated, or undefined if it does not terminate. It may not seem to the reader as
+if this sequence of unfolding \texttt{while} a number of times is monotonic, since
+the result may change both up and down, but this is not what we consider when we talk
+of a monotonic sequence in this case. The sequence is monotonic in how defined it
+is. When it is fully defined, the result will stay the same, no matter how many more
+times we unfold, since at that point the looping condition will be false in the
+environment. Because of this, we can also talk about the supremum as the fixed point
+of the \texttt{while}-loop.\\
 \\
 So far so good, now what about the equivalence with the $\lambda$-term?
-\todo[inline, color=green!40]{Y-combinator basically does the same unfolding
-  shenanigans. It just has another else-branch. We need to argue that \texttt{(if $e$
-    then $s_1$ else skip) ; $s_2$} is the same as \texttt{if $e$ then $s_1$ else
-    (skip ; $s_2$)}. The Y-combintor also finds the fixed point of a number of
-  unfoldings. }
+For convenience let us first argue about the case of \ref{eq:while-both} and
+afterwards we will see that case \ref{eq:while-sec-both} follows with ease.
+
+We know that \texttt{Y} $f$ evaluates to $f$ (\texttt{Y} $f$), for simplicity's sake,
+we will, without loss of generality, assume that the evaluation is lazy; this means
+that we can take steps evaluating the recursion.
+
+Let us look at the evaluation of the full term.
+$$(\lambda f. f~0) (\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
+s_1~;~f~x\rrbracket) ~(x_r)))$$ 
+$$\equiv_\beta$$
+$$(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket s_1~;~f~x\rrbracket) ~(x_r))))~ 0 $$
+$$\equiv_\beta$$
+$$(\lambda f.\lambda x.(e~(\llbracket s_1~;~f~x\rrbracket) ~(x_r)))~(\texttt{Y
+}(\lambda f.\lambda x.(e~(\llbracket s_1~;~f~x\rrbracket) ~(x_r))))~ 0 $$ 
+$$\equiv_\beta$$
+$$e~(\llbracket s_1~;~(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
+s_1~;~f~x\rrbracket) ~(x_r))))~0 \rrbracket) ~x_r $$
+
+At this point we notice, that we now have the exact same construct as unfolding the
+\texttt{while}-loop once: If $e$ is evaluated to \texttt{true}, we will keep
+unfolding until we reach the fixed point of the function that the
+\texttt{Y}-combinator is applied to. If the function diverges, the fixed point is
+undefined, which is the same result that we get when we evaluate a diverging
+\texttt{while}-loop.
+
+If the sequence converges, we end up evaluating $s_1$ as many times as is necessary
+for $e$ to be evaluated to \texttt{false} (just as we did in the direct
+interpretation), and afterwards we return $x_r$. We note that $x_r$ is the return
+variable for any \texttt{while} program in our setting, so this is the same as the
+direct interpretation of \texttt{skip}. So in principle we have found the supremum of
+unfolding \texttt{while $e$ do $s_1$ ; skip}, which is equivalent to the direct
+evaluation of \ref{eq:while-both}.
+
+The last step is to argue that this still works if the \texttt{while}-loop is the
+first statement in a sequence. When translating this, we will end up with 
+$$e~(\llbracket s_1~;~(\texttt{Y }(\lambda f.\lambda x.(e~(\llbracket
+s_1~;~f~x\rrbracket) ~(x_r))))~0 \rrbracket) ~s_2 $$
+Since we know that if the construct does not diverge, we will arrive at this
+expression at a point where $e$ evaluates to \texttt{false}, so we will take the
+$s_2$ branch. This is the same as interpreting \texttt{if $e$ then $s_1$ else skip ;
+  $s_2$} where we know that $e$ evaluates to false. This is exactly the statement we
+will end up with after unfolding the \texttt{while}-loop often enough to arrive at
+its fixed point in the direct interpretation. The rest follows from the induction
+hypothesis. 
 
 
 \subsection{Adding probabilistic definitions}\label{sec:probab}
-\todo[inline]{Hey Bas, is this section really as easy as I think it is? It's pretty
-  much just saying that instead of interpreting things directly in our meta-language,
-  we add the monadic structure in between, make everything a probability distribution
-  instead of a decisive value, and add some probabilistic function definitions,
-  right? }
+After having looked at the skeleton of the translations, now we want to make sure,
+that it all still works when adding probabilistic functions. In order to do this, we
+encapsulate all of our computations in the monadic structure presented in Section
+\ref{sec:monad-interp}. This means that the result of a computation is no longer a
+definite values anymore, but rather a monadic value representing a probability
+distribution over results of the internal computation.
 
-\todo[inline, color=green!40]{We now interpret in another space (the monad, y'know),
-  so we have to argue that all we did before still works. This is where the argument
-  that the monad has w-cpo structure becomes important. Make sure you explain very
-  well what the issues are with adding probabiliyt. Specifiy the exact tasks we'd
-  have to do to implement the whole thing.}
+This is where the argument from Section \ref{sec:prob-rec} comes into play. This
+tells us that we can add probability to our languages without changing the
+interpretation of recursive definitions.
+
+We also note that the probabilistic computations for both \rml\ and \texttt{pwhile}
+are fully contained in the probabilistic functions \texttt{flip} and \texttt{random
+  $n$}. This makes it easy to add probabilistic computations to the languages without
+changing the translations between them, since using probability boils down to
+applying a predefined function that is the same for all languages. 
+
+\subsection{Implementing the translations in Coq}
+\label{sec:howto-coq}
+We tried implementing the approach of this Section in Coq, but it turns out that we
+were not skilled enough in the use of Coq in order to implement all of the
+translations of this section in the time given. What we have implemented is a
+translation from \rml\ to \srml --a language of our own making that bears resemblance
+to the $\lambda$-calculus--and its interpretation using the $\omega$-cpo structure on
+the probability monad. 
+
+In order to implement the rest of the translations, we would use the \texttt{xhl}
+development for a Coq implementation of \texttt{pwhile}. We would then define the
+translation to \rml\ according to what we presented in Section
+\ref{sec:while-to-fun}, and then prove that for all well-formed
+\texttt{pwhile}-programs, $p$, evaluating $p$ using the semantics implemented in
+\texttt{xhl} leads to the same value as translating $p$ to \rml\ and interpreting the
+result using our implementation. 
+
+% \todo[inline]{Hey Bas, is this section really as easy as I think it is? It's pretty
+%   much just saying that instead of interpreting things directly in our meta-language,
+%   we add the monadic structure in between, make everything a probability distribution
+%   instead of a decisive value, and add some probabilistic function definitions,
+%   right? }
+
+% \todo[inline, color=green!40]{We now interpret in another space (the monad, y'know),
+%   so we have to argue that all we did before still works. This is where the argument
+%   that the monad has w-cpo structure becomes important. Make sure you explain very
+%   well what the issues are with adding probabiliyt. Specifiy the exact tasks we'd
+%   have to do to implement the whole thing.}
 
 
 \section{The Coq development (READY)}\label{sec:contrib}
