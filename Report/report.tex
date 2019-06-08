@@ -217,32 +217,61 @@ literate=
 % ------------------------------------------------------------- 
 
 \section{Introduction (Finished 12.06.)}
-% Goal: 1-2 pages
-% I've written an introduction already, but I don't know if it still fits. We should
-% probably write the rest of the report first before adding this section
+Probabilistic algorithms are widely used in computer science, especiallly in the
+fields of cryptography and security. Because of their many applications, reliable
+proofs of the correctness and/or security of such algorithms are desirable. 
 
-% here we should write something about the motivation of the project and give an
-% overview of what Coq/formal verification is, some very basic things about
-% cryptography, and how they relate.
+A number of developments exists that attempt to make this kind of proofs easier and
+more secure, but with such developments the next question is if the implementation is
+correct and the logic consistent.  We will in the present work focus on developments
+in the Coq proof assistant, since it is one of the most widely used and most probably
+correct proof assistants currently in existence.
 
-\todo[inline, color=green!40]{Probabilistic algorithms are widely used, but far less
-  widely proved correct. We explore some probabilistic languages and how to embed
-  them in the widely known and trusted proof assistant Coq. Having an interpretation
-  of such a language in Coq makes it possible to prove facts about the algorithms in
-  Coq's proof logic.
+\subsection{The Coq proof assistant}
+The Coq proof assistant was developed in 1984 [...] %\cite{Coquand & Huet}
+and its logic, originally based on the Calculus of Constructions, was extend to the
+Calculus of Inductive Constructions in 19xx [...]. %YEAR and \cite{Christe Paulin}
+It has been under constant development ever since it was first published and many
+bugs have since been found and fixed, making Coq one of the most reliable and trusted
+proof environments.
 
-  We explore both a functional design, as presented in \cite{rml-paper},
-  and an imperative one, as in \cite{easy-crypt}.
-}
-\todo[inline, caption={}]
-  {Requirements to the reader:
-  \begin{itemize}
-      \item A rudimentary understanding of probability theory, but no knowledge of
-    measure theory
-      \item Section \ref{sec:prob-interp} requires an understanding of monads and
-    how they are used in functional programming
-      \item Section \ref{sec:contrib} requires a basic understanding of Coq
-  \end{itemize}}
+The reader is not expected to have an understanding of Coq, though it might be
+helpful in Section \ref{sec:contrib}, which deals with our Coq development. 
+
+\subsection{Previous work}
+For our development we oriented ourselves at the landmarks of previous frameworks
+that have been built for proofs of probabilistic algorithms in Coq. We looked at
+three approaches of designing probabilistic languages and a framework for proof about
+programs in these languages; two of them are functional, \rml\ \cite{rml-paper} and
+FCF \cite{fcf}, and the last one, \texttt{pwhile}, is imperative \cite{easy-crypt}.
+
+Both FCF and \rml\ are developments that have been implemented in Coq, but are not
+available to use: The FCF development is implemented in an older version of Coq, so
+it does not run on the current version; and \rml\ has been implemented, but the
+development is not available. 
+\texttt{pwhile} originated as a Coq development, then took wings as the language used
+for probabilistic algorithms in \textsc{EasyCrypt}, and is currently being brought
+back to Coq with the \texttt{xhl} development (cf. Section \ref{sec:pwhile}).
+
+\subsection{Roadmap}
+This work built around the \texttt{xhl} implementation of \texttt{pwhile} as well as
+the description of \rml\ that can be found in \cite{rml-paper}. We aim at analysing
+differences and similarities between both languages and proving them equivalent. 
+
+We will begin our journey with introducing the theory necessary to understand both
+languages (Section \ref{sec:theory}); this includes the domain-theoretic
+interpretation of general recursion (Section \ref{sec:fixp-iter}) as well as a
+monadic interpretation of probabilistic programs based on measure theoretic concepts
+(Section \ref{sec:prob-interp}). We will also have a closer look at \rml\ (Section
+\ref{sec:rml}) and \texttt{pwhile} (Section \ref{sec:pwhile}).
+
+We will then develop an approach to translating program from \texttt{pwhile} to \rml\
+and proving their interpretations equivalent (Section \ref{sec:approach}).
+
+Lastly we will present our own implementation of \rml\ and its interpretation
+(Section \ref{sec:contrib}), we will compare it with the previously discussed
+approaches and reflect on how to meaningfully expand the development in Section
+\ref{sec:future}. Afterwards we will conclude with Section \ref{sec:conclusion}.
 
 
 \section{Theory and existing frameworks (READY(?))} 
@@ -1469,7 +1498,7 @@ diverges, the sequence will consist solely of \texttt{dnull}s  and hence the all
 distribution is going to be the supremum. 
 
 \section{Comparisons and future work (Draft 10.06.)}
-% Goal: 2-4 pages
+\label{sec:future}
 
 \todo[inline, color=green!40]{We had a brief look at FCF, a Foundational Proof
   Framework for Cryptography \cite{fcf}, in the beginning of the project, but decided
@@ -1486,6 +1515,7 @@ distribution is going to be the supremum.
 
 
 \section{Conclusion (Finished 12.06.)}
+\label{sec:conclusion}
 % Goal: 1-2 pages
 We did good. 
 
