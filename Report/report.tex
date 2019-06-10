@@ -1518,20 +1518,34 @@ distribution is going to be the supremum.
 
 \section{Comparisons and future work (Draft 10.06.)}
 \label{sec:future}
+Our work is mainly based on two different approaches to developing a framework for
+proofs of probabilistic algorithms in Coq. On one hand there is \rml\ and the ALEA
+library presented by Paulin-Mohring and Audebaud in \cite{rml-paper}; on the other
+hand there is \textsc{EasyCrypt}'s \texttt{pwhile} and the Coq implementation of
+\texttt{pwhile} in the \texttt{xhl} development.
 
-\todo[inline, color=green!40]{We had a brief look at FCF, a Foundational Proof
-  Framework for Cryptography \cite{fcf}, in the beginning of the project, but decided
-  that  it would be more interesting to work on the basis of Paulin-Mohring's and
-  Audebaud's ALEA library \cite{rml-paper}. This is because \rml\ seemed like more of
-  a complete language than FCF.
+Another notable development in this subject is the ``Foundational Proof Framework for
+Cryptography'', FCF, presented in \cite{fcf}. This work presents a more low-level
+functional approach to the same problem, but we did not consider it in our own
+development. 
 
-  In the beginning of the project we were aware of \textsc{EasyCrypt} and the
-  \texttt{xhl} implementation of \texttt{pwhile} and found this interesting and worth
-  exploring, in the hope of making a contribution to the development.
+In difference to the works mentioned above, our development focused on comparing and
+unifying the different approaches of instead of developing a new framework.\\
+\\
+The theory we developed in Section \ref{sec:approach} was not fully implemented in
+our development, and it would be interesting to continue working on the
+implementation of a translation from \texttt{pwhile} to \rml\ and compare their
+respective interpretations, as was our suggestion in Section \ref{sec:howto-coq}. 
 
-  Instead our work compares \rml\ and \texttt{pwhile} and shows that their semantics
-  are equivalent. }
+Another thing that would be interesting to explore is how FCF fits into the
+picture. Intuitively we expect it to have the same expressivity as \rml\ and
+\texttt{pwhile}, but it would be interesting to explore the differences in the
+interpretations of probabilistic definitions as well as the ease with which algorithms
+would be implemented in them.
 
+Lastly it would make sense to explore the possibilities of the different approaches;
+which are most usable in practice, and if they could be combined in order to develop
+a framework that is more useful than either of the approaches on its own. 
 
 \section{Conclusion (Finished 12.06.)}
 \label{sec:conclusion}
