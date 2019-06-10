@@ -278,13 +278,13 @@ approaches and reflect on how to meaningfully expand the development in Section
 \label{sec:theory}
 % Goal: 6-12 pages
 
-As mentioned before we focused our work on developing a framework for proofs of
-randomised algorithms in the proof assistant Coq. Coq is known to be a reliable tool
-and proofs formalised with it are widely trusted. Coq is, however, also known to be
-notoriously difficult to code things in due to a strict type system that requires
-determinism and certain termination of all programs written in it. Obviously these
-two are not the optimal conditions for the encoding of randomised algorithms that may
-not terminate.
+\todo{change this sentence. Wasn't mentioned.}As mentioned before we focused our work
+on developing a framework for proofs of randomised algorithms in the proof assistant
+Coq. Coq is known to be a reliable tool and proofs formalised with it are widely
+trusted. Coq is, however, also known to be notoriously difficult to code things in
+due to a strict type system that requires determinism and certain termination of all
+programs written in it. Obviously these two are not the optimal conditions for the
+encoding of randomised algorithms that may not terminate.
 
 This means that we need a way to encode an interpretation general recursion (or
 iteration) as well as randomness in such a way that we can still reason about our
@@ -330,8 +330,7 @@ interesting things that our definition entails.
 
 A monotonic sequence on an $\omega$-cpo $X$ can be viewed as a monotonic function
 $f~:~\mathbb{N} \xrightarrow{m} X$ where $f(n)$ is the $n$th element of the sequence (or the
-least upper bound of the sequence, if $n$ is larger than the length of the
-sequence).\\
+least upper bound of the sequence for $n$ larger than the length of the sequence, if the sequence is finite).\\
 \\
 % Standard definition of fixed points
 There is a standard way of defining fixed point iterations on an $\omega$-cpo: \cite{rml-paper}
@@ -355,7 +354,7 @@ can be defined as follows:
 \begin{align*}
   f\leq_{A \to B} g \Leftrightarrow \forall x: f(x) \leq_B g(x) & ~~~\textit{(pointwise order)}\\
   0_{A\to B} := f(x) = 0_B & ~~~\textit{(least element)}\\
-  \texttt{lub}_{A\to B} f_n := g(x) = \texttt{lub}_B(f_n(x)) & ~~~\textit{(least upper
+  \texttt{lub}_{A\to B} f_n := \texttt{lub}_B(f_n(x)) & ~~~\textit{(least upper
                                                                bound operation)}
 \end{align*}
 
@@ -374,7 +373,7 @@ $$fac(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot fac(n-1)$
 For the interpretation of this definition, we want to define $F~:~(\mathbb{N} \to
 \mathbb{N}) \to (\mathbb{N} \to \mathbb{N})$ in such a way that its fixed point is
 the same as the above recursive definition. We choose
-$$F(F_i(n)):=\texttt{ if }n=0\texttt{ then }1\texttt{ else }n\cdot F_i(n-1)$$
+$$F(g(n)):=\texttt{ if }n=0\texttt{ then }1\texttt{ else }n\cdot g(n-1)$$
 Where $F_0(n)$ is $0_{\mathbb{N} \to \mathbb{N}}$ (the function that takes a natural
 number and returns 0), by the above definition of the least element in the
 $\omega$-cpo defined on a function space. By repeated application of $F$ the function
@@ -415,8 +414,8 @@ described in \cite{rml-paper}.
 In layman's terms, we can describe a measure on a set $A$ as exactly that: a way of
 measuring subsets of $A$. More precisely, a measure on $A$ assigns a non-negative
 real number to every ``suitable'' subset of $A$, where ``suitable'' means fulfilling
-certain arbitrary conditions. We will henceforth write $\mu (X)$ to signify the value
-of $X \subseteq A$ under the measure $\mu$. 
+certain conditions. We will henceforth write $\mu (X)$ to signify the value of $X
+\subseteq A$ under the measure $\mu$.
 
 In order for a function to be a measure, there are three properties it has to have:
 It must take only non-negative values, $\mu (\varnothing) = 0$, and it has to be
@@ -456,8 +455,8 @@ check this for herself.\\
 Now why all this talk about measures? Wasn't it probabilistic programs we were
 talking about?
 
-Well, yes. The cool thing is, that being able to measure function whose co-domain is
-the real numbers in the unit interval, $\tau\to[0,1]$, gives us a way of representing
+The cool thing is, that being able to measure function whose co-domain is the real
+numbers in the unit interval, $\tau\to[0,1]$, gives us a way of representing
 probability distributions. A measure on type $\tau$ can be expressed with the type
 $(\tau\to[0,1])\to[0,1]$. An interpretation of a probabilistic term whose type is
 $\tau$ can now be understood as a measure on type $\tau$, or equivalently as a
@@ -478,17 +477,26 @@ representation of this value with the characteristic function of \texttt{true}, 
 result will be 0.5, since this is the probability of \texttt{true} being the
 outcome.
 
-We could even go further and say: If we have a set that contains \texttt{true} with
-probability $p$ and \texttt{false} with probability $q$, what would the probability
-be of the result of evaluating \texttt{flip} being in this set. The answer to this is
-simply applying the measure representation of \texttt{flip} with the function that
-returns $p$ on \texttt{true} and $q$ on \texttt{false}. With other words, the outcome
-would be the joint probability distribution between the input distribution and the
-one represented by the measure, assuming that both are independent. 
+But the function we measure is not constrained to being the characteristic function
+of a finite set. We can use functions specifying infinite sets, or sets that contain
+values with some probability. 
+We could, for example, have a set that contains \texttt{true} with
+probability $p$ and \texttt{false} with probability $q$.
+The characteristic function of this set is
+$$\mathbb{I}_X =
+\begin{cases}
+  \texttt{true} \mapsto p\\
+  \texttt{false} \mapsto q
+\end{cases}$$
+ 
+In order to find out what the probability is of a uniformly random choice between
+\texttt{true} and \texttt{false} being in this set, we apply the measure
+representation of \texttt{flip} to $\mathbb{I}_X$. The result is the integral over
+the joint probability distribution of \texttt{flip} and $\mathbb{I}_X$. 
 
 \subsubsection{A monadic interpretation}
 \label{sec:monad-interp}
-We can represent measures with a monadic structure. This is sensible, since
+We can represent measures using a monadic structure. This is sensible, since
 probabilistic programs are inherently not functional and once probability is involved
 in a computation we can not get rid of it again; this fits with a monad where we can
 not get a value back out of the monad once it is in the monad, unless we work with
@@ -513,7 +521,7 @@ distributions.
                   \texttt{fun }(f~:~\tau\to[0,1])\Rightarrow f~x\\
   \texttt{bind} & :~\texttt{M}\tau\to(\tau\to\texttt{M}\sigma)\to\texttt{M}\sigma\\
                 & = \texttt{fun }(\mu~:~\texttt{M}\tau)\Rightarrow \texttt{fun }
-                  (M~:~\tau\to\texttt{M}\sigma) \Rightarrow\\
+                  (g~:~\tau\to\texttt{M}\sigma) \Rightarrow\\
                 & ~~~~\texttt{fun }(f~:~\sigma\to[0,1])\Rightarrow \mu~ (\texttt{fun
                   }(x~:~\tau)\Rightarrow M~x~f)
 \end{align*}
@@ -537,8 +545,8 @@ The \texttt{bind} function can be viewed as something transforming the value ins
 the monad. 
 Let us take it from the inside and out. Clearly the last line of the definition is
 the result, the \texttt{M}$\sigma$ part; this is obvious from the types. $\mu$ and
-$M$ are the usual arguments to a \texttt{bind} operation, $\mu$ being the initial
-value and $M$ the transformation to be applied to it.
+$g$ are the usual arguments to a \texttt{bind} operation, $\mu$ being the initial
+value and $g$ the transformation to be applied to it.
 
 We can view the final construction like continuation passing style programming. We
 still have a value of type $\tau$ inside the monad before we bind it into a function,
@@ -550,25 +558,25 @@ sense to use its input on something of type $\sigma$ to get something in [0,1], 
 would satisfy the output type for the function we apply $\mu$ to.
 
 The final function takes the input of type $\tau$, that $\mu$ will give it,
-applies $M$ to it to transform it to something of type \texttt{M}$\sigma$, and then
+applies $g$ to it to transform it to something of type \texttt{M}$\sigma$, and then
 supplies it with the last piece of the computation, $f$.
 
 This way we retain all of the information that is contained in $\mu$, transform it
-with $M$, and lastly transform it with $f$, once that is supplied.\\
+with $g$, and lastly transform it with $f$, once that is supplied.\\
 \\
 An example of the use of \texttt{bind} could be the following: We have a distribution
 of natural numbers, $\mu$, and we want to figure out what the probability is that a
-number drawn from this distribution is even. To this end, we use the function $M$,
+number drawn from this distribution is even. To this end, we use the function $g$,
 that takes a natural number and returns the probability of it being even. If now we
-apply the result of \texttt{bind $\mu$ $M$} to, let's say, the characteristic
+apply the result of \texttt{bind $\mu$ $g$} to, let's say, the characteristic
 function of \texttt{false}, the following computation will be carried out:
 
-$\texttt{fun }(x~:~\tau)\Rightarrow M~x~f$ is now the function that takes a natural
+$\texttt{fun }(x~:~\tau)\Rightarrow g~x~f$ is now the function that takes a natural
 number and returns the probability of it being odd. Applying $\mu$ to this function
 yields the probability of a pseudorandom interpretation of $\mu$ being an odd
 number; and this is exactly the meaning of
 
-(\texttt{bind $\mu$ $M$}) (\texttt{fun
+(\texttt{bind $\mu$ $g$}) (\texttt{fun
   ($x$ : bool) $\Rightarrow$ if $x$ then 0 else 1}).
 
 \subsection{Putting together recursion and probability}
@@ -579,13 +587,12 @@ Then we need the $\omega$-cpo structure on our functions even though they are wr
 in an additional abstraction.
 
 In order to show this, we use the fact that monotonic functions from an ordered set
-to an $\omega$-cpo also have an $\omega$-cpo structure \cite[p.~584]{rml-paper}. 
-
-It is easy to see that, because a measure is an integral over strictly positive
-functions, it is a monotonic function. It is a function to [0,1], which clearly is an
-$\omega$-cpo with zero-element being zero, the ordering relation being $\le$ as we
-know it for real numbers, and the least upper bound operation simply being the
-largest number of a monotonic sequence.
+to an $\omega$-cpo also have an $\omega$-cpo structure \cite[p.~584]{rml-paper}.
+Because a probability measure is an integral over strictly non-negative functions, it
+is a monotonic function. It is a function to [0,1], which clearly is an $\omega$-cpo
+with zero-element being zero, the ordering relation being $\le$ as we know it for
+real numbers, and the least upper bound operation simply being the largest number of
+a monotonic sequence.
 
 Now we have that a measure is a monotonic function to an $\omega$-cpo, which is
 exactly what we needed to be sure of, before we go ahead and combine probability and
@@ -595,22 +602,22 @@ recursion.
 % Packages: comment
 \subsection{The functional approach: \rml}\label{sec:rml}
 The first language for probabilistic programs implemented in Coq is called \rml
-('Randomised monadic language')
-and is due to is due toe Philippe Audebaud and Christine Paulin-Mohring
-(\cite{rml-paper}). 
+('Randomised monadic language') and is due to is due toe Philippe Audebaud and
+Christine Paulin-Mohring (\cite{rml-paper}).
 \\ \\
-\rml\ could be described as a functional version of the \texttt{while} language with
-an interpretation that allows for probabilistic algorithms. The language itself does
-not contain probabilistic expressions, but rather makes use of the functions
-\texttt{random($n$)} and flip \texttt{flip}, which give a uniform distribution of
-natural numbers between 0 and $n$, and \texttt{true} and \texttt{false},
-respectively.
+\rml\ is a simple functional language whose interpretation allows for probabilistic
+algorithms. The language itself does not contain probabilistic expressions, but
+rather makes use of the functions \texttt{random($n$)} and \texttt{flip}, which give
+a uniform distribution of natural numbers between 0 and $n$, and \texttt{true} and
+\texttt{false}, respectively.
 
-Since calling either function would be considered a valid \rml\ term, the result has
-to be a measure over natural numbers (in the case of \texttt{random($n$)}) or
-booleans (in the case of \texttt{flip}).\\
-\\
-The expressions that our language consists of (we recall that it is a functional
+Since calling either function would be considered a valid \rml\ term, their semantics
+is a distribution. Their typing is therefore:
+\begin{align*}
+  \texttt{random} &~:~\mathbb{N} \to \texttt{M }\mathbb{N}\\
+  \texttt{flip}   &~:~ \_ \to \texttt{M }\mathbb{B}
+\end{align*}
+\noindent The expressions that our language consists of (we recall that it is a functional
 language, so there are only expressions, no statements) are as follows:
 
 \begin{align*}
@@ -621,13 +628,16 @@ language, so there are only expressions, no statements) are as follows:
 Here $x$ refers to a variable name previously bound in a let-binding, and $c$ refers
 to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
 definition of what a constant can be, it makes sense to assume, that it can be any
-Coq term.
+Coq term. This is beacuse their proposed approach to interpreting \rml\ in Coq is a
+shallow embedding, which means that it uses Coqs type system and values instead of
+defining its own. 
 
 According to \cite{rml-paper}, the $f$ in function application can be a ``primitive
 or a user-defined function'', where primitive would be \texttt{random($n$)} or
 \texttt{flip}, and a user-defined function should be specified by \texttt{let
 }$f~x_1~\dots~ x_n= e$, according to the language specification. Recursive functions
-can be defined with the keyword \texttt{let rec}.
+can be defined with the keyword \texttt{let rec}. Here, again, we could make use of
+the fact that the paper proposes a shallow embedding and use Coq toplevel functions. 
 
 The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
 Figure \ref{fig:rml-monad}.
@@ -636,7 +646,7 @@ Figure \ref{fig:rml-monad}.
   \begin{center}
     \begin{tabular}{|c|c|}
       \hline
-      \rml\ term $e~:~\tau$ & Coq value $[e]~:~\texttt{M}\tau$\\
+      \rml\ term $e~:~\tau$ & Interpretation $[e]~:~\texttt{M}\tau$\\
       \hline
       $v$ & \texttt{unit }$v ~~ v$ variable or constant\\ & \\
       $\texttt{let }x=a\texttt{ in } b$ & $\texttt{bind }[a]~(\texttt{fun } x
@@ -659,13 +669,10 @@ Figure \ref{fig:rml-monad}.
 % Here we should give a quick description of EasyCrypt and present pwhile
 \textsc{EasyCrypt} is a framework that has been developed in order to help in the
 construction of machine-checkable proofs about cryptographic constructions and
-protocols \cite{easy-crypt}.
-A standard approach to this kind of proofs is based on so-called games; in
-\textsc{EasyCrypt} cryptographic algorithms as well as games are modelled as
-\textit{modules} consisting of procedures written in a simple imperative language
-called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands for
-``probabilistic'', so in total the name refers to a probabilistic extension of the
-well-known minimalistic \texttt{while} language.
+protocols \cite{easy-crypt}. For the implementation of algorithms, it makes use of a
+simple imperative language called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile}
+stands for ``probabilistic'', so in total the name refers to a probabilistic
+extension of the well-known minimalistic \texttt{while} language.
 
 We will in this section give an overview of the language as well as its
 interpretation in Coq, which is due to a development by Pierre-Yves Strub
@@ -930,8 +937,8 @@ Section \ref{sec:fixp-iter}.
   \llbracket\texttt{let }x := e_1\texttt{ in }e_2 \rrbracket~\mapsto~
   & (\lambda x.\llbracket e_2\rrbracket)~\llbracket e_1\rrbracket \\
   \llbracket \texttt{if $b$ then $e_1$ else }e_2 \rrbracket~\mapsto~
-  & \llbracket b\rrbracket~\llbracket e_1\rrbracket~
-    \llbracket e_2\rrbracket \label{eq:lambda-if}\\
+  &\texttt{if } \llbracket b\rrbracket \texttt{ then }\llbracket e_1\rrbracket
+    \texttt{ else }\llbracket e_2\rrbracket \label{eq:lambda-if}\\
  \llbracket f~e_1\dots e_n \rrbracket~\mapsto~
   & \llbracket f\rrbracket~\llbracket e_1\rrbracket \dots \llbracket e_n\rrbracket\\
   \llbracket \texttt{let rec }f~x:= e_1 \texttt{ in } e_2\rrbracket ~\mapsto~
@@ -939,10 +946,9 @@ Section \ref{sec:fixp-iter}.
     (\lambda f.\lambda x. \llbracket e_1\rrbracket))
 \end{align}
 
-In \ref{eq:lambda-if} we encode an if-expression as the application of a boolean
-value to the two branches. This just means that we assume Church-encoding of
-booleans.
-
+For simplicity, we decided to use a typed $\lambda$-calculus with the type of
+booleans and an if-primitive, which we use in \ref{eq:lambda-if}.\\
+\\
 Now for the \texttt{Y}-combinator: It is a so-called \emph{fixed-point combinator},
 this means it is a lambda-expression without any free variables which we can use to
 find the fixed point of the application of a recursive definition. The expansion of
@@ -1003,8 +1009,9 @@ interpretation.
                     &  \texttt{then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
                     & \texttt{else } \llbracket s_2 ~;~ s_3 \rrbracket \notag\\
   (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
-                    ~\mapsto^\lambda~ &  e ~\llbracket s_1 ~;~ s_3 \rrbracket 
-                                             ~\llbracket s_2 ~;~ s_3 \rrbracket \notag
+                    ~\mapsto^\lambda~ &  \texttt{if } e \\
+                    &  \texttt{then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
+                    & \texttt{else } \llbracket s_2 ~;~ s_3 \rrbracket \notag
 \end{align}
 \begin{align}
   \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
@@ -1012,8 +1019,9 @@ interpretation.
                                   \texttt{ then } \llbracket s_1 \rrbracket
                                   \texttt{ else } \llbracket s_2 \rrbracket \\
   \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
-                    ~\mapsto^\lambda~ & e~ \llbracket s_1 \rrbracket
-                                             ~ \llbracket s_2 \rrbracket \notag
+                    ~\mapsto^\lambda~ & \texttt{if } e
+                                  \texttt{ then } \llbracket s_1 \rrbracket
+                                  \texttt{ else } \llbracket s_2 \rrbracket \notag
 \end{align}
 \begin{align}
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
@@ -1114,18 +1122,29 @@ hypothesis.
 
 
 \subsection{Adding probabilistic definitions}\label{sec:probab}
-After having looked at the skeleton of the translations, now we want to make sure,
-that it all still works when adding probabilistic functions. In order to do this, we
-encapsulate all of our computations in the monadic structure presented in Section
-\ref{sec:monad-interp}. This means that the result of a computation is no longer a
-definite values anymore, but rather a monadic value representing a probability
-distribution over results of the internal computation.
+After having looked at the skeleton of the translations, now we want to make sure
+that it all still works when adding probabilistic functions. To this end we use the
+monadic structure  presented in Section \ref{sec:monad-interp} as the space to
+interpret in.
 
-This is where the argument from Section \ref{sec:prob-rec} comes into play. This
-tells us that we can add probability to our languages without changing the
-interpretation of recursive definitions.
+We have already seen a monadic interpretation of \rml\ in Figure \ref{fig:rml-monad}
+and one of \texttt{pwhile} in Figure \ref{fig:pwhile-sem}. Adding an interpretation
+like this for the $\lambda$-calculus would be the first step from proving that the
+diagram in Figure \ref{fig:triangle-det} commutes to proving that the diagram for the
+non-deterministic languages in Figure \ref{fig:triangle} commutes.
 
-We also note that the probabilistic computations for both \rml\ and \texttt{pwhile}
+We would then have to repeat the proof of Section \ref{sec:lambda-interp} with the
+interpretation in said monadic structure instead of the proposed straightforward
+interpretation.
+
+An important part of this proof is that, since we want to interpret into the space of
+$\omega$-cpos, we have to make sure that the space of our interpretation is actually
+an $\omega$-cpo. Here we recall Section \ref{sec:prob-rec}, in which we argue that
+the monad we presented in Section \ref{sec:monad-interp} has an $\omega$-cpo
+structure to it. We use this structure in order to interpret recursive definitions
+and looping constructs. 
+
+Lastly we note that the probabilistic computations for both \rml\ and \texttt{pwhile}
 are fully contained in the probabilistic functions \texttt{flip} and \texttt{random
   $n$}. This makes it easy to add probabilistic computations to the languages without
 changing the translations between them, since using probability boils down to
