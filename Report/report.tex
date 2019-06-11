@@ -70,9 +70,8 @@ morekeywords=[5]{by, done, exact, reflexivity, tauto, romega, omega,
 % Control
 morekeywords=[6]{do, last, first, try, idtac, repeat},
 % % Custom
-morekeywords=[7]{Rml, sRml},
-morekeywords=[8]{Var, Const, Let_stm, Fun_stm, If_stm, App_stm, Let_rec},
-morekeywords=[9]{sVar, sConst, sFun, sIf, sApp, sFix},
+morekeywords=[8]{Var, Const, Let_stm, Fun_stm, If_stm, App_stm, Let_rec, Random, Flip,
+sVar, sConst, sFun, sIf, sApp, sFix, sRandom, sFlip},
 % Comments delimiters, we do turn this off for the manual
 morecomment=[s]{(*}{*)},
 %
@@ -119,7 +118,7 @@ keywordstyle=[5]{\ttfamily\color{red}},
 %Style for iterators
 %keywordstyle=[6]{\ttfamily\color{dkpink}},
 keywordstyle=[7]{\ttfamily\color{orange}},
-keywordstyle=[8]{\ttfamily\color{red}},
+keywordstyle=[8]{\ttfamily\color{teal}},
 keywordstyle=[9]{\ttfamily\color{magenta}},
 % Style for strings
 stringstyle=\ttfamily,
@@ -231,12 +230,11 @@ in the Coq proof assistant, since it is one of the most widely used and most pro
 correct proof assistants currently in existence.
 
 \subsection{The Coq proof assistant}
-The Coq proof assistant was developed in 1984 [...] %\cite{Coquand & Huet}
-and its logic, originally based on the Calculus of Constructions, was extend to the
-Calculus of Inductive Constructions in 19xx [...]. %YEAR and \cite{Christe Paulin}
-It has been under constant development ever since it was first published and many
-bugs have since been found and fixed, making Coq one of the most reliable and trusted
-proof environments.
+The Coq proof assistant was developed in 1984 \cite{coq-proof-ass} and its logic,
+originally based on the Calculus of Constructions, was extend to the Calculus of
+Inductive Constructions by Christine Paulin in 1991.  It has been under constant
+development ever since it was first published and many bugs have since been found and
+fixed, making Coq one of the most reliable and trusted proof environments.
 
 The reader is not expected to have an understanding of Coq, though it might be
 helpful in Section \ref{sec:contrib}, which deals with our Coq development. 
@@ -281,13 +279,12 @@ approaches and reflect on how to meaningfully expand the development in Section
 \label{sec:theory}
 % Goal: 6-12 pages
 
-\todo{change this sentence. Wasn't mentioned.}As mentioned before we focused our work
-on developing a framework for proofs of randomised algorithms in the proof assistant
-Coq. Coq is known to be a reliable tool and proofs formalised with it are widely
-trusted. Coq is, however, also known to be notoriously difficult to code things in
-due to a strict type system that requires determinism and certain termination of all
-programs written in it. Obviously these two are not the optimal conditions for the
-encoding of randomised algorithms that may not terminate.
+Our work focuses on interpretations of possibly non-terminating probabilistic
+computations encoded in Coq. As mentioned earlier, Coq is widely trsuted; it is,
+however, also known to be notoriously difficult to code things in due to a strict
+type system that requires determinism and certain termination of all programs written
+in it. Obviously these two are not the optimal conditions for running probabilistic
+algorithms that may not terminate.
 
 This means that we need a way to encode an interpretation general recursion (or
 iteration) as well as randomness in such a way that we can still reason about our
@@ -584,7 +581,6 @@ number; and this is exactly the meaning of
 
 \subsection{Putting together recursion and probability}
 \label{sec:prob-rec}
-\todo[inline]{This section just needs some fact-checking.}
 What now if we want both probability and a way of interpreting general recursion?
 Then we need the $\omega$-cpo structure on our functions even though they are wrapped
 in an additional abstraction.
@@ -1185,22 +1181,19 @@ result using our implementation.
 
 \section{The Coq development (READY)}\label{sec:contrib}
 % Goal: 6-12 pages
-\todo[inline]{Need to fix the colour scheme for Coq-blocks.}
+The proof of the previous section concerns itself with languages that are designed
+for an implementation in Coq. So what would make more sense than implementing the
+proof in Coq?
 
-According to Boileau, ``what one understands well is expressed clearly''. Few forms
-of expressing an idea are as concise as code written for a computer.
+We did not implement the full proof of Section \ref{sec:approach}; our development
+contains an implementation of a language based on \rml, a number of definitions
+concerning the correctness of programs in said language, as well as an interpreter
+for such correct programs. Our goal was to implement \rml\ according to its
+specification, but due to a number of wrestling matches with Coq's typechecker, we
+ended up deviating from what was presented in \cite{rml-paper}.
 
-Since the main goal of the present project was to gain an actionable understanding of
-a number of concepts within the field of language design, we chose to implement some
-of the theory present in the previous section in Coq.
-
-Our development contains an implementation of a language based on \rml, a number of
-definitions concerning the correctness of programs in said language, as well as an
-interpreter for such correct programs. Our goal was to implement \rml\ according to
-its specification, but due to a number of wrestling matches with Coq's typechecker,
-we ended up deviating from what was presented in \cite{rml-paper}.
-
-We will in the following call the language we actually implemented for \rmlx.
+We will in the following call the language we actually implemented \rmlx, while we
+will continue to call the original specification given in \cite{rml-paper} \rml. 
 
 \subsection{The definition of \rmlx}
 \label{sec:rmlx}
@@ -1277,8 +1270,7 @@ argument. We therefore explicitly supply the intermediate type.
 
 An example would be \coqe{App_stm nat~ (Const is_even) (Const 50)}, where we would
 typecheck the whole expression to have type \coqe{bool}, while we need the explicit
-\coqe{nat} to check that the argument has the right type
-\todo{This is because we can't construct on types in Coq, right...?}for the function.
+\coqe{nat} to check that the argument has the right type for the function.
 
 \paragraph{\coqe{Let_rec}} is the most complicated of the linguistic constructs of
 \rmlx. It takes two types, two identifiers (natural numbers) and two \coqe{Rml}
