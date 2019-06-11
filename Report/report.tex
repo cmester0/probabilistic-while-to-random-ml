@@ -1578,8 +1578,20 @@ that ended up introducing an inconsistency in the logic.
 
 After looking at the interpretations for recursion/iteration, and for probabilistic
 definitions, we made sure that it was possible to interpret recursion/iteration in a
-probabilistic setting.\\
-\\
+probabilistic setting.
+\begin{figure}[h]
+  \centering
+  \begin{tikzcd}
+    \texttt{pwhile} \arrow[dd, dashed] \arrow[rrrrd, "\texttt{xhl}" description] &  &  &  &                     \\
+    &  &  &  & \omega \text{-cpos} \\
+    \text{\rml} \arrow[rrrru, "\text{this development}" description]          &  &  &  &                    
+  \end{tikzcd}
+  \caption{The translations of which implementations exist are represented by solid
+    arrows labelled by the source they are implemented in, the translation that still
+    lacks implementation is marked with a dashed arrow. }
+  \label{fig:triangle-ours}
+\end{figure}
+
 After having established the theoretic background, we had a look at the syntax and
 semantics of \rml\ and \texttt{pwhile}. Seeing their similarity we went ahead proving
 that the interpretation of \texttt{pwhile} is a subset of the interpretation of
@@ -1595,21 +1607,20 @@ interpretation of a language equivalent to \rml.
 What we tried to prove the diagram in Figure \ref{fig:triangle} commutative, but we
 did not implement a translation from \texttt{pwhile} to \rml. The translations that
 are currently implemented can be seen in Figure \ref{fig:triangle-ours}. 
-\begin{figure}
-  \centering
-  \begin{tikzcd}
-    \texttt{pwhile} \arrow[dd, dashed] \arrow[rrrrd, "\texttt{xhl}" description] &  &  &  &                     \\
-    &  &  &  & \omega \text{-cpos} \\
-    \text{\rml} \arrow[rrrru, "\text{this development}" description]          &  &  &  &                    
-  \end{tikzcd}
-  \caption{The translations of which implementations exist are represented by solid
-    arrows labelled by the source they are implemented in, the translation that still
-    lacks implementation is marked with a dashed arrow. }
-  \label{fig:triangle-ours}
-\end{figure}
 
 
-\paragraph{Ackowledgments}We thank
+\paragraph{Acknowledgements}We thank our advisor Bas Spitters for his time, his
+expertise, and for continuously pushing us forwards.
+\\ \\
+A special thanks goes to Pierre-Yves Strub who took the time to introduces us to
+\texttt{pwhile} and detail the \texttt{xhl} development to us.
+\\ \\
+Special thanks is also due to Olivier Danvy for sparking an interest in research and
+for being generous with advice to those who seek it. 
+\\ \\
+We also thank all of those who have offered up some of their time in order to
+meliorate the result of our work: [...]  \todo{Insert missing acknowledgements or
+  remove this sentence.}
 
 \newpage
 \bibliographystyle{ieeetr}
