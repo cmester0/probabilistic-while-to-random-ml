@@ -209,14 +209,17 @@ literate=
 
 % -------------------------------------------------------------
 
-\maketitle
+\input{titlepage.tex}
+
+\abstract{Abstract here. }
+\newpage
 
 \tableofcontents
 \newpage
 
 % ------------------------------------------------------------- 
 
-\section{Introduction (Finished 12.06.)}
+\section{Introduction (READY)}
 Probabilistic algorithms are widely used in computer science, especiallly in the
 fields of cryptography and security. Because of their many applications, reliable
 proofs of the correctness and/or security of such algorithms are desirable. 
@@ -274,7 +277,7 @@ approaches and reflect on how to meaningfully expand the development in Section
 \ref{sec:future}. Afterwards we will conclude with Section \ref{sec:conclusion}.
 
 
-\section{Theory and existing frameworks (READY(?))} 
+\section{Theory and existing frameworks (READY)} 
 \label{sec:theory}
 % Goal: 6-12 pages
 
@@ -1516,7 +1519,7 @@ supremum of the sequence will be the result of the computation. When a function
 diverges, the sequence will consist solely of \texttt{dnull}s  and hence the all-zero
 distribution is going to be the supremum. 
 
-\section{Comparisons and future work (Draft 10.06.)}
+\section{Comparisons and future work (READY)}
 \label{sec:future}
 Our work is mainly based on two different approaches to developing a framework for
 proofs of probabilistic algorithms in Coq. On one hand there is \rml\ and the ALEA
@@ -1535,7 +1538,13 @@ unifying the different approaches of instead of developing a new framework.\\
 The theory we developed in Section \ref{sec:approach} was not fully implemented in
 our development, and it would be interesting to continue working on the
 implementation of a translation from \texttt{pwhile} to \rml\ and compare their
-respective interpretations, as was our suggestion in Section \ref{sec:howto-coq}. 
+respective interpretations, as was our suggestion in Section \ref{sec:howto-coq}.
+
+Furthermore, our proofs only show \texttt{pwhile} to be a subset of \rml and do not
+show the languages equivalent. Though it intuitively seems that they might be,
+proving the equivalence of \texttt{pwhile} and \rml\ might be something upon which to
+base future work about developing frameworks for proofs of probabilistic algorithms
+in Coq.
 
 Another thing that would be interesting to explore is how FCF fits into the
 picture. Intuitively we expect it to have the same expressivity as \rml\ and
@@ -1547,10 +1556,54 @@ Lastly it would make sense to explore the possibilities of the different approac
 which are most usable in practice, and if they could be combined in order to develop
 a framework that is more useful than either of the approaches on its own. 
 
-\section{Conclusion (Finished 12.06.)}
+\section{Conclusion (READY)}
 \label{sec:conclusion}
 % Goal: 1-2 pages
-We did good. 
+We have in this work looked at two probabilistic languages and their interpretation
+in Coq: The functional \rml, and the imperative \texttt{pwhile}.\\
+\\
+We started by going through the theoretic background of such interpretations, where
+we explored how we can interpret probabilistic definitions as probability measures
+and how we can represent these measures by use of a monad. We also looked at the
+domain theoretic approach to interpreting recursion and iteration without running the
+risk of trying to construct a non-terminating algorithm within Coq, since this would
+either be disallowed by Coq's termination-checker, or show that we added axioms
+that ended up introducing an inconsistency in the logic.
+
+After looking at the interpretations for recursion/iteration, and for probabilistic
+definitions, we made sure that it was possible to interpret recursion/iteration in a
+probabilistic setting.\\
+\\
+After having established the theoretic background, we had a look at the syntax and
+semantics of \rml\ and \texttt{pwhile}. Seeing their similarity we went ahead proving
+that the interpretation of \texttt{pwhile} is a subset of the interpretation of
+\rml\ by defining a translation from \texttt{pwhile} to \rml\ and proving that
+interpreting the original \texttt{pwhile} program produced a result equivalent to
+interpreting the result of translating this \texttt{pwhile} program to \rml.
+
+This proof was carried out by hand. We attempted to prove the same thing in Coq, but
+we approached this from the wrong direction and without first gaining a proper
+understanding of our goals and the way there, so what was actually implemented is an
+interpretation of a language equivalent to \rml.
+
+What we tried to prove the diagram in Figure \ref{fig:triangle} commutative, but we
+did not implement a translation from \texttt{pwhile} to \rml. The translations that
+are currently implemented can be seen in Figure \ref{fig:triangle-ours}. 
+\begin{figure}
+  \centering
+  \begin{tikzcd}
+    \texttt{pwhile} \arrow[dd, dashed] \arrow[rrrrd, "\texttt{xhl}" description] &  &  &  &                     \\
+    &  &  &  & \omega \text{-cpos} \\
+    \text{\rml} \arrow[rrrru, "\text{this development}" description]          &  &  &  &                    
+  \end{tikzcd}
+  \caption{The translations of which implementations exist are represented by solid
+    arrows labelled by the source they are implemented in, the translation that still
+    lacks implementation is marked with a dashed arrow. }
+  \label{fig:triangle-ours}
+\end{figure}
+
+
+\paragraph{Ackowledgments}We thank
 
 \newpage
 \bibliographystyle{ieeetr}
