@@ -210,7 +210,21 @@ literate=
 
 \input{titlepage.tex}
 
-\abstract{Abstract here. }
+\abstract{
+Probabilistic algorithms are widely used in computer science, especiallly in the
+fields of cryptography and security. Because of their many applications, reliable
+proofs of the correctness and/or security of such algorithms are desirable.
+
+In this work we explore some existing designs and implementations of probabilistic
+languages and frameworks for proofs of probabilistic algorithms in Coq. We present a
+functional and an imperative language (\rml\ and \texttt{pwhile}, discuss the theory
+behind their respective interpretations, and propose a translation from
+\texttt{pwhile} to \rml, which we prove to preserve the semantics of the original
+program.
+
+Finally we implement an interpretation of \rml\ in Coq as a first step to a verified
+implementation of our translation from \texttt{pwhile} to \rml.
+}
 \newpage
 
 \tableofcontents
