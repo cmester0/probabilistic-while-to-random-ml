@@ -323,46 +323,45 @@ presenting our conclusion.
 \label{sec:theory}
 % Goal: 6-12 pages
 
-Our work focuses on interpretations of possibly non-terminating probabilistic
+Our work is concerned with interpretations of possibly non-terminating probabilistic
 computations encoded in Coq. As mentioned earlier, Coq is widely trsuted; it is,
 however, also known to be notoriously difficult to code things in due to a strict
 type system that requires determinism and certain termination of all programs written
-in it. Obviously these two are not the optimal conditions for running probabilistic
+in it. Obviously these are not the optimal conditions for running probabilistic
 algorithms that may not terminate.
 
-This means that we need a way to encode an interpretation general recursion (or
+This means that we need a way to encode interpretations of general recursion (or
 iteration) as well as randomness in such a way that we can still reason about our
-programs in the proof system of Coq without having to run them.
+programs in Coq without having to run them.
 
-We will in this section present a monadic interpretation into probability
-distribution over the outcome of a randomised program as well as a way of
-interpreting general recursion.
+In this section we present a way of representing probability distributions using a
+monad and show how we can use this in order to interpret probabilistic
+definitions. Furthermore we will see the domain theoretic approach of interpreting
+general recursion by performing a fixed-point iteration. 
 
-In this section we will have a look at how to use complete partial orders to
-interpret general recursion (Section \ref{sec:cpos}), and how we can represent the
-result of a probabilistic computation using a monadic interpretation of probability
-measures (Section \ref{sec:prob-interp}. Afterwards we will move on to presenting two
-different developments that have worked with probabilistic languages in Coq: the
-functional \rml\ (Section \ref{sec:rml}) and the imperative \texttt{pwhile} (Section
-\ref{sec:pwhile}).
+More specifically we will have a look at how to use complete partial orders to
+interpret general recursion
+Section \ref{sec:cpos} shows how complete partial orders can be used in order to
+interpret general recursion, while Section \ref{sec:prob-interp} concerns itself with
+representing the result of a probabilistic computation using a monadic interpretation
+of probability measures. Afterwards we will move on to presenting two different
+developments concerning probabilistic languages in Coq: the functional \rml\ (Section
+\ref{sec:rml}) and the imperative \texttt{pwhile} (Section \ref{sec:pwhile}).
 
-\subsection{Complete partial orders}\label{sec:cpos}
-% Describe cpos, omega-cpos, and dcpos
-% partial order: a set with an ordering relation, but not every two elements have to
-% be comparable
-
-A partially ordered set (poset) is a set with an associated binary ordering relation
-$\leq$ which is both reflexive and transitive. The order is partial when the ordering
+\subsection{Complete partial orders}
+\label{sec:cpos}
+A partially ordered set (poset) is a set with an associated binary ordering relation,
+$\leq$, which is reflexive and transitive. The order is partial when the ordering
 relation is not defined on every pair of elements in the set.
 
-There exist a number of different completeness properties that a poset can have.
-We will here have a look at $\omega$-complete partial orders, which we will use in
-order to interpret general recursion and probabilistic programs. 
+There is a whole range of different completeness properties that a poset can have.
+For our purposes we will need $\omega$-complete partial orders for the interpretation
+of general recursion.  
 
 \begin{defn}
   \textit{$\omega$-complete partial order ($\omega$-cpo)}\\
-  An $\omega$-cpo is a partially ordered set that, additionally, has a distinct least
-  element and where there exist least upper bounds on all monotonic sequences. 
+  An $\omega$-cpo is a partially ordered set that has a distinct least element and
+  where there exist least upper bounds on all monotonic sequences.
 \end{defn}
 
 \subsubsection{Recursive definitions as fixed point iterations}
@@ -377,24 +376,20 @@ $f~:~\mathbb{N} \xrightarrow{m} X$ where $f(n)$ is the $n$th element of the sequ
 least upper bound of the sequence for $n$ larger than the length of the sequence, if the sequence is finite).\\
 \\
 % Standard definition of fixed points
-There is a standard way of defining fixed point iterations on an $\omega$-cpo: \cite{rml-paper}
-
-Consider an operator $F~:~X \xrightarrow{m} X$ on some $\omega$-cpo $X$; with this we
-define the monotonic sequence $F_i \mapsto \underbrace{ F(F(\dots F}_{i \text{
-    times}} (0_X) \dots))$ of repeated application of $F$ to the least element of $X$.
-By our choice of $F$ and the definition of $\omega$-cpos, it is clear that there has
-to exist a least upper bound on $F_i$. This least upper bound is the fixed point of
-$F$ and it will hold that $\texttt{fix } F = F(\texttt{fix }F)$ if $F$ is
-continuous. 
-% @Bas: Where do we need non-continuous functions?
+There is a standard way of defining fixed point iterations on an
+$\omega$-cpo\cite{rml-paper}: Consider an operator $F~:~X \xrightarrow{m} X$ on some
+$\omega$-cpo $X$; with this we define the monotonic sequence $F_i \mapsto
+\underbrace{ F(F(\dots F}_{i \text{ times}} (0_X) \dots))$ of repeated application of
+$F$ to the least element of $X$.  By our choice of $F$ and the definition of
+$\omega$-cpos, it is clear that there has to exist a least upper bound on $F_i$. This
+least upper bound is the fixed point of $F$ and it will hold that $\texttt{fix } F =
+F(\texttt{fix }F)$ if $F$ is continuous.
 
 % How it extends to function spaces
 For an $\omega$-cpo with underlying set $B$ we can also define an $\omega$-cpo on
-functions from any set $A$ whose co-domain is $B$.
-
-To reiterate the definition, let us think of what we need for an $\omega$-cpo. We
-need an ordering relation, a least element, and a least upper bound operation. Those
-can be defined as follows:
+functions with co-domain $B$ from any domain $A$.  To define this we recall what
+requirements there are for a set to be an $\omega$-cpo: We need an ordering relation,
+a least element, and a least upper bound operation. Those can be defined as follows:
 \begin{align*}
   f\leq_{A \to B} g \Leftrightarrow \forall x: f(x) \leq_B g(x) & ~~~\textit{(pointwise order)}\\
   0_{A\to B} := f(x) = 0_B & ~~~\textit{(least element)}\\
@@ -411,7 +406,7 @@ can use this structure to interpret general recursive definitions.
 
 We define a functional, $F$, taking as input a function and ``adding a step to it''.
 Let us look at the example of the factorial function $f(n) = n!$ \cite{haskell}.
-The recursive definition is well known:
+The recursive definition of this is:
 $$fac(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot fac(n-1)$$
 
 For the interpretation of this definition, we want to define $F~:~(\mathbb{N} \to
@@ -421,8 +416,8 @@ $$F(g(n)):=\texttt{ if }n=0\texttt{ then }1\texttt{ else }n\cdot g(n-1)$$
 Where $F_0(n)$ is $0_{\mathbb{N} \to \mathbb{N}}$ (the function that takes a natural
 number and returns 0), by the above definition of the least element in the
 $\omega$-cpo defined on a function space. By repeated application of $F$ the function
-will slowly approach the real factorial function, which is the fixed point of $F$.
-The beginning of the iteration will be
+will approach the real factorial function, which is the fixed point of $F$. The
+beginning of the iteration will be
 
 \begin{align*}
   F_1(n) = F(F_0(n)) & = \begin{cases}
@@ -444,15 +439,16 @@ The beginning of the iteration will be
                               \end{cases}
 \end{align*}
 
-In this case it is easy to see that $F_0 \leq F_1 \leq F_2 \leq F_3 \leq \dots$. In
+In this case it is easy to see that $F_0 \leq F_1 \leq F_2 \leq F_3 \leq \dots$; In
 the general case this follows from the fact that $F$ has to be monotone and $F_0$ is
-always the least element of the function space $F$ operates on. 
+always the least element of the function space on which $F$ operates.
 
 
 \subsection{Interpreting probabilistic definitions}\label{sec:prob-interp}
-In order to interpret probabilistic definitions, we need a way of expressing
-the distribution of possible results. For this we will use probability measures as
-described in \cite{rml-paper}.
+The most straightforward interpretation of a probabilistic definition is a
+probability distribution of the definition's results. In order to define this
+interpretation we need a way to represent probability distributions; for this we will
+use probability measures as described in \cite{rml-paper}.
 
 \subsubsection{The concept of measures}
 In layman's terms, we can describe a measure on a set $A$ as exactly that: a way of
@@ -462,7 +458,7 @@ certain conditions. We will henceforth write $\mu (X)$ to signify the value of $
 \subseteq A$ under the measure $\mu$.
 
 In order for a function to be a measure, there are three properties it has to have:
-It must take only non-negative values, $\mu (\varnothing) = 0$, and it has to be
+It must take only non-negative values; $\mu (\varnothing) = 0$; and it has to be
 countably additive. Being countably additive means that for every set of pairwise
 disjoint objects, the value of this set is equal to the sum of the values of each
 object:
@@ -472,8 +468,8 @@ object:
 \end{equation*}
 
 An example might be to choose $A$ to be a set of 3-dimensional objects and a possible
-measure would be the total volume of objects in a subset. 
-
+measure would be the total volume of objects in a subset. \\
+\\
 We can understand a measure on $A$ as integral
 over functions from $A$ to $\mathbb{R}^+$. From this perspective, the above example
 would consist of the function that given an object in $A$ returns its volume. The
@@ -488,33 +484,34 @@ $$\mathbb{I}_X(x)=
 \end{cases}$$
 
 By multiplying the characteristic function for $X$ with the volume function on
-objects in $A$, we get a new function, $f$, such that $\int f~d\mu = \mu(X)$. With
-this in place, we will allow ourselves to be sloppy in our notation and write
-$\mu(f)$ instead of $\int f~d\mu$.
+objects in $A$, we get a new function, $f_X$, such that $\int f_X~d\mu =
+\mu(X)$. With this in place, we will allow ourselves to be sloppy in our notation and
+write $\mu(f)$ instead of $\int f~d\mu$.
 
-It is easy to see that the integral perspective still satisfies all the requirements
-that a function has to fulfil in order to be a measure, and the reader is invited to
-check this for herself.\\
+The integral perspective still satisfies all the requirements that a function has to
+fulfil in order to be a measure. This is fairly easy to see when we bear in mind that
+the integral is over strictly non-negative functions; the reader is invited to check
+this for herself.\\
 \\
 Now why all this talk about measures? Wasn't it probabilistic programs we were
 talking about?
 
-The cool thing is, that being able to measure function whose co-domain is the real
-numbers in the unit interval, $\tau\to[0,1]$, gives us a way of representing
-probability distributions. A measure on type $\tau$ can be expressed with the type
-$(\tau\to[0,1])\to[0,1]$. An interpretation of a probabilistic term whose type is
-$\tau$ can now be understood as a measure on type $\tau$, or equivalently as a
-transformation of a probability distribution.
+The cool thing is that being able to measure function whose co-domain is the real
+numbers in the unit interval, so functions of type $\tau\to[0,1]$ for some type
+$\tau$, gives us a way of representing probability distributions. A measure on type
+$\tau$ can be expressed with the type $(\tau\to[0,1])\to[0,1]$. An interpretation of
+a probabilistic term whose type is $\tau$ can now be understood as a measure on type
+$\tau$, or equivalently as a transformation of a probability distribution.
 
 Something of type $\tau\to[0,1]$ can be understood as the function that returns the
 probability of its input being part of a specified set, or in other words, we can
-understand it as a probability density function. We can view our programs as a
-transformation of a distribution: If we input an initial distribution (this might
-also just be the characteristic function of a single value), we will as output
-receive the integral over the transformed distribution; with other words, we will
-receive the probability distribution specifying the result of an actual
-pseudorandomised run of our program producing a result within the input distribution.
-
+understand it as a probability density function. We can view our programs as
+transforming distributions: If we input an initial distribution (this might also just
+be the characteristic function of a single value), we will as output receive the
+integral over the transformed distribution; with other words, we will receive the
+probability distribution specifying the result of an actual pseudorandomised run of
+our program producing a result within the input distribution.\\
+\\
 As an example we might consider the value \texttt{flip}, which returns a uniform
 distribution of \texttt{false} and \texttt{true}. If now we supply the measure
 representation of this value with the characteristic function of \texttt{true}, the
@@ -543,8 +540,8 @@ the joint probability distribution of \texttt{flip} and $\mathbb{I}_X$.
 We can represent measures using a monadic structure. This is sensible, since
 probabilistic programs are inherently not functional and once probability is involved
 in a computation we can not get rid of it again; this fits with a monad where we can
-not get a value back out of the monad once it is in the monad, unless we work with
-the representation of the monad in our language.
+not get a value back out of a monad once it is wrapped into it, unless we work with
+the representation of the monad in our meta-language.
 
 Since we are using a monad over the type $\tau$ to represent a measure on $\tau$, we
 will for simplicity of notation introduce the notation \texttt{M}$\tau$ to mean 
@@ -556,8 +553,8 @@ theory of monads. One example is our previous development in Coq, which can be f
 at
 \url{https://bitbucket.org/Ninijura/functionalprogramming/raw/47de0f3f259370f3214789bbc90511313be451f8/project/report_final.pdf}}. They
 are also used by the Mathematical Components compliant Analysis Library\footnote
-{\url{https://github.com/math-comp/analysis/tree/master/}} in their representation of
-distributions.
+{\url{https://github.com/math-comp/analysis/tree/master/}} for Coq in order to
+represent distributions.
 
 \begin{align*}
   \texttt{unit} & :~ \tau\to\texttt{M}\tau\\
@@ -574,7 +571,7 @@ These definitions look big and scary, so let's break them down.
 \\ \\
 The \texttt{unit} function could be described as the ``wrapper'' that takes a value
 and wraps the monad around it. The outermost lambda-abstraction takes the value that
-we want to produce the measure of and remembers it. The second function binding is to
+we want to produce the measure of and remembers it. The second abstraction is to
 match the type of measures; this is where the probability distribution is received as
 input, and where we then give the output of said distribution function applied to our
 initial value.
@@ -632,21 +629,21 @@ in an additional abstraction.
 In order to show this, we use the fact that monotonic functions from an ordered set
 to an $\omega$-cpo also have an $\omega$-cpo structure \cite[p.~584]{rml-paper}.
 Because a probability measure is an integral over strictly non-negative functions, it
-is a monotonic function. It is a function to [0,1], which clearly is an $\omega$-cpo
-with zero-element being zero, the ordering relation being $\le$ as we know it for
-real numbers, and the least upper bound operation simply being the largest number of
-a monotonic sequence.
+is a monotonic function. It is a function to [0,1], which is an $\omega$-cpo with
+zero-element being zero, the ordering relation being $\le$ as we know it for real
+numbers, and the least upper bound operation simply being the largest number of a
+monotonic sequence.
 
 Now we have that a measure is a monotonic function to an $\omega$-cpo, which is
-exactly what we needed to be sure of, before we go ahead and combine probability and
+what we needed to be sure of, before we go ahead and combine probability and
 recursion. 
 
 
 % Packages: comment
 \subsection{The functional approach: \rml}\label{sec:rml}
-The first language for probabilistic programs implemented in Coq is called \rml
-('Randomised monadic language') and is due to is due toe Philippe Audebaud and
-Christine Paulin-Mohring (\cite{rml-paper}).
+The first language for probabilistic programs implemented in Coq is called \rml\ 
+(`Randomised monadic language') and is due to is due toe Philippe Audebaud and
+Christine Paulin-Mohring\cite{rml-paper}.
 \\ \\
 \rml\ is a simple functional language whose interpretation allows for probabilistic
 algorithms. The language itself does not contain probabilistic expressions, but
@@ -662,7 +659,6 @@ is a distribution. Their typing is therefore:
 \end{align*}
 \noindent The expressions that our language consists of (we recall that it is a functional
 language, so there are only expressions, no statements) are as follows:
-
 \begin{align*}
   exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else } e_2~
   \vert ~ \texttt{let }x = e_1 \texttt{ in }e_2~\vert ~ f~e_1~\dots~e_n
@@ -670,17 +666,17 @@ language, so there are only expressions, no statements) are as follows:
 
 Here $x$ refers to a variable name previously bound in a let-binding, and $c$ refers
 to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
-definition of what a constant can be, it makes sense to assume, that it can be any
+definition of what a constant can be, it makes sense to assume that it can be any
 Coq term. This is beacuse their proposed approach to interpreting \rml\ in Coq is a
-shallow embedding, which means that it uses Coqs type system and values instead of
+shallow embedding, which means that it uses Coq's type system and values instead of
 defining its own. 
 
 According to \cite{rml-paper}, the $f$ in function application can be a ``primitive
 or a user-defined function'', where primitive would be \texttt{random($n$)} or
 \texttt{flip}, and a user-defined function should be specified by \texttt{let
-}$f~x_1~\dots~ x_n= e$, according to the language specification. Recursive functions
-can be defined with the keyword \texttt{let rec}. Here, again, we could make use of
-the fact that the paper proposes a shallow embedding and use Coq toplevel functions. 
+}$f~x_1~\dots~ x_n= e$. Recursive functions can be defined with the keyword
+\texttt{let rec}. Here, again, we could make use of the fact that the paper proposes
+a shallow embedding and use Coq toplevel functions.
 
 The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
 Figure \ref{fig:rml-monad}.
@@ -708,20 +704,20 @@ Figure \ref{fig:rml-monad}.
   \end{center}
 \end{figure}
 
-\subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or 'The imperative approach')}\label{sec:pwhile}
+\subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or `The imperative approach')}\label{sec:pwhile}
 % Here we should give a quick description of EasyCrypt and present pwhile
 \textsc{EasyCrypt} is a framework that has been developed in order to help in the
-construction of machine-checkable proofs about cryptographic constructions and
-protocols \cite{easy-crypt}. For the implementation of algorithms, it makes use of a
-simple imperative language called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile}
-stands for ``probabilistic'', so in total the name refers to a probabilistic
-extension of the well-known minimalistic \texttt{while} language.
+construction of machine-checkable proofs about cryptographic algorithms and protocols
+\cite{easy-crypt}. For the implementation of algorithms, it makes use of a simple
+imperative language called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands
+for ``probabilistic'', so in total the name refers to a probabilistic extension of
+the well-known, minimalistic \texttt{while} language.
 
 We will in this section give an overview of the language as well as its
-interpretation in Coq, which is due to a development by Pierre-Yves Strub
-\footnote{https://github.com/strub/xhl}. We will not concern ourselves with the
-module system of \textsc{EasyCrypt} since the focus of the present development is
-on probabilistic languages and their interpretation rather than their use.\\
+interpretation in Coq, which is due to a development by Pierre-Yves
+Strub\footnote{https://github.com/strub/xhl}. We will not concern ourselves with the
+module system of \textsc{EasyCrypt} since the focus of the present development is on
+probabilistic languages and their interpretation rather than their use.\\
 \\
 \texttt{pwhile} consists of the following expressions and commands: 
 \begin{align*}
@@ -731,10 +727,10 @@ on probabilistic languages and their interpretation rather than their use.\\
             \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
 \end{align*}
 
-The embedding of \texttt{pwhile} in Coq is a so-called shallow embedding, which means
-that we use Coq terms and types as part of programs in \texttt{pwhile}. This is used
-in order to form expressions: Constants in \texttt{pwhile} are Coq constants, hence
-an expression in \texttt{pwhile} can have any Coq type. In the implementation,
+The embedding of \texttt{pwhile} in Coq is a shallow embedding, which means that we
+use Coq terms and types as part of programs in \texttt{pwhile}. This is used in order
+to form expressions: Constants in \texttt{pwhile} are Coq constants, hence an
+expression in \texttt{pwhile} can have any Coq-type. In the implementation,
 expressions are parameterised by their type.
 
 Most of the above constructs are fairly standard and should be known to most
@@ -778,10 +774,10 @@ based on the monadic operations presented in Section \ref{sec:monad-interp}.
 
 In addition to the standard expressions and commands, \texttt{pwhile} has the
 expression \texttt{prp $p$}, which we will have a look at here.
-\texttt{prp} takes a single argument of type \texttt{pred mem}. This is a Coq type
-specified with the type constructor \texttt{pred} = $\forall \tau~:~\tau \to
+\texttt{prp} takes a single argument of type \texttt{pred mem}. This is a Coq type,
+specified with the type-constructor \texttt{pred} = $\forall \tau~:~\tau \to
 \mathbb{B}$ applied to the type of memories defined in the \texttt{xhl}
-development. The predicate over memories that is \texttt{prp}s argument is mapped
+development. The predicate over memories that is \texttt{prp}'s argument is mapped
 over the working memory at the time of evaluation.
 
 For more clarity, we will look at an example. Let us take the situation where we only
