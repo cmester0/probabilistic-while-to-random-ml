@@ -797,25 +797,15 @@ program in Coq is a probability distribution over memories; now the result of
 interpreting a ``crash'' is by simply returning the null-distribution over memories.
 
 
-\section{Equivalence of \rml\ and \texttt{pwhile} (READY)}\label{sec:approach}
-% Goal: 6-12 pages
-
-% Describe the translation from while to functional (+recursion), to lambda-calculus,
-% to an interpretation in omega-cpos.
-
-% We planned on making an interpretation of Rml in Coq and then translating the xhl
-% implementation of pwhile to our abstract syntax. 
-
-The goal of the present project was to gain an actionable understanding of \rml\ and
-\texttt{pwhile}, their respective interpretations, theoretic background, and
-similarities and differences between them. Our approach was to define a translation
-between \texttt{pwhile} and \rml\ as well as an interpretation of \rml, and
-subsequently show that translating from \texttt{pwhile} to \rml\ and interpreting the
-resulting program would lead to the same interpretation as interpreting the
+\section{Equivalence of \rml\ and \texttt{pwhile} (READY)}
+\label{sec:approach}
+The goal of the present project was to explore probabilistic languages, focusing on
+\rml\ and \texttt{pwhile}, their respective interpretations, theoretic background,
+and similarities and differences between them. Our approach was to define a
+translation from \texttt{pwhile} to \rml\ as well as an interpretation of \rml,
+and subsequently show that translating from \texttt{pwhile} to \rml\ and interpreting
+the resulting program would lead to the same interpretation as interpreting the
 \texttt{pwhile} program directly.
-
-This approach allowed us to get acquainted with both languages as well as the
-difficulties in interpretation that both of them share.
 
 \begin{figure}[h]
   \centering
@@ -830,15 +820,16 @@ difficulties in interpretation that both of them share.
 
 In this section we will concern ourselves with the translation between
 \texttt{pwhile} and \rml, as well as their respective interpretations. Throughout
-this section we will disregard all typing rules. Adding types to the expressions
-should not influence the semantics of the translations we present and is
-straightforward. 
+this section we will be implicit about typing of expressions, since the addition of
+types would not have any influence on the translations we define. 
 
-For the translations, we will first have a look at deterministic versions of both in
-order to define the main part of the translations (Sections \ref{sec:while-to-fun},
-\ref{sec:fun-to-lambda}). This means in order to show that the diagram of Figure
-\ref{fig:triangle} commutes, we will first show that the following diagram commutes
-(Section \ref{sec:lambda-interp}):
+For the translations, we will first have a look at deterministic versions of both
+languages in order to define the main part of the translations (Sections
+\ref{sec:while-to-fun}, \ref{sec:fun-to-lambda}). Additionally we will take an extra
+step in the interpretation of the functional language that we will use, translating
+it to the $\lambda$-calculus with \texttt{Y}-combinator first.  This means in order
+to show that the diagram of Figure \ref{fig:triangle} commutes, we will first show
+that the following diagram commutes (Section \ref{sec:lambda-interp}):
 
 \begin{figure}[h]
   \centering
@@ -866,7 +857,8 @@ discussion our own Coq development in the following Section (Section
 In order to do the translations properly, let us first have a look at a translation
 from the simple, widely known \texttt{while} language to a simple functional language
 resembling \rml. The thought behind this is that once this translation is in place,
-all we have to do to translate \texttt{pwhile} to \rml\ is to add probability.
+all we have to do to translate \texttt{pwhile} to \rml\ is to add probabilistic
+computations. 
 \begin{align*}
   exp~  ::=~~ & x \vert n \vert \texttt{true} \vert \texttt{false} \vert f~x \\
   stm~  ::=~~ & \texttt{skip} \vert x := e
@@ -876,7 +868,7 @@ all we have to do to translate \texttt{pwhile} to \rml\ is to add probability.
 
 The syntax of our functional language is the same as \rml\ modulo the pre-defined
 probabilistic functions and our repeating it here is solely for the reader's
-convenience, not in order to introduce anything new. 
+convenience; nothing new is introduced. 
 \begin{align*}
   exp~::= ~ x~\vert ~ c~\vert ~ \texttt{if }b\texttt{ then }e_1\texttt{ else } e_2~
   \vert ~ \texttt{let }x = e_1 \texttt{ in }e_2~\vert ~ f~e_1~\dots~e_n
@@ -888,10 +880,9 @@ variables, constants to constants, and function applications to function
 applications.
 
 In order to translate statements we choose a set of SML-style matching rules; this
-choice is due to the translation of sequences being dependent on what the first
-statement is. We will in the following write the translation of a \texttt{while}
-statement $s$ to an expression in our functional language as $\llbracket s
-\rrbracket$. 
+choice is due to the translation of sequences depending on its first statement. We
+will in the following write the translation of a statement $s$ in the \texttt{while}
+language to an expression in our functional language as $\llbracket s \rrbracket$. 
 
 The result of a computation in \texttt{while} is the state of a memory, while the
 result of a functional computation is a value. A simple way to make up for this
@@ -1007,11 +998,10 @@ triangle shown in Figure \ref{fig:triangle-det} actually commutes.
 
 To this end we will look at all the statements we have looked at for the translation
 from \texttt{while} to a functional language, and compare their direct interpretation
-with the interpretation of their translations to the $\lambda$-calculus. 
-
-We prove that the triangle commutes by induction. The base cases are the expressions;
-since these are the same in all languages and evaluated in the same way, they are
-trivially true.
+with the interpretation of their translations to the $\lambda$-calculus.  The proof
+that the triangle commutes is by induction. The base cases are the expressions; since
+these are the same in all languages and evaluated in the same way, they are trivially
+true.
 
 For the proof we will allow ourselves to be sloppy with environments and instead of
 looking up variables simply replace occurrences of variable $x$ in statement $s$ by
@@ -1098,9 +1088,8 @@ supremum.
 condition, $e$, a loop body, $s_1$, and a numeric argument, $n$, and computes
 $\underbrace{\texttt{if $e$ then $s_1$ else skip ; $\dots$ ; if $e$ then $s_1$ else
     skip}}_{n\text{ times}}$. It is worth noting, that this way of unfolding the loop
-saves us the trouble of introducing an environment for the interpretation. Since we
-assumed the environment to be properly updated after each statement, and all we do is
-produce a number of subsequent statements, this lies implicitly in the calculation. 
+saves us the trouble of introducing an environment for the interpretation due to the
+way we interpret sequences where the first statement is an assignment. 
 
 The supremum of this sequence is the result of the \texttt{while} loop after it has
 terminated, or undefined if it does not terminate. It may not seem to the reader as
@@ -1110,7 +1099,7 @@ of a monotonic sequence in this case. The sequence is monotonic in how defined i
 is. When it is fully defined, the result will stay the same, no matter how many more
 times we unfold, since at that point the looping condition will be false in the
 environment. Because of this, we can also talk about the supremum as the fixed point
-of the \texttt{while}-loop.\\
+of unfolding the \texttt{while}-loop.\\
 \\
 So far so good, now what about the equivalence with the $\lambda$-term?
 For convenience let us first argue about the case of \ref{eq:while-both} and
@@ -1205,6 +1194,9 @@ translation to \rml\ according to what we presented in Section
 \texttt{pwhile}-programs, $p$, evaluating $p$ using the semantics implemented in
 \texttt{xhl} leads to the same value as translating $p$ to \rml\ and interpreting the
 result using our implementation. 
+
+\subsubsection{A comment about \texttt{prp}}
+\todo[inline]{I totally forgot that \texttt{prp} needs a translation. But how!? }
 
 % \todo[inline]{Hey Bas, is this section really as easy as I think it is? It's pretty
 %   much just saying that instead of interpreting things directly in our meta-language,
