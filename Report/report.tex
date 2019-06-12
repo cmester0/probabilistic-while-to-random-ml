@@ -226,6 +226,31 @@ Finally we implement an interpretation of \rml\ in Coq as a first step to a veri
 implementation of our translation from \texttt{pwhile} to \rml.
 }
 \newpage
+\vspace*{\fill}
+  
+\begin{center}
+  \textbf{Personal note}
+\end{center}
+The present work is the result of a joint project between two people in different
+places of their educational journey. Furthermore the time to be spent on the project
+differed between the two of us. We will here give a quick overview of what each of us
+had to learn in order to produce the present result.
+
+\paragraph{Kira Kutscher} worked on this as a bachelor project of 15 ECTS ($\sim$420
+hours). I had only rudimentary knowledge of probability theory and none of measure
+theory; both I had to study in order to understand the semantics as well as the
+interpretation of probabilistic definitions. Also new to me were domain theory and
+fixed point iterations as well as denotational semantics. Lastly I did not know
+anything about category theory, which was part of our work although it is not
+explicitly mentioned in the report.
+
+\paragraph{Lasse Letager Hansen} worked on this as a free research project of 10 ECTS
+($\sim$280 hours).
+
+
+
+\vspace*{\fill}
+\newpage
 
 \tableofcontents
 \newpage
@@ -233,60 +258,65 @@ implementation of our translation from \texttt{pwhile} to \rml.
 % ------------------------------------------------------------- 
 
 \section{Introduction (READY)}
-Probabilistic algorithms are widely used in computer science, especiallly in the
+Probabilistic algorithms are widely used in computer science, especially in the
 fields of cryptography and security. Because of their many applications, reliable
 proofs of the correctness and/or security of such algorithms are desirable. 
 
 A number of developments exists that attempt to make this kind of proofs easier and
 more secure, but with such developments the next question is if the implementation is
-correct and the logic consistent.  We will in the present work focus on developments
+correct and the logic consistent.  In the present work we will focus on developments
 in the Coq proof assistant, since it is one of the most widely used and most probably
 correct proof assistants currently in existence.
 
 \subsection{The Coq proof assistant}
-The Coq proof assistant was developed in 1984 \cite{coq-proof-ass} and its logic,
-originally based on the Calculus of Constructions, was extend to the Calculus of
-Inductive Constructions by Christine Paulin in 1991.  It has been under constant
-development ever since it was first published and many bugs have since been found and
-fixed, making Coq one of the most reliable and trusted proof environments.
+The Coq proof assistant was developed in 1984 by Coquand and Huet
+\cite{coq-proof-ass} and its logic, originally based on the Calculus of
+Constructions, was extend to the Calculus of Inductive Constructions by Christine
+Paulin in 1991.  It has been under constant development ever since it was first
+published and many bugs have been found and fixed over time, making Coq one of the
+most reliable and trusted proof environments.
 
-The reader is not expected to have an understanding of Coq, though it might be
+The reader is not expected to have an understanding of Coq, though it may prove
 helpful in Section \ref{sec:contrib}, which deals with our Coq development. 
 
 \subsection{Previous work}
-For our development we oriented ourselves at the landmarks of previous frameworks
+For our development we oriented ourselves by the landmarks of previous frameworks
 that have been built for proofs of probabilistic algorithms in Coq. We looked at
-three approaches of designing probabilistic languages and a framework for proof about
-programs in these languages; two of them are functional, \rml\ \cite{rml-paper} and
-FCF \cite{fcf}, and the last one, \texttt{pwhile}, is imperative \cite{easy-crypt}.
+three different probabilistic languages and the corresponding proof-frameworks; two
+of them are functional, \rml\ \cite{rml-paper} and FCF \cite{fcf}, and the last one,
+\texttt{pwhile}, is imperative \cite{easy-crypt}.
 
 Both FCF and \rml\ are developments that have been implemented in Coq, but are not
-available to use: The FCF development is implemented in an older version of Coq, so
+available to use. The FCF development is implemented in an older version of Coq, so
 it does not run on the current version; and \rml\ has been implemented, but the
-development is not available. 
-\texttt{pwhile} originated as a Coq development, then took wings as the language used
-for probabilistic algorithms in \textsc{EasyCrypt}, and is currently being brought
-back to Coq with the \texttt{xhl} development (cf. Section \ref{sec:pwhile}).
+development is not available.
+
+\texttt{pwhile} originated in the Coq development CertiCrypt, then took wings as the
+language used for probabilistic algorithms in \textsc{EasyCrypt}, and is currently
+being brought back to Coq with the \texttt{xhl} development (cf. Section
+\ref{sec:pwhile}).
 
 \subsection{Roadmap}
-This work built around the \texttt{xhl} implementation of \texttt{pwhile} as well as
+This work builds upon the \texttt{xhl} implementation of \texttt{pwhile} as well as
 the description of \rml\ that can be found in \cite{rml-paper}. We aim at analysing
-differences and similarities between both languages and proving them equivalent. 
+differences and similarities between both languages and proving them equivalent.
 
 We will begin our journey with introducing the theory necessary to understand both
 languages (Section \ref{sec:theory}); this includes the domain-theoretic
 interpretation of general recursion (Section \ref{sec:fixp-iter}) as well as a
-monadic interpretation of probabilistic programs based on measure theoretic concepts
-(Section \ref{sec:prob-interp}). We will also have a closer look at \rml\ (Section
-\ref{sec:rml}) and \texttt{pwhile} (Section \ref{sec:pwhile}).
+monadic interpretation of probabilistic programs based on concepts from measure
+theory (Section \ref{sec:prob-interp}). Once the theory is in place we will have a
+closer look at \rml\ (Section \ref{sec:rml}) and \texttt{pwhile} (Section
+\ref{sec:pwhile}).
 
-We will then develop an approach to translating program from \texttt{pwhile} to \rml\
-and proving their interpretations equivalent (Section \ref{sec:approach}).
+We will then develop an approach to translating programs from \texttt{pwhile} to
+\rml\ and proving their interpretations equivalent (Section \ref{sec:approach}).
 
 Lastly we will present our own implementation of \rml\ and its interpretation
-(Section \ref{sec:contrib}), we will compare it with the previously discussed
+(Section \ref{sec:contrib}); we will compare it to the previously discussed
 approaches and reflect on how to meaningfully expand the development in Section
-\ref{sec:future}. Afterwards we will conclude with Section \ref{sec:conclusion}.
+\ref{sec:future}. Afterwards Section \ref{sec:conclusion} wraps up the journey,
+presenting our conclusion.
 
 
 \section{Theory and existing frameworks (READY)} 
