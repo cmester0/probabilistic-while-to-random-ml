@@ -1198,22 +1198,10 @@ result using our implementation.
 \subsubsection{A comment about \texttt{prp}}
 \todo[inline]{I totally forgot that \texttt{prp} needs a translation. But how!? }
 
-% \todo[inline]{Hey Bas, is this section really as easy as I think it is? It's pretty
-%   much just saying that instead of interpreting things directly in our meta-language,
-%   we add the monadic structure in between, make everything a probability distribution
-%   instead of a decisive value, and add some probabilistic function definitions,
-%   right? }
-
-% \todo[inline, color=green!40]{We now interpret in another space (the monad, y'know),
-%   so we have to argue that all we did before still works. This is where the argument
-%   that the monad has w-cpo structure becomes important. Make sure you explain very
-%   well what the issues are with adding probabiliyt. Specifiy the exact tasks we'd
-%   have to do to implement the whole thing.}
-
 
 \section{The Coq development (READY)}\label{sec:contrib}
 % Goal: 6-12 pages
-The proof of the previous section concerns itself with languages that are designed
+The proof in the previous section concerns itself with languages that are designed
 for an implementation in Coq. So what would make more sense than implementing the
 proof in Coq?
 
@@ -1226,6 +1214,8 @@ ended up deviating from what was presented in \cite{rml-paper}.
 
 We will in the following call the language we actually implemented \rmlx, while we
 will continue to call the original specification given in \cite{rml-paper} \rml. 
+
+The entirety of our development can be found at \url{https://github.com/cmester0/probabilistic-while-to-random-ml}
 
 \subsection{The definition of \rmlx}
 \label{sec:rmlx}
