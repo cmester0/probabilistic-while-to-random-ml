@@ -244,10 +244,13 @@ fixed point iterations as well as denotational semantics. Lastly I did not know
 anything about category theory, which was part of our work although it is not
 explicitly mentioned in the report.
 
-\paragraph{Lasse Letager Hansen} worked on this as a free research project of 10 ECTS
-($\sim$280 hours).
-
-
+\paragraph{Lasse Letager Hansen} worked on this as a masters level research project
+of 10 ECTS ($\sim$280 hours). I have an entry level understanding of category theory,
+and deep knowledge of probability theory, but no prior understanding of measure
+theory, domain theory or the interpretation of probabilistic definition. I had a good
+understanding of the Coq proof assistant before this project, and now I have gained
+knowledge of how to do a large project in Coq, and experienced some of the challenges
+with doing deep embeddings and the limitations of Gallina.
 
 \vspace*{\fill}
 \newpage
@@ -1195,9 +1198,36 @@ translation to \rml\ according to what we presented in Section
 \texttt{xhl} leads to the same value as translating $p$ to \rml\ and interpreting the
 result using our implementation. 
 
-\subsubsection{A comment about \texttt{prp}}
-\todo[inline]{I totally forgot that \texttt{prp} needs a translation. But how!? }
+\subsubsection{About \texttt{prp} and probabilistic assignment}
+When translating from \texttt{while} to a simple functional language, we left out
+some of the syntax of \texttt{pwhile} other than the probabilistic functions. These
+parts are the expression \texttt{prp} and the statement $x~\$= e$. In order to
+implement a translation from \texttt{pwhile} to \rml, these have to be translated as
+well, so here we give an idea of how to do that.
 
+\paragraph{\texttt{prp}} is the expression that takes a predicate on memories and
+maps it over the working memory at the time of evaluation (cf. Section
+\ref{sec:pwhile}). The working memory throughout the interpretation of
+\texttt{pwhile} programs is a distribution over memories, so we need to create a
+distribution over memories in \rml\ in order to be able to evaluate this expression.
+
+This can be done by keeping an environment during the translation of \texttt{pwhile}
+programs and defining a function, \texttt{mem\_from\_env}, that, given such an
+environment, computes a memory distribution based on the variables currently defined
+in the environment. An environment should hold the names of all defined variables as
+well as an \rml\ expression corresponding to their value. We can then translate
+\texttt{prp P} as
+$$\texttt{prp P} \mapsto \texttt{P } (\texttt{mem\_from\_env } env)$$
+where \texttt{mem\_from\_env} $env$ is a term of the meta-language and the translated
+term should hold the value of its evaluation instead. 
+
+\paragraph{Probabilistic assignment} is the statement that is used in \texttt{pwhile}
+for assigning a probabilistic value to a variable. This is used to make
+interpretation of \texttt{pwhile} easier for non-probabilistic assignments. All
+non-probabilistic assignments could be treated as probabilistic assignments with
+only one possible outcome that has probability 1. In \rml\ all bindings are
+probabilistic, hence the translation of probabilistic assignments is the same as that
+for non-probabilistic assignments. 
 
 \section{The Coq development (READY)}\label{sec:contrib}
 % Goal: 6-12 pages
