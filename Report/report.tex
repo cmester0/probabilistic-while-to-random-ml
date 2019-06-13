@@ -174,14 +174,6 @@ literate=
 \usepackage{xcolor}
 % -------------------------------------------------------------
 
-\author{Kira Kutscher - 201509720 \\
-  Lasse Letager Hansen - 201508114
-}
-\date{17th of June 2019}
-\title{Exploring interpretations \\of\\ probabilistic algorithms\\
-  using measure theory \\in Coq}
-%
-
 \newcommand{\set}[1]{\{#1\}}
 
 \newcommand{\Rml}{\textcolor{orange}{\mathtt{Rml}}}
@@ -196,6 +188,8 @@ literate=
 \newtheorem{defn}[thm]{Definition}
 
 \renewcommand{\thefigure}{\thesection.\arabic{figure}}
+
+\setcounter{tocdepth}{2}
 
 \begin{document}
 
@@ -1242,8 +1236,16 @@ for such correct programs. Our goal was to implement \rml\ according to its
 specification, but due to a number of wrestling matches with Coq's typechecker, we
 ended up deviating from what was presented in \cite{rml-paper}.
 
-We will in the following call the language we actually implemented \rmlx, while we
-will continue to call the original specification given in \cite{rml-paper} \rml. 
+Since our implementation does not adhere to the exact syntax of \rml, we will call it
+for \rmlx\ to make it clear to the reader when we are talking about the specification
+and when we are talking about the implementation. This is presented in Section
+\ref{sec:rmlx}. Furthermore we went with an approach similar to that presented in
+Section \ref{sec:approach} of not interpreting \rmlx\ directly but rather taking a
+step in between its abstract syntax and its interpretation. We call the type of the
+augmented abstract syntax \srml\ and it is presented in Section \ref{sec:srml}.
+Finally we will talk about the typing rules we implemented for \rmlx\ (Section
+\ref{sec:typing-rmlx}) as well as how we interpret it (Section
+\ref{sec:rmlx-interp}). 
 
 The entirety of our development can be found at \url{https://github.com/cmester0/probabilistic-while-to-random-ml}
 
@@ -1364,12 +1366,12 @@ the result would be equivalent.
 
 \subsection{Baby steps: The advent of \srml}
 \label{sec:srml}
-In our first try to interpret \rml\ directly, we were not able to figure out how to
+In our first try to interpret \rmlx\ directly, we were not able to figure out how to
 use environments for the interpretation of let-bindings in a way that Coq would
-accept. So instead of going from \rml\ directly to its interpretation (as was
+accept. So instead of going from \rmlx\ directly to its interpretation (as was
 suggested in \cite{rml-paper})
-we took a step in between. We defined a language of simplified \rml, \srml. The main
-difference between \rml\ and \srml\ is that \srml\ does not have let-bindings; there is,
+we took a step in between. We defined a language of simplified \rmlx, \srml. The main
+difference between \rmlx\ and \srml\ is that \srml\ does not have let-bindings; there is,
 however, still a construct that is the same as the previous \coqe{Let_rec} which we
 call \coqe{sFix}, but as mentioned earlier, this construction does not actually bind
 anything to an identifier, so there is no problem with environments here.
@@ -1428,6 +1430,7 @@ let-binding with the newly extended environment.
 
 
 \subsection{Typing \rmlx}
+\label{sec:typing-rmlx}
 But how can we be sure that the translation from \rmlx\ to \srml\ actually works and
 does not ``go wrong''? 
 Having learned from Robin Milner \cite{milner}
@@ -1486,6 +1489,7 @@ can be sure that the variable we retrieve is of the right type.
 
 
 \subsection{But what does it mean? Interpreting \srml}
+\label{sec:rmlx-interp}
 After all this talk about how we define well-typedness of \rmlx\ and \srml, we want
 to finally make use of it.
 
@@ -1878,48 +1882,6 @@ Inductive rml_valid_type : Type -> seq (nat * Type) -> seq (nat * Type) -> Rml -
 | valid_flip : forall vl fl,
     rml_valid_type bool vl fl Flip.
 \end{lstlisting}
-  \newpage
-
-  \section{Example - Error: Stack Overflow.}
-\begin{lstlisting}[language=coq]
-Fixpoint replace_all_variables_aux_type
-         A (x : Rml) (env : seq (nat * Type * Rml))
-         (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-         `{x_valid : @rml_valid_type A (map fst env) fl x} : @sRml A
-                                                                            
-with replace_all_variables_aux_type_const
-       A0 A a (env : seq (nat * Type * Rml))
-       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-       `{x_valid : @rml_valid_type A0 (map fst env) fl (Const A a)} : @sRml A0
-with replace_all_variables_aux_type_let
-       A p x1 x2 (env : seq (nat * Type * Rml))
-       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-       `{x_valid : @rml_valid_type A (map fst env) fl (Let_stm p x1 x2)} : @sRml A
-with replace_all_variables_aux_type_fun
-       A T p x (env : seq (nat * Type * Rml))
-       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-       `{x_valid : @rml_valid_type A (map fst env) fl (Fun_stm T p x)} : @sRml A
-with replace_all_variables_aux_type_if
-       A x1 x2 x3 (env : seq (nat * Type * Rml))
-       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-       `{x_valid : @rml_valid_type A (map fst env) fl (If_stm x1 x2 x3)} : @sRml A
-with replace_all_variables_aux_type_app
-       A T x1 x2 (env : seq (nat * Type * Rml))
-       (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-       `{x_valid : @rml_valid_type A (map fst env) fl (App_stm T x1 x2)} : @sRml A
-with replace_all_variables_aux_type_let_rec A T T0 n n0 x1 x2 (env : seq (nat * Type * Rml))
-     (fl : seq (nat * Type)) `{env_valid : valid_env env fl}
-     `{x_valid : @rml_valid_type A (map fst env) fl (Let_rec T T0 n n0 x1 x2)} : @sRml A.
-Proof.
-  (** Structure **)
-  {
-    induction x ; intros ; refine (sVar (0,A)).
-  }
-  
-  all: refine (sVar (0,A)).  
-Defined.
-\end{lstlisting}
-
 
 \end{appendices}
 
