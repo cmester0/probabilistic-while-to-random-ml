@@ -211,7 +211,7 @@ proofs of the correctness and/or security of such algorithms are desirable.
 
 In this work we explore some existing designs and implementations of probabilistic
 languages and frameworks for proofs of probabilistic algorithms in Coq. We present a
-functional and an imperative language (\rml\ and \texttt{pwhile}, discuss the theory
+functional and an imperative language (\rml\ and \texttt{pwhile}), discuss the theory
 behind their respective interpretations, and propose a translation from
 \texttt{pwhile} to \rml, which we prove to preserve the semantics of the original
 program.
@@ -254,7 +254,7 @@ with doing deep embeddings and the limitations of Gallina.
 
 % ------------------------------------------------------------- 
 
-\section{Introduction (READY)}
+\section{Introduction}
 Probabilistic algorithms are widely used in computer science, especially in the
 fields of cryptography and security. Because of their many applications, reliable
 proofs of the correctness and/or security of such algorithms are desirable. 
@@ -316,7 +316,7 @@ approaches and reflect on how to meaningfully expand the development in Section
 presenting our conclusion.
 
 
-\section{Theory and existing frameworks (READY)} 
+\section{Theory and existing frameworks} 
 \label{sec:theory}
 % Goal: 6-12 pages
 
@@ -337,9 +337,7 @@ definitions. Furthermore we will see the domain theoretic approach of interpreti
 general recursion by performing a fixed-point iteration. 
 
 More specifically we will have a look at how to use complete partial orders to
-interpret general recursion
-Section \ref{sec:cpos} shows how complete partial orders can be used in order to
-interpret general recursion, while Section \ref{sec:prob-interp} concerns itself with
+interpret general recursion, this is shown in Section \ref{sec:cpos}, while Section \ref{sec:prob-interp} concerns itself with
 representing the result of a probabilistic computation using a monadic interpretation
 of probability measures. Afterwards we will move on to presenting two different
 developments concerning probabilistic languages in Coq: the functional \rml\ (Section
@@ -348,7 +346,7 @@ developments concerning probabilistic languages in Coq: the functional \rml\ (Se
 \subsection{Complete partial orders}
 \label{sec:cpos}
 A partially ordered set (poset) is a set with an associated binary ordering relation,
-$\leq$, which is reflexive and transitive. The order is partial when the ordering
+$\leq$, which is reflexive, antisymmetric and transitive. The order is partial when the ordering
 relation is not defined on every pair of elements in the set.
 
 There is a whole range of different completeness properties that a poset can have.
@@ -536,8 +534,7 @@ the joint probability distribution of \texttt{flip} and $\mathbb{I}_X$.
 \label{sec:monad-interp}
 We can represent measures using a monadic structure. This is sensible, since
 probabilistic programs are inherently not functional and once probability is involved
-in a computation we can not get rid of it again; this fits with a monad where we can
-not get a value back out of a monad once it is wrapped into it, unless we work with
+in a computation we cannot get rid of it again; this fits with a monad where we cannot get a value back out of a monad once it is wrapped into it, unless we work with
 the representation of the monad in our meta-language.
 
 Since we are using a monad over the type $\tau$ to represent a measure on $\tau$, we
@@ -588,8 +585,7 @@ value and $g$ the transformation to be applied to it.
 
 We can view the final construction like continuation passing style programming. We
 still have a value of type $\tau$ inside the monad before we bind it into a function,
-and we want to retain that information in the result of the \texttt{bind}. But we can
-not access this information unless we supply the value of type \texttt{M}$\tau$ with
+and we want to retain that information in the result of the \texttt{bind}. But we cannot access this information unless we supply the value of type \texttt{M}$\tau$ with
 a function of type $\tau \to [0,1]$; this function is the one that $\mu$ is applied
 to in the final value. Since the result is of type \texttt{M}$\sigma$, it would make
 sense to use its input on something of type $\sigma$ to get something in [0,1], which
@@ -639,7 +635,7 @@ recursion.
 % Packages: comment
 \subsection{The functional approach: \rml}\label{sec:rml}
 The first language for probabilistic programs implemented in Coq is called \rml\ 
-(`Randomised monadic language') and is due to is due toe Philippe Audebaud and
+(`Randomised monadic language') and is due to is due to Philippe Audebaud and
 Christine Paulin-Mohring\cite{rml-paper}.
 \\ \\
 \rml\ is a simple functional language whose interpretation allows for probabilistic
@@ -719,7 +715,7 @@ probabilistic languages and their interpretation rather than their use.\\
 \texttt{pwhile} consists of the following expressions and commands: 
 \begin{align*}
   exp ::=~& x ~\vert ~ const ~\vert ~ \texttt{prp ($p$ : pred mem)}~\vert ~ e_1\ e_2\\
-  cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$= e\\
+  cmd ::=~& \texttt{abort} ~\vert ~ \texttt{skip} ~\vert ~ x := e ~\vert ~ x\ \$\hspace{-0.5em}= e\\
   \vert ~ & \texttt{if } b \texttt{ then } c_1 \texttt{ else } c_2 ~\vert ~
             \texttt{while } b \texttt{ do } c ~\vert ~ c_1 ; c_2
 \end{align*}
@@ -794,7 +790,7 @@ program in Coq is a probability distribution over memories; now the result of
 interpreting a ``crash'' is by simply returning the null-distribution over memories.
 
 
-\section{Equivalence of \rml\ and \texttt{pwhile} (READY)}
+\section{Equivalence of \rml\ and \texttt{pwhile}}
 \label{sec:approach}
 The goal of the present project was to explore probabilistic languages, focusing on
 \rml\ and \texttt{pwhile}, their respective interpretations, theoretic background,
@@ -934,7 +930,7 @@ following we choose $x_r$ as the symbol for the chosen return variable.
 Note that in \ref{eq:while1} and \ref{eq:while2} we create recursive functions with a
 name and an argument, both of which are not present in the while construct we
 translate from. This means that we have to be careful about the translation: Both $f$
-and $x$ have to be chosen fresh; and even fresher than that, they can not occur in
+and $x$ have to be chosen fresh; and even fresher than that, they cannot occur in
 the body of the while loop we are translating either, because that would break the
 recursive call.
 
@@ -1195,7 +1191,7 @@ result using our implementation.
 \subsubsection{About \texttt{prp} and probabilistic assignment}
 When translating from \texttt{while} to a simple functional language, we left out
 some of the syntax of \texttt{pwhile} other than the probabilistic functions. These
-parts are the expression \texttt{prp} and the statement $x~\$= e$. In order to
+parts are the expression \texttt{prp} and the statement $x~\$\hspace{-0.5em}= e$. In order to
 implement a translation from \texttt{pwhile} to \rml, these have to be translated as
 well, so here we give an idea of how to do that.
 
@@ -1223,7 +1219,7 @@ only one possible outcome that has probability 1. In \rml\ all bindings are
 probabilistic, hence the translation of probabilistic assignments is the same as that
 for non-probabilistic assignments. 
 
-\section{The Coq development (READY)}\label{sec:contrib}
+\section{The Coq development}\label{sec:contrib}
 % Goal: 6-12 pages
 The proof in the previous section concerns itself with languages that are designed
 for an implementation in Coq. So what would make more sense than implementing the
@@ -1237,7 +1233,7 @@ specification, but due to a number of wrestling matches with Coq's typechecker, 
 ended up deviating from what was presented in \cite{rml-paper}.
 
 Since our implementation does not adhere to the exact syntax of \rml, we will call it
-for \rmlx\ to make it clear to the reader when we are talking about the specification
+\rmlx\ to make it clear to the reader when we are talking about the specification
 and when we are talking about the implementation. This is presented in Section
 \ref{sec:rmlx}. Furthermore we went with an approach similar to that presented in
 Section \ref{sec:approach} of not interpreting \rmlx\ directly but rather taking a
@@ -1247,7 +1243,7 @@ Finally we will talk about the typing rules we implemented for \rmlx\ (Section
 \ref{sec:typing-rmlx}) as well as how we interpret it (Section
 \ref{sec:rmlx-interp}). 
 
-The entirety of our development can be found at \url{https://github.com/cmester0/probabilistic-while-to-random-ml}
+The entirety of our development can be found at \url{https://github.com/cmester0/probabilistic-while-to-random-ml}.
 
 \subsection{The definition of \rmlx}
 \label{sec:rmlx}
@@ -1346,7 +1342,7 @@ functions has the exact same expressiveness as the common form, but it is easier
 interpret in Coq.
 
 Note that this way of defining \texttt{Let rec}s removes the necessity of having a
-function environment. Each function is used right where it is defined and can not be
+function environment. Each function is used right where it is defined and cannot be
 called in the rest of the program, so effectively there is no binding of anything
 happening in our so-called \coqe{Let_rec}. 
 
@@ -1405,7 +1401,7 @@ corresponding \srml\ construct. The interesting cases are \coqe{Var} and
 \coqe{Let}.
 
 \paragraph{Variables} refer to let-bindings, so we want to get rid of them. But we
-still want to be able to have recursive function definitions, so we can not get rid
+still want to be able to have recursive function definitions, so we cannot get rid
 of the variables that are the function name and argument in a recursive
 definition. This means we need a way to distinguish them. Here the extra boolean
 argument that the constructor \coqe{Var} takes comes into play:
@@ -1452,7 +1448,7 @@ representing the type of the constructed expression. This is in order to help us
 Coq) during the interpretation. The required types are consistent with the specified
 typing rules and are added during the translation from \rmlx\ to \srml. 
 This means that in order to translate, the \rmlx\ expression we are trying to
-translate has to be well-typed; we assure this by our taking as argument a proof of
+translate has to be well-typed; we assure this by taking as argument a proof of
 the well-typedness of the expression to be translated.
 
 The output of our translation is of type \coqe{forall (A : Type), verified_srml A nil},
@@ -1567,7 +1563,7 @@ supremum of the sequence will be the result of the computation. When a function
 diverges, the sequence will consist solely of \texttt{dnull}s  and hence the all-zero
 distribution is going to be the supremum. 
 
-\section{Comparisons and future work (READY)}
+\section{Comparisons and future work}
 \label{sec:future}
 Our work is mainly based on two different approaches to developing a framework for
 proofs of probabilistic algorithms in Coq. On one hand there is \rml\ and the ALEA
@@ -1581,14 +1577,14 @@ functional approach to the same problem, but we did not consider it in our own
 development. 
 
 In difference to the works mentioned above, our development focused on comparing and
-unifying the different approaches of instead of developing a new framework.\\
+unifying the different approaches instead of developing a new framework.\\
 \\
 The theory we developed in Section \ref{sec:approach} was not fully implemented in
 our development, and it would be interesting to continue working on the
 implementation of a translation from \texttt{pwhile} to \rml\ and compare their
 respective interpretations, as was our suggestion in Section \ref{sec:howto-coq}.
 
-Furthermore, our proofs only show \texttt{pwhile} to be a subset of \rml and do not
+Furthermore, our proofs only show \texttt{pwhile} to be a subset of \rml\ and do not
 show the languages equivalent. Though it intuitively seems that they might be,
 proving the equivalence of \texttt{pwhile} and \rml\ might be something upon which to
 base future work about developing frameworks for proofs of probabilistic algorithms
@@ -1604,7 +1600,7 @@ Lastly it would make sense to explore the possibilities of the different approac
 which are most usable in practice, and if they could be combined in order to develop
 a framework that is more useful than either of the approaches on its own. 
 
-\section{Conclusion (READY)}
+\section{Conclusion}
 \label{sec:conclusion}
 % Goal: 1-2 pages
 We have in this work looked at two probabilistic languages and their interpretation
