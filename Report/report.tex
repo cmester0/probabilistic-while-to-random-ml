@@ -207,7 +207,7 @@ literate=
 \abstract{
 Probabilistic algorithms are widely used in computer science, especiallly in the
 fields of cryptography and security. Because of their many applications, reliable
-proofs of the correctness and/or security of such algorithms are desirable.
+proofs of the correctness and security of such algorithms are desirable.
 
 In this work we explore some existing designs and implementations of probabilistic
 languages and frameworks for proofs of probabilistic algorithms in Coq. We present a
@@ -257,7 +257,7 @@ with doing deep embeddings and the limitations of Gallina.
 \section{Introduction}
 Probabilistic algorithms are widely used in computer science, especially in the
 fields of cryptography and security. Because of their many applications, reliable
-proofs of the correctness and/or security of such algorithms are desirable. 
+proofs of the correctness and security of such algorithms are desirable. 
 
 A number of developments exists that attempt to make this kind of proofs easier and
 more secure, but with such developments the next question is if the implementation is
@@ -268,7 +268,7 @@ correct proof assistants currently in existence.
 \subsection{The Coq proof assistant}
 The Coq proof assistant was developed in 1984 by Coquand and Huet
 \cite{coq-proof-ass} and its logic, originally based on the Calculus of
-Constructions, was extend to the Calculus of Inductive Constructions by Christine
+Constructions, was extended to the Calculus of Inductive Constructions by Christine
 Paulin in 1991.  It has been under constant development ever since it was first
 published and many bugs have been found and fixed over time, making Coq one of the
 most reliable and trusted proof environments.
@@ -322,7 +322,7 @@ presenting our conclusion.
 
 Our work is concerned with interpretations of possibly non-terminating probabilistic
 computations encoded in Coq. As mentioned earlier, Coq is widely trsuted; it is,
-however, also known to be notoriously difficult to code things in due to a strict
+however, also known to be notoriously difficult to program in due to a strict
 type system that requires determinism and certain termination of all programs written
 in it. Obviously these are not the optimal conditions for running probabilistic
 algorithms that may not terminate.
@@ -334,20 +334,22 @@ programs in Coq without having to run them.
 In this section we present a way of representing probability distributions using a
 monad and show how we can use this in order to interpret probabilistic
 definitions. Furthermore we will see the domain theoretic approach of interpreting
-general recursion by performing a fixed-point iteration. 
+general recursion by performing a fixed-point iteration.
 
 More specifically we will have a look at how to use complete partial orders to
-interpret general recursion, this is shown in Section \ref{sec:cpos}, while Section \ref{sec:prob-interp} concerns itself with
-representing the result of a probabilistic computation using a monadic interpretation
-of probability measures. Afterwards we will move on to presenting two different
-developments concerning probabilistic languages in Coq: the functional \rml\ (Section
-\ref{sec:rml}) and the imperative \texttt{pwhile} (Section \ref{sec:pwhile}).
+interpret general recursion in Section \ref{sec:cpos}, and then concern ourselves
+with representing the result of a probabilistic computation using a monadic
+interpretation of probability measures in Section \ref{sec:prob-interp}. Afterwards
+we will move on to presenting two different developments concerning probabilistic
+languages in Coq: the functional \rml\ (Section \ref{sec:rml}) and the imperative
+\texttt{pwhile} (Section \ref{sec:pwhile}).
 
 \subsection{Complete partial orders}
 \label{sec:cpos}
-A partially ordered set (poset) is a set with an associated binary ordering relation,
-$\leq$, which is reflexive, antisymmetric and transitive. The order is partial when the ordering
-relation is not defined on every pair of elements in the set.
+A partially ordered set, \textit{poset}, is a set with an associated binary ordering
+relation, $\leq$, which is reflexive, antisymmetric and transitive. The order is
+partial when the ordering relation is not defined on every pair of elements in the
+set.
 
 There is a whole range of different completeness properties that a poset can have.
 For our purposes we will need $\omega$-complete partial orders for the interpretation
@@ -355,9 +357,9 @@ of general recursion.
 
 \begin{defn}
   \textit{$\omega$-complete partial order ($\omega$-cpo)}\\
-  An $\omega$-cpo is a partially ordered set, $\Sigma$ that has a distinct least
-  element, $0_\Sigma$, and where there exist least upper bounds,
-  \texttt{lub}$_\Sigma$, on all monotonic sequences.
+  An $\omega$-cpo is a partially ordered set, $\Sigma$, that has a distinct least
+  element, $0_\Sigma$, and where there exist least upper bounds, \texttt{lub}$_\Sigma$,
+  on all monotonic sequences.
 \end{defn}
 
 \subsubsection{Recursive definitions as fixed point iterations}
@@ -368,8 +370,9 @@ Before using $\omega$-cpos to interpret recursion, let us first have a look at s
 interesting things that our definition entails.
 
 A monotonic sequence on an $\omega$-cpo $X$ can be viewed as a monotonic function
-$f~:~\mathbb{N} \xrightarrow{m} X$ where $f(n)$ is the $n$th element of the sequence (or the
-least upper bound of the sequence for $n$ larger than the length of the sequence, if the sequence is finite).\\
+$f~:~\mathbb{N} \xrightarrow{m} X$ where $f(n)$ is the $n$th element of the sequence
+(or the least upper bound of the sequence for $n$ larger than the length of the
+sequence, if the sequence is finite).\\
 \\
 % Standard definition of fixed points
 There is a standard way of defining fixed point iterations on an
@@ -403,7 +406,7 @@ can use this structure to interpret general recursive definitions.
 We define a functional, $F$, taking as input a function and ``adding a step to it''.
 Let us look at the example of the factorial function $f(n) = n!$ \cite{haskell}.
 The recursive definition of this is:
-$$fac(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot fac(n-1)$$
+$$\textit{fac}(n) := \texttt{ if } n = 0 \texttt{ then }1\texttt{ else } n\cdot \textit{fac}(n-1)$$ 
 
 For the interpretation of this definition, we want to define $F~:~(\mathbb{N} \to
 \mathbb{N}) \to (\mathbb{N} \to \mathbb{N})$ in such a way that its fixed point is
@@ -506,11 +509,11 @@ understand it as a probability density function. We can view our programs as
 transforming distributions: If we input an initial distribution (this might also just
 be the characteristic function of a single value), we will as output receive the
 integral over the transformed distribution; with other words, we will receive the
-probability distribution specifying the result of an actual pseudorandomised run of
+probability distribution specifying the result of an actual pseudo-randomised run of
 our program producing a result within the input distribution.\\
 \\
 As an example we might consider the value \texttt{flip}, which returns a uniform
-distribution of \texttt{false} and \texttt{true}. If now we supply the measure
+distribution of \texttt{false} and \texttt{true}. If we supply the measure
 representation of this value with the characteristic function of \texttt{true}, the
 result will be 0.5, since this is the probability of \texttt{true} being the
 outcome.
@@ -551,7 +554,6 @@ at
 are also used by the Mathematical Components compliant Analysis Library\footnote
 {\url{https://github.com/math-comp/analysis/tree/master/}} for Coq in order to
 represent distributions.
-
 \begin{align*}
   \texttt{unit} & :~ \tau\to\texttt{M}\tau\\
                 & = \texttt{fun }(x:\tau)\Rightarrow
@@ -562,7 +564,6 @@ represent distributions.
                 & ~~~~\texttt{fun }(f~:~\sigma\to[0,1])\Rightarrow \mu~ (\texttt{fun
                   }(x~:~\tau)\Rightarrow M~x~f)
 \end{align*}
-\\
 These definitions look big and scary, so let's break them down.
 \\ \\
 The \texttt{unit} function could be described as the ``wrapper'' that takes a value
@@ -572,10 +573,10 @@ match the type of measures; this is where the probability distribution is receiv
 input, and where we then give the output of said distribution function applied to our
 initial value.
 
-A simple example could be \texttt{unit 5} applied to the uniform distributions of
+A simple example could be \texttt{unit 5} applied to the uniform distribution of
 numbers between 1 and 5. The result would then be 0.2, since that is the probability
 of a (pseudo-)random sampling from our measure (we recall that in this case it is
-just the characteristic function $\mathbb{I}_{\{5\}}$) and a (psuedo-)random sampling
+just the characteristic function $\mathbb{I}_{\{5\}}$) and a (pseudo-)random sampling
 from the initial distribution coinciding. 
 \\ \\
 The \texttt{bind} function can be viewed as something transforming the value inside
@@ -585,15 +586,16 @@ the result, the \texttt{M}$\sigma$ part; this is obvious from the types. $\mu$ a
 $g$ are the usual arguments to a \texttt{bind} operation, $\mu$ being the initial
 value and $g$ the transformation to be applied to it.
 
-We can view the final construction like continuation passing style programming. We
+We can view the final construction like continuation passing style programming: We
 still have a value of type $\tau$ inside the monad before we bind it into a function,
-and we want to retain that information in the result of the \texttt{bind}. But we cannot access this information unless we supply the value of type \texttt{M}$\tau$ with
-a function of type $\tau \to [0,1]$; this function is the one that $\mu$ is applied
-to in the final value. Since the result is of type \texttt{M}$\sigma$, it would make
-sense to use its input on something of type $\sigma$ to get something in [0,1], which
-would satisfy the output type for the function we apply $\mu$ to.
+and we want to retain that information in the result of the \texttt{bind}. But we
+cannot access this information unless we supply the value of type \texttt{M}$\tau$
+with a function of type $\tau \to [0,1]$; this function is the one that $\mu$ is
+applied to in the final value. Since the result is of type \texttt{M}$\sigma$, it
+would make sense to use its input on something of type $\sigma$ to get something in
+[0,1], which would satisfy the output type for the function we apply $\mu$ to.
 
-The final function takes the input of type $\tau$, that $\mu$ will give it,
+The final function takes the input of type $\tau$, which $\mu$ will give it,
 applies $g$ to it to transform it to something of type \texttt{M}$\sigma$, and then
 supplies it with the last piece of the computation, $f$.
 
@@ -609,11 +611,11 @@ function of \texttt{false}, the following computation will be carried out:
 
 $\texttt{fun }(x~:~\tau)\Rightarrow g~x~f$ is now the function that takes a natural
 number and returns the probability of it being odd. Applying $\mu$ to this function
-yields the probability of a pseudorandom interpretation of $\mu$ being an odd
+yields the probability of a pseudo-random interpretation of $\mu$ being an odd
 number; and this is exactly the meaning of
 
-(\texttt{bind $\mu$ $g$}) (\texttt{fun
-  ($x$ : bool) $\Rightarrow$ if $x$ then 0 else 1}).
+$$(\texttt{bind $\mu$ $g$})~(\texttt{fun
+  $(x$ : bool$)\Rightarrow$ if $x$ then 0 else 1})$$
 
 \subsection{Putting together recursion and probability}
 \label{sec:prob-rec}
@@ -625,7 +627,7 @@ In order to show this, we use the fact that monotonic functions from an ordered 
 to an $\omega$-cpo also have an $\omega$-cpo structure \cite[p.~584]{rml-paper}.
 Because a probability measure is an integral over strictly non-negative functions, it
 is a monotonic function. It is a function to [0,1], which is an $\omega$-cpo with
-zero-element being zero, the ordering relation being $\le$ as we know it for real
+the zero-element being zero, the ordering relation being $\le$ as we know it for real
 numbers, and the least upper bound operation simply being the largest number of a
 monotonic sequence.
 
@@ -660,7 +662,7 @@ language, so there are only expressions, no statements) are as follows:
 \end{align*}
 
 Here $x$ refers to a variable name previously bound in a let-binding, and $c$ refers
-to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
+to a primitive constant. Since Audebaud and Paulin-Mohring don't give a clear
 definition of what a constant can be, it makes sense to assume that it can be any
 Coq term. This is because their proposed approach to interpreting \rml\ in Coq is a
 shallow embedding, which means that it uses Coq's type system and values instead of
@@ -671,7 +673,7 @@ or a user-defined function'', where primitive would be \texttt{random($n$)} or
 \texttt{flip}, and a user-defined function should be specified by \texttt{let
 }$f~x_1~\dots~ x_n= e$. Recursive functions can be defined with the keyword
 \texttt{let rec}. Here, again, we could make use of the fact that the paper proposes
-a shallow embedding and use Coq toplevel functions.
+a shallow embedding and use Coq top-level functions.
 
 The monadic interpretation $[e]:\texttt{M}\tau$ of a term $e:\tau$ is given in
 Figure \ref{fig:rml-monad}.
@@ -702,11 +704,11 @@ Figure \ref{fig:rml-monad}.
 \subsection{\textsc{EasyCrypt} and \texttt{pwhile} (or `The imperative approach')}\label{sec:pwhile}
 % Here we should give a quick description of EasyCrypt and present pwhile
 \textsc{EasyCrypt} is a framework that has been developed in order to help in the
-construction of machine-checkable proofs about cryptographic algorithms and protocols
-\cite{easy-crypt}. For the implementation of algorithms, it makes use of a simple
-imperative language called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile} stands
-for ``probabilistic'', so in total the name refers to a probabilistic extension of
-the well-known, minimalistic \texttt{while} language.
+construction of machine-checkable proofs regarding cryptographic algorithms and
+protocols \cite{easy-crypt}. For the implementation of algorithms, it makes use of a
+simple imperative language called \texttt{pwhile}. The \texttt{p} in \texttt{pwhile}
+stands for ``probabilistic'', so in total the name refers to a probabilistic
+extension of the well-known, minimalistic \texttt{while} language.
 
 We will in this section give an overview of the language as well as its
 interpretation in Coq, which is due to a development by Pierre-Yves
@@ -789,7 +791,7 @@ ways in which a program can lead to an undefined result: encountering undefined
 behaviour, non-termination, and the \texttt{abort} command. The interpretation of all
 of these is the same: We recall that the result of interpreting a \texttt{pwhile}
 program in Coq is a probability distribution over memories; now the result of
-interpreting a ``crash'' is by simply returning the null-distribution over memories.
+interpreting a ``crash'' is the null-distribution over memories.
 
 
 \section{Equivalence of \rml\ and \texttt{pwhile}}
@@ -820,11 +822,14 @@ types would not have any influence on the translations we define.
 
 For the translations, we will first have a look at deterministic versions of both
 languages in order to define the main part of the translations (Sections
-\ref{sec:while-to-fun}, \ref{sec:fun-to-lambda}). Additionally we will take an extra
-step in the interpretation of the functional language that we will use, translating
-it to the $\lambda$-calculus with \texttt{Y}-combinator first.  This means in order
-to show that the diagram of Figure \ref{fig:triangle} commutes, we will first show
-that the following diagram commutes (Section \ref{sec:lambda-interp}):
+\ref{sec:while-to-fun}, \ref{sec:fun-to-lambda}). For a deterministic version of
+\texttt{pwhile} we will look at \texttt{while}, and for \rml, we will look at a
+simple functional language with recursive definitions,
+fun$_{\texttt{Fix}}$. Additionally we will take an extra step in the interpretation
+of the functional language that we will use, translating it to the $\lambda$-calculus
+with \texttt{Y}-combinator first.  This means in order to show that the diagram of
+Figure \ref{fig:triangle} commutes, we will first show that the following diagram
+commutes (Section \ref{sec:lambda-interp}):
 
 \begin{figure}[h]
   \centering
@@ -850,15 +855,17 @@ discussion our own Coq development in the following Section (Section
   language}\label{sec:while-to-fun} 
 % 
 In order to do the translations properly, let us first have a look at a translation
-from the simple, widely known \texttt{while} language to a simple functional language
-resembling \rml. The thought behind this is that once this translation is in place,
-all we have to do to translate \texttt{pwhile} to \rml\ is to add probabilistic
-computations. 
+from \texttt{while} to a simple functional language resembling \rml,
+fun$_{\texttt{Fix}}$. The thought behind this is that once this translation is in
+place, all we have to do to translate \texttt{pwhile} to \rml\ is to add
+probabilistic computations.\\
+\\
+First let us have a look at the grammar for \texttt{while}: 
 \begin{align*}
-  exp~  ::=~~ & x \vert n \vert \texttt{true} \vert \texttt{false} \vert f~x \\
-  stm~  ::=~~ & \texttt{skip} \vert x := e
-               \vert \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
-               \vert \texttt{while } e \texttt{ do } s \vert s_1;s_2
+  exp~  ::=~~ & x ~\vert ~n~ \vert ~\texttt{true} ~\vert~ \texttt{false} ~\vert~ f~x \\
+  stm~  ::=~~ & \texttt{skip}~ \vert ~x := e ~
+               \vert ~\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2~
+               \vert~ \texttt{while } e \texttt{ do } s ~\vert~ s_1;s_2
 \end{align*}
 
 The syntax of our functional language is the same as \rml\ modulo the pre-defined
@@ -929,9 +936,9 @@ and $x$ have to be chosen fresh; and even fresher than that, they cannot occur i
 the body of the while loop we are translating either, because that would break the
 recursive call.
 
-Further notice that the recursive functions are always called with a dummy
-argument. This is because they act as procedures, but since our syntax requires an
-argument for recursive definitions, we give a dummy argument.
+Further, note that the recursive functions are always called with a dummy
+argument. This is because they act as procedures and do not use their argument; the
+argument is, however, required by our syntax, so we give a dummy argument.
 
 
 \subsection{Towards the $\mathbf{\lambda}$-calculus}\label{sec:fun-to-lambda}  
@@ -1289,7 +1296,7 @@ said value.
 
 At this point it should be noted, that in Coq functions are values as well, so it is
 possible to have a constant whose type is a function type. In other words: When we
-want to access a Coq-toplevel function in our \rmlx\ program, we can do this by
+want to access a Coq top-level function in our \rmlx\ program, we can do this by
 encapsulating it in an \rmlx\ constant. 
 
 \paragraph{\coqe{Let_stm}} is rather straightforward. The pair of a natural number and a
@@ -1560,7 +1567,7 @@ distribution is going to be the supremum.
 \label{sec:future}
 Our work is mainly based on two different approaches to developing a framework for
 proofs of probabilistic algorithms in Coq. On one hand there is \rml\ and the ALEA
-library presented by Paulin-Mohring and Audebaud in \cite{rml-paper}; on the other
+library presented by Audebaud and Paulin-Mohring in \cite{rml-paper}; on the other
 hand there is \textsc{EasyCrypt}'s \texttt{pwhile} and the Coq implementation of
 \texttt{pwhile} in the \texttt{xhl} development.
 
@@ -1635,9 +1642,9 @@ we approached this from the wrong direction and without first gaining a proper
 understanding of our goals and the way there, so what was actually implemented is an
 interpretation of a language equivalent to \rml.
 
-What we tried to prove the diagram in Figure \ref{fig:triangle} commutative, but we
-did not implement a translation from \texttt{pwhile} to \rml. The translations that
-are currently implemented can be seen in Figure \ref{fig:triangle-ours}. 
+We tried to prove the diagram in Figure \ref{fig:triangle} commutative, but we did
+not implement a translation from \texttt{pwhile} to \rml. The translations that are
+currently implemented can be seen in Figure \ref{fig:triangle-ours}.
 
 
 \paragraph{Acknowledgements}We thank our advisor Bas Spitters for his time, his
@@ -1649,9 +1656,8 @@ A special thanks goes to Pierre-Yves Strub who took the time to introduces us to
 Special thanks is also due to Olivier Danvy for sparking an interest in research and
 for being generous with advice to those who seek it. 
 \\ \\
-We also thank all of those who have offered up some of their time in order to
-meliorate the result of our work: [...]  \todo{Insert missing acknowledgements or
-  remove this sentence.}
+We also thank Christoffer Müller Madsen and Steffan Christ Sølvsten who have offered
+up some of their time in order to meliorate the result of our work. 
 
 \newpage
 \bibliographystyle{ieeetr}
