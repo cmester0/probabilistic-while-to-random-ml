@@ -355,8 +355,9 @@ of general recursion.
 
 \begin{defn}
   \textit{$\omega$-complete partial order ($\omega$-cpo)}\\
-  An $\omega$-cpo is a partially ordered set that has a distinct least element and
-  where there exist least upper bounds on all monotonic sequences.
+  An $\omega$-cpo is a partially ordered set, $\Sigma$ that has a distinct least
+  element, $0_\Sigma$, and where there exist least upper bounds,
+  \texttt{lub}$_\Sigma$, on all monotonic sequences.
 \end{defn}
 
 \subsubsection{Recursive definitions as fixed point iterations}
@@ -373,12 +374,12 @@ least upper bound of the sequence for $n$ larger than the length of the sequence
 % Standard definition of fixed points
 There is a standard way of defining fixed point iterations on an
 $\omega$-cpo\cite{rml-paper}: Consider an operator $F~:~X \xrightarrow{m} X$ on some
-$\omega$-cpo $X$; with this we define the monotonic sequence $F_i \mapsto
-\underbrace{ F(F(\dots F}_{i \text{ times}} (0_X) \dots))$ of repeated application of
-$F$ to the least element of $X$.  By our choice of $F$ and the definition of
-$\omega$-cpos, it is clear that there has to exist a least upper bound on $F_i$. This
-least upper bound is the fixed point of $F$ and it will hold that $\texttt{fix } F =
-F(\texttt{fix }F)$ if $F$ is continuous.
+$\omega$-cpo $X$; with this we define the monotonic sequence
+$$F_i \mapsto \underbrace{ F(F(\dots F}_{i \text{ times}} (0_X) \dots))$$
+of repeated application of $F$ to the least element of $X$.  By our choice of $F$ and
+the definition of $\omega$-cpos, it is clear that there has to exist a least upper
+bound on $F_i$. This least upper bound is the fixed point of $F$ and it will hold
+that $\texttt{fix } F = F(\texttt{fix }F)$ if $F$ is continuous.
 
 % How it extends to function spaces
 For an $\omega$-cpo with underlying set $B$ we can also define an $\omega$-cpo on
@@ -492,11 +493,12 @@ Now why all this talk about measures? Wasn't it probabilistic programs we were
 talking about?
 
 The cool thing is that being able to measure function whose co-domain is the real
-numbers in the unit interval, so functions of type $\tau\to[0,1]$ for some type
-$\tau$, gives us a way of representing probability distributions. A measure on type
-$\tau$ can be expressed with the type $(\tau\to[0,1])\to[0,1]$. An interpretation of
-a probabilistic term whose type is $\tau$ can now be understood as a measure on type
-$\tau$, or equivalently as a transformation of a probability distribution.
+numbers in the unit interval (in other words functions of type $\tau\to[0,1]$ for
+some type $\tau$) gives us a way of representing probability distributions. A measure
+on type $\tau$ can be expressed with the type $(\tau\to[0,1])\to[0,1]$. An
+interpretation of a probabilistic term whose type is $\tau$ can now be understood as
+a measure on type $\tau$, or equivalently as a transformation of a probability
+distribution.
 
 Something of type $\tau\to[0,1]$ can be understood as the function that returns the
 probability of its input being part of a specified set, or in other words, we can
@@ -634,9 +636,9 @@ recursion.
 
 % Packages: comment
 \subsection{The functional approach: \rml}\label{sec:rml}
-The first language for probabilistic programs implemented in Coq is called \rml\ 
-(`Randomised monadic language') and is due to is due to Philippe Audebaud and
-Christine Paulin-Mohring\cite{rml-paper}.
+The first language for probabilistic programs implemented in Coq is called \rml\
+(`Randomised monadic language') and is due to Philippe Audebaud and Christine
+Paulin-Mohring\cite{rml-paper}.
 \\ \\
 \rml\ is a simple functional language whose interpretation allows for probabilistic
 algorithms. The language itself does not contain probabilistic expressions, but
@@ -660,7 +662,7 @@ language, so there are only expressions, no statements) are as follows:
 Here $x$ refers to a variable name previously bound in a let-binding, and $c$ refers
 to a primitive constant. Since Paulin-Mohring and Adebaud don't give a clear
 definition of what a constant can be, it makes sense to assume that it can be any
-Coq term. This is beacuse their proposed approach to interpreting \rml\ in Coq is a
+Coq term. This is because their proposed approach to interpreting \rml\ in Coq is a
 shallow embedding, which means that it uses Coq's type system and values instead of
 defining its own. 
 
@@ -884,33 +886,26 @@ encapsulates the information we are interested in after the computation. This is
 result of a program translated from \texttt{while} to our functional language; in the
 following we choose $x_r$ as the symbol for the chosen return variable. 
 \begin{align}
-  \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket
-\end{align}
-\begin{align}
-  \texttt{skip}     ~\mapsto~ & x_r
-\end{align}
-\begin{align}
-  x := e~;~s        ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket
-\end{align}
-\begin{align}
-  x_r := e          ~\mapsto~ & e 
-\end{align}
-\begin{align}
-  x := e            ~\mapsto~ & x_r
-\end{align}
-\begin{align}
+  \texttt{skip}~;~s ~\mapsto~ & \llbracket s \rrbracket\\
+                                \notag\\
+  \texttt{skip}     ~\mapsto~ & x_r\\
+                                \notag\\
+  x := e~;~s        ~\mapsto~ & \texttt{let } x := e \texttt{ in }\llbracket s \rrbracket\\
+                                \notag\\
+  x_r := e          ~\mapsto~ & e \\
+                                \notag\\
+  x := e            ~\mapsto~ & x_r\\
+                                \notag\\
   (\texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2) ~;~s_3
                     ~\mapsto~ & \texttt{if } e \\
                     &  \texttt{ then } \llbracket s_1 ~;~ s_3 \rrbracket\notag\\
-                    & \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \notag
-\end{align}
-\begin{align}
+                    & \texttt{ else } \llbracket s_2 ~;~ s_3 \rrbracket \notag\\
+  \notag\\
   \texttt{if } e \texttt{ then } s_1 \texttt{ else } s_2
                     ~\mapsto~ & \texttt{if } e
                                   \texttt{ then } \llbracket s_1 \rrbracket
-                                  \texttt{ else } \llbracket s_2 \rrbracket 
-\end{align}
-\begin{align}
+                                  \texttt{ else } \llbracket s_2 \rrbracket \\
+  \notag\\
   (\texttt{while } e \texttt{ do } s_1) ~;~ s_2
                     ~\mapsto~ & \texttt{let rec } f~x :=
                                   \texttt{if } e \label{eq:while1}\\
@@ -1008,12 +1003,10 @@ interpretation.
 \begin{align}
   \texttt{skip} ~;~s ~\mapsto^{\texttt{w}}~ & \llbracket s \rrbracket\\
   \texttt{skip} ~;~s ~\mapsto^\lambda~ & \llbracket s \rrbracket\notag
-\end{align}
-\begin{align}
+                                         \notag\\
   \texttt{skip}     ~\mapsto^{\texttt{w}}~ & x_r\\
   \texttt{skip}     ~\mapsto^\lambda~ & x_r\notag
-\end{align}
-\begin{align}
+                                        \notag\\
   x := e~;~s        ~\mapsto^{\texttt{w}}~ & \llbracket s\rrbracket[e / x]\notag\\
   x := e~;~s        ~\mapsto^\lambda~ & (\lambda x.\llbracket s \rrbracket)~e
 \end{align}
@@ -1606,13 +1599,13 @@ a framework that is more useful than either of the approaches on its own.
 We have in this work looked at two probabilistic languages and their interpretation
 in Coq: The functional \rml, and the imperative \texttt{pwhile}.\\
 \\
-We started by going through the theoretic background of such interpretations, where
+We started by going through the theoretical background of such interpretations, where
 we explored how we can interpret probabilistic definitions as probability measures
 and how we can represent these measures by use of a monad. We also looked at the
 domain theoretic approach to interpreting recursion and iteration without running the
 risk of trying to construct a non-terminating algorithm within Coq, since this would
-either be disallowed by Coq's termination-checker, or show that we added axioms
-that ended up introducing an inconsistency in the logic.
+either be disallowed by Coq's termination-checker, or show that we added axioms that
+ended up introducing an inconsistency in the logic.
 
 After looking at the interpretations for recursion/iteration, and for probabilistic
 definitions, we made sure that it was possible to interpret recursion/iteration in a
